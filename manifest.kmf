@@ -1,0 +1,58 @@
+#KMF VERSION 1.0
+
+// The purpose of this .kmf file is to distribute KalaGraphics to external repositories
+// that don't exist within this repository. Solin helps us achieve simple file movement
+// solutions thanks to how clean and efficient it is by utilizing filesystem and fstream internally.
+
+//
+// CORE STUFF
+//
+
+//copy readme
+origin: readme.md
+target: ..@Circuit-chan@_external_shared@KalaGraphics@readme.md, ..@Elypso-engine@_external_shared@KalaGraphics@readme.md, ..@Elypso-hub@_external_shared@KalaGraphics@readme.md, ..@Solin@_external_shared@KalaGraphics@readme.md
+action: forcecopy
+
+//copy license
+origin: LICENSE.md
+target: ..@Circuit-chan@_external_shared@KalaGraphics@LICENSE.md, ..@Elypso-engine@_external_shared@KalaGraphics@LICENSE.md, ..@Elypso-hub@_external_shared@KalaGraphics@LICENSE.md, ..@Solin@_external_shared@KalaGraphics@LICENSE.md
+action: forcecopy
+
+//copy include files
+origin: include
+target: ..@Circuit-chan@_external_shared@KalaGraphics@include, ..@Elypso-engine@_external_shared@KalaGraphics@include, ..@Elypso-hub@_external_shared@KalaGraphics@include, ..@Solin@_external_shared@KalaGraphics@include
+action: forcecopy
+
+//copy docs
+origin: docs
+target: ..@Circuit-chan@_external_shared@KalaGraphics@docs, ..@Elypso-engine@_external_shared@KalaGraphics@docs, ..@Elypso-hub@_external_shared@KalaGraphics@docs, ..@Solin@_external_shared@KalaGraphics@docs
+action: forcecopy
+
+//
+// BINARIES
+//
+
+//copy debug dll
+origin: debug@_KalaGraphics1d.dll
+target: ..@Circuit-chan@_external_shared@KalaGraphics@debug@_KalaAudio1d.dll, ..@Elypso-engine@_external_shared@KalaGraphics@debug@_KalaAudio1d.dll, ..@Elypso-hub@_external_shared@KalaGraphics@debug@_KalaAudio1d.dll, ..@Solin@_external_shared@KalaGraphics@debug@_KalaGraphics1d.dll
+action: forcecopy
+
+//copy debug lib
+origin: debug@_KalaGraphics1d.lib
+target: ..@Circuit-chan@_external_shared@KalaGraphics@debug@_KalaGraphics1d.lib, ..@Elypso-engine@_external_shared@KalaGraphics@debug@_KalaGraphics1d.lib, ..@Elypso-hub@_external_shared@KalaGraphics@debug@_KalaAudio1d.lib, ..@Solin@_external_shared@KalaGraphics@debug@_KalaGraphics1d.lib
+action: forcecopy
+
+//copy debug pdb
+origin: debug@_KalaGraphics1d.pdb
+target: ..@Circuit-chan@_external_shared@KalaGraphics@debug@_KalaGraphics1d.pdb, ..@Elypso-engine@_external_shared@KalaGraphics@debug@_KalaGraphics1d.pdb, ..@Elypso-hub@_external_shared@KalaGraphics@debug@_KalaAudio1d.pdb, ..@Solin@_external_shared@KalaGraphics@debug@_KalaGraphics1d.pdb
+action: forcecopy
+
+//copy release dll
+origin: release@_KalaGraphics1.dll
+target: ..@Circuit-chan@_external_shared@KalaGraphics@release@_KalaGraphics1.dll, ..@Elypso-engine@_external_shared@KalaGraphics@release@_KalaGraphics1.dll, ..@Elypso-hub@_external_shared@KalaGraphics@release@_KalaGraphics1.dll, ..@Solin@_external_shared@KalaGraphics@release@_KalaGraphics1.dll
+action: forcecopy
+
+//copy release lib
+origin: release@_KalaGraphics1.lib
+target: ..@Circuit-chan@_external_shared@KalaGraphics@release@_KalaGraphics1.lib, ..@Elypso-engine@_external_shared@KalaGraphics@release@_KalaGraphics1.lib, ..@Elypso-hub@_external_shared@KalaGraphics@release@_KalaGraphics1.lib, ..@Solin@_external_shared@KalaGraphics@release@_KalaGraphics1.lib
+action: forcecopy
