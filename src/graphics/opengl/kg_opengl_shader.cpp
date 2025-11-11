@@ -83,30 +83,7 @@ namespace KalaGraphics::Graphics::OpenGL
         const string& name,
         const array<ShaderData, 3>& shaderData)
     {
-		if (OpenGL_Core::GetGlobalContext() == NULL)
-		{
-			Log::Print(
-				"Cannot create shader '" + name + "' because its global OpenGL context is unassigned!",
-				"OPENGL_SHADER",
-				LogType::LOG_ERROR,
-				2);
-
-			return nullptr;
-		}
-		
-        uintptr_t hdc{};
 		uintptr_t hglrc{};
-		
-		if (!OpenGL_Core::GetHandle(windowID, hdc))
-		{
-			Log::Print(
-				"Cannot create shader '" + name + "' because its OpenGL handle is unassigned!",
-				"OPENGL_SHADER",
-				LogType::LOG_ERROR,
-				2);
-
-			return nullptr;
-		}
 		if (!OpenGL_Core::GetContext(windowID, hglrc))
 		{
 			Log::Print(
@@ -481,34 +458,13 @@ namespace KalaGraphics::Graphics::OpenGL
         return shaderPtr;
     }
 
-    bool OpenGL_Shader::Bind(u32 windowID)
+    bool OpenGL_Shader::Bind(
+		u32 windowID,
+		uintptr_t handle)
     {
 		if (!checkedBindOnce)
 		{
-			if (OpenGL_Core::GetGlobalContext() == NULL)
-			{
-				Log::Print(
-					"Cannot bind shader '" + name + "' because its global OpenGL context is unassigned!",
-					"OPENGL_SHADER",
-					LogType::LOG_ERROR,
-					2);
-
-				return false;
-			}
-			
-			uintptr_t hdc{};
 			uintptr_t hglrc{};
-			
-			if (!OpenGL_Core::GetHandle(windowID, hdc))
-			{
-				Log::Print(
-					"Cannot bind shader '" + name + "' because its OpenGL handle is unassigned!",
-					"OPENGL_SHADER",
-					LogType::LOG_ERROR,
-					2);
-
-				return false;
-			}
 			if (!OpenGL_Core::GetContext(windowID, hglrc))
 			{
 				Log::Print(
@@ -528,12 +484,23 @@ namespace KalaGraphics::Graphics::OpenGL
 		if (!OpenGL_Core::GetLastProgramID(windowID, lastProgramID))
 		{
 			Log::Print(
-				"Cannot get last program ID for binding shader '" + name + "' because its window ID!",
+				"Cannot get last program ID for binding shader '" + name + "' because its window '" + to_string(windowID) + "' is invalid'!",
 				"OPENGL_SHADER",
 				LogType::LOG_ERROR,
 				2);
 
 				return false;
+		}
+		
+		if (handle == NULL)
+		{
+			Log::Print(
+				"Cannot bind shader '" + name + "' for window '" + to_string(windowID) + "' because its handle (hdc) is invalid!",
+				"OPENGL_SHADER",
+				LogType::LOG_ERROR,
+				2);
+
+			return false;
 		}
 		
         u32 ID = programID;
@@ -549,7 +516,7 @@ namespace KalaGraphics::Graphics::OpenGL
             return false;
         }
 
-        OpenGL_Core::MakeContextCurrent(windowID);
+        OpenGL_Core::MakeContextCurrent(windowID, handle);
         if (!OpenGL_Core::IsContextValid(windowID))
         {
             Log::Print(

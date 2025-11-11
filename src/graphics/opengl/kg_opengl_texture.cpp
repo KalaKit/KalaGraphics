@@ -622,30 +622,7 @@ namespace KalaGraphics::Graphics::OpenGL
 			TextureFormat& outFormat)>&
 		customTextureInitData)
 	{
-		if (OpenGL_Core::GetGlobalContext() == NULL)
-		{
-			Log::Print(
-				"Cannot load texture '" + name + "' because its global OpenGL context is unassigned!",
-				"OPENGL_TEXTURE",
-				LogType::LOG_ERROR,
-				2);
-
-			return nullptr;
-		}
-		
-        uintptr_t hdc{};
 		uintptr_t hglrc{};
-		
-		if (!OpenGL_Core::GetHandle(windowID, hdc))
-		{
-			Log::Print(
-				"Cannot load texture '" + name + "' because its OpenGL handle is unassigned!",
-				"OPENGL_TEXTURE",
-				LogType::LOG_ERROR,
-				2);
-
-			return nullptr;
-		}
 		if (!OpenGL_Core::GetContext(windowID, hglrc))
 		{
 			Log::Print(

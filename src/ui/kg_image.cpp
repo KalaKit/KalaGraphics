@@ -38,30 +38,7 @@ namespace KalaGraphics::UI
 		OpenGL_Texture* texture,
 		OpenGL_Shader* shader)
 	{
-		if (OpenGL_Core::GetGlobalContext() == NULL)
-		{
-			Log::Print(
-				"Cannot load image '" + name + "' because its global OpenGL context is unassigned!",
-				"IMAGE",
-				LogType::LOG_ERROR,
-				2);
-
-			return nullptr;
-		}
-		
-		uintptr_t hdc{};
 		uintptr_t hglrc{};
-		
-		if (!OpenGL_Core::GetHandle(windowID, hdc))
-		{
-			Log::Print(
-				"Cannot load image '" + name + "' because its OpenGL handle is unassigned!",
-				"IMAGE",
-				LogType::LOG_ERROR,
-				2);
-
-			return nullptr;
-		}
 		if (!OpenGL_Core::GetContext(windowID, hglrc))
 		{
 			Log::Print(
@@ -133,6 +110,7 @@ namespace KalaGraphics::UI
 		imagePtr->transform = Transform2D::Initialize();
 
 		imagePtr->ID = newID;
+		imagePtr->windowID = windowID;
 		imagePtr->SetName(name);
 		imagePtr->render.canUpdate = true;
 		imagePtr->transform->SetPos(pos, PosTarget::POS_WORLD);
@@ -153,6 +131,7 @@ namespace KalaGraphics::UI
 
 	bool Image::Render(
 		u32 windowID,
+		uintptr_t handle,
 		const mat4& projection)
 	{
 		if (!render.canUpdate) return false;
@@ -175,7 +154,7 @@ namespace KalaGraphics::UI
 		if (!render.shader)
 		{
 			Log::Print(
-				"Failed to render Image widget '" + name + "' because its shader is nullptr!",
+				"Failed to render Image widget '" + name + "' because its shader is unassigned!",
 				"IMAGE",
 				LogType::LOG_ERROR,
 				2);
@@ -183,7 +162,18 @@ namespace KalaGraphics::UI
 			return false;
 		}
 
-		if (!render.shader->Bind(windowID))
+		if (handle == NULL)
+		{
+			Log::Print(
+				"Failed to render Text widget '" + name + "' because its handle is unassigned!",
+				"TEXT",
+				LogType::LOG_ERROR,
+				2);
+
+			return false;
+		}
+
+		if (!render.shader->Bind(handle, windowID))
 		{
 			Log::Print(
 				"Failed to render Image widget '" + name + "' because its shader '" + render.shader->GetName() + "' failed to bind!",

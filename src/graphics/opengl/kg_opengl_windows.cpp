@@ -22,7 +22,9 @@ using std::to_string;
 
 namespace KalaGraphics::Graphics::OpenGL
 {
-	void OpenGL_Core::SwapOpenGLBuffers(u32 windowID)
+	void OpenGL_Core::SwapOpenGLBuffers(
+		u32 windowID,
+		uintptr_t handle)
 	{
 		if (windowContexts.empty()
 			|| !windowContexts.contains(windowID))
@@ -36,11 +38,10 @@ namespace KalaGraphics::Graphics::OpenGL
 			return;
 		}
 		
-		HDC storedHDC{};
-		if (windowContexts[windowID].hdc == NULL)
+		if (handle == NULL)
 		{
 			Log::Print(
-				"Cannot swap OpenGL buffers for window '" + to_string(windowID) + "' because its hdc is not assigned!",
+				"Cannot swap OpenGL buffers for window '" + to_string(windowID) + "' because its handle (hdc) is invalid!",
 				"OPENGL",
 				LogType::LOG_ERROR,
 				2);
@@ -48,11 +49,12 @@ namespace KalaGraphics::Graphics::OpenGL
 			return;
 		}
 
-		storedHDC = ToVar<HDC>(windowContexts[windowID].hdc);
-		SwapBuffers(storedHDC);
+		SwapBuffers(ToVar<HDC>(handle));
 	}
 	
-	void OpenGL_Core::MakeContextCurrent(u32 windowID)
+	void OpenGL_Core::MakeContextCurrent(
+		u32 windowID,
+		uintptr_t handle)
 	{
 		if (windowContexts.empty()
 			|| !windowContexts.contains(windowID))
@@ -66,13 +68,12 @@ namespace KalaGraphics::Graphics::OpenGL
 			return;
 		}
 		
-		HDC storedHDC{};
 		HGLRC storedHGLRC{};
-		if (windowContexts[windowID].hdc == NULL
+		if (handle == NULL
 			|| windowContexts[windowID].hglrc == NULL)
 		{
 			Log::Print(
-				"Cannot make OpenGL context current for window '" + to_string(windowID) + "' because its hdc or hglrc is not assigned!",
+				"Cannot make OpenGL context current for window '" + to_string(windowID) + "' because its handle (hdc) or context (hglrc) is invalid!",
 				"OPENGL",
 				LogType::LOG_ERROR,
 				2);
@@ -80,10 +81,11 @@ namespace KalaGraphics::Graphics::OpenGL
 			return;
 		}
 
-		storedHDC = ToVar<HDC>(windowContexts[windowID].hdc);
 		storedHGLRC = ToVar<HGLRC>(windowContexts[windowID].hglrc);
 
-		if (wglGetCurrentContext() != storedHGLRC) wglMakeCurrent(storedHDC, storedHGLRC);
+		if (wglGetCurrentContext() != storedHGLRC) wglMakeCurrent(
+			ToVar<HDC>(handle),
+			storedHGLRC);
 	}
 	bool OpenGL_Core::IsContextValid(u32 windowID)
 	{
@@ -156,7 +158,7 @@ namespace KalaGraphics::Graphics::OpenGL
 		u32 windowID,
 		VSyncState newValue)
 	{
-		if (windowContexts.contains(windowID)) return;
+		if (!windowContexts.contains(windowID)) windowContexts[windowID] = {};
 		
 		if (!wglSwapIntervalEXT)
 		{
