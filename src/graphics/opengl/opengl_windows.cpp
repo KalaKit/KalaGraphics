@@ -176,6 +176,33 @@ namespace KalaGraphics::Graphics::OpenGL
 			? 1
 			: 0);
 	}
+	
+	string OpenGL_Core::GetError()
+	{
+		GLenum error{};
+		string errorVal{};
+
+		while ((error = glGetError()) != GL_NO_ERROR)
+		{
+			switch (error)
+			{
+			case GL_INVALID_ENUM:                  errorVal = "GL_INVALID_ENUM"; break;
+			case GL_INVALID_VALUE:                 errorVal = "GL_INVALID_VALUE"; break;
+			case GL_INVALID_INDEX:                 errorVal = "GL_INVALID_INDEX"; break;
+
+			case GL_INVALID_OPERATION:             errorVal = "GL_INVALID_OPERATION"; break;
+			case GL_STACK_OVERFLOW:                errorVal = "GL_STACK_OVERFLOW"; break;
+			case GL_STACK_UNDERFLOW:               errorVal = "GL_STACK_UNDERFLOW"; break;
+			case GL_INVALID_FRAMEBUFFER_OPERATION: errorVal = "GL_INVALID_FRAMEBUFFER_OPERATION"; break;
+
+			case GL_OUT_OF_MEMORY:                 errorVal = "GL_OUT_OF_MEMORY"; break;
+
+			default:                               errorVal = "Unknown error"; break;
+			}
+		}
+
+		return errorVal;
+	}
 }
 
 #endif //_WIN32

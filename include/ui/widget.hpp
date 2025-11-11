@@ -12,6 +12,7 @@
 
 #include "KalaHeaders/core_utils.hpp"
 #include "KalaHeaders/math_utils.hpp"
+#include "KalaHeaders/key_standards.hpp"
 
 #include "graphics/opengl/opengl_shader.hpp"
 #include "graphics/opengl/opengl_texture.hpp"
@@ -35,6 +36,8 @@ namespace KalaGraphics::UI
 	using KalaHeaders::createumodel;
 	using KalaHeaders::kclamp;
 	using KalaHeaders::tomat4;
+	using KalaHeaders::MouseButton;
+	using KalaHeaders::KeyboardButton;
 
 	using KalaGraphics::Graphics::OpenGL::OpenGL_Shader;
 	using KalaGraphics::Graphics::OpenGL::OpenGL_Texture;
@@ -102,19 +105,19 @@ namespace KalaGraphics::UI
 	struct Widget_Event
 	{
 		function<void()> function_button_pressed{};
-		u32 keyPressed{};
-		u32 mousePressed{};
+		KeyboardButton keyPressed{};
+		MouseButton mousePressed{};
 
 		function<void()> function_button_released{};
-		u32 keyReleased{};
-		u32 mouseReleased{};
+		KeyboardButton keyReleased{};
+		MouseButton mouseReleased{};
 
 		function<void()> function_button_held{};
-		u32 keyHeld{};
-		u32 mouseHeld{};
+		KeyboardButton keyHeld{};
+		MouseButton mouseHeld{};
 
 		function<void()> function_mouse_dragged{};
-		u32 mouseDragged{};
+		MouseButton mouseDragged{};
 
 		function<void()> function_mouse_hovered{};
 		function<void()> function_mouse_scrolled{};
@@ -276,7 +279,7 @@ namespace KalaGraphics::UI
 			ActionTarget actionTarget)
 		{
 			if (!newValue
-				|| mouseButton == MouseButton::MouseButtonCount)
+				|| mouseButton == MouseButton::M_INVALID)
 			{
 				return;
 			}
@@ -285,7 +288,7 @@ namespace KalaGraphics::UI
 			{
 			case ActionTarget::ACTION_PRESSED:
 			{
-				event.keyPressed = 0;
+				event.keyPressed = KeyboardButton::K_INVALID;
 				event.mousePressed = mouseButton;
 
 				event.function_button_pressed = newValue;
@@ -293,7 +296,7 @@ namespace KalaGraphics::UI
 			}
 			case ActionTarget::ACTION_RELEASED:
 			{
-				event.keyReleased = 0;
+				event.keyReleased = KeyboardButton::K_INVALID;
 				event.mouseReleased = mouseButton;
 
 				event.function_button_released = newValue;
@@ -301,7 +304,7 @@ namespace KalaGraphics::UI
 			}
 			case ActionTarget::ACTION_HELD:
 			{
-				event.keyHeld = 0;
+				event.keyHeld = KeyboardButton::K_INVALID;
 				event.mouseHeld = mouseButton;
 
 				event.function_button_held = newValue;
@@ -339,16 +342,17 @@ namespace KalaGraphics::UI
 			case ActionTarget::ACTION_DRAGGED:  return event.mouseDragged;
 			}
 
-			return MouseButton::Unknown;
+			return MouseButton::M_INVALID;
 		}
 
 		//Accepts keyboard keys for pressed, released and held events, ignores all other events
 		inline void SetKeyEvent(
 			const function<void()>& newValue,
-			u32 key,
+			KeyboardButton key,
 			ActionTarget actionTarget)
 		{
-			if (!newValue)
+			if (!newValue
+				|| key == KeyboardButton::K_INVALID)
 			{
 				return;
 			}
@@ -361,7 +365,7 @@ namespace KalaGraphics::UI
 			}
 		}
 		//Returns which key is attached to what key event, ignores dragged, hovered and scrolled events
-		inline u32 GetKeyEventButton(ActionTarget actionTarget) const
+		inline KeyboardButton GetKeyEventButton(ActionTarget actionTarget) const
 		{
 			switch (actionTarget)
 			{
@@ -370,7 +374,7 @@ namespace KalaGraphics::UI
 			case ActionTarget::ACTION_HELD:     return event.keyHeld;
 			}
 
-			return 0;
+			return KeyboardButton::K_INVALID;
 		}
 
 		//Clears target event function and its buttons
@@ -380,31 +384,31 @@ namespace KalaGraphics::UI
 			{
 			case ActionTarget::ACTION_PRESSED:
 			{
-				event.keyPressed = 0;
-				event.mousePressed = 0;
+				event.keyPressed = KeyboardButton::K_INVALID;
+				event.mousePressed = MouseButton::M_INVALID;
 				event.function_button_pressed = nullptr;
 
 				break;
 			}
 			case ActionTarget::ACTION_RELEASED:
 			{
-				event.keyReleased = 0;
-				event.mouseReleased = 0;
+				event.keyReleased = KeyboardButton::K_INVALID;
+				event.mouseReleased = MouseButton::M_INVALID;
 				event.function_button_released = nullptr;
 
 				break;
 			}
 			case ActionTarget::ACTION_HELD:
 			{
-				event.keyHeld = 0;
-				event.mouseHeld = 0;
+				event.keyHeld = KeyboardButton::K_INVALID;
+				event.mouseHeld = MouseButton::M_INVALID;
 				event.function_button_held = nullptr;
 
 				break;
 			}
 			case ActionTarget::ACTION_DRAGGED:
 			{
-				event.mouseDragged = 0;
+				event.mouseDragged = MouseButton::M_INVALID;
 				event.function_mouse_dragged = nullptr;
 
 				break;
@@ -416,19 +420,19 @@ namespace KalaGraphics::UI
 		//Removes all event functions and resets their attached buttons
 		inline void ClearAllEvents()
 		{
-			event.keyPressed = 0;
-			event.mousePressed = 0;
+			event.keyPressed = KeyboardButton::K_INVALID;
+			event.mousePressed = MouseButton::M_INVALID;
 			event.function_button_pressed = nullptr;
 
-			event.keyReleased = 0;
-			event.mouseReleased = 0;
+			event.keyReleased = KeyboardButton::K_INVALID;
+			event.mouseReleased = MouseButton::M_INVALID;
 			event.function_button_released = nullptr;
 
-			event.keyHeld = 0;
-			event.mouseHeld = 0;
+			event.keyHeld = KeyboardButton::K_INVALID;
+			event.mouseHeld = MouseButton::M_INVALID;
 			event.function_button_held = nullptr;
 
-			event.mouseDragged = 0;
+			event.mouseDragged = MouseButton::M_INVALID;
 			event.function_mouse_dragged = nullptr;
 
 			event.function_mouse_hovered = nullptr;

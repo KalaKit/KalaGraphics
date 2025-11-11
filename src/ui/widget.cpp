@@ -69,7 +69,7 @@ namespace KalaGraphics::UI
 			return false;
 		}
 
-		const vector<Widget*>& hitWidgets = GetHitWidgets(windowID);
+		const vector<Widget*>& hitWidgets = GetHitWidgets(mousePos);
 
 		if (hitWidgets.empty()) return false;
 
