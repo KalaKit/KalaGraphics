@@ -5,11 +5,11 @@
 
 #include "KalaHeaders/log_utils.hpp"
 
-#include "core/core.hpp"
-#include "ui/widget.hpp"
-#include "ui/text.hpp"
-#include "graphics/opengl/opengl_functions_core.hpp"
-#include "ui/image.hpp"
+#include "core/kg_core.hpp"
+#include "ui/kg_widget.hpp"
+#include "ui/kg_text.hpp"
+#include "ui/kg_image.hpp"
+#include "graphics/opengl/kg_opengl_functions_core.hpp"
 
 using KalaHeaders::Log;
 using KalaHeaders::LogType;

@@ -5,13 +5,12 @@
 
 #ifdef _WIN32
 
-#include "graphics/opengl/opengl_functions_core.hpp"
-#include "graphics/opengl/opengl_functions_win.hpp"
-
 #include "KalaHeaders/log_utils.hpp"
 
-#include "core/core.hpp"
-#include "graphics/opengl/opengl.hpp"
+#include "core/kg_core.hpp"
+#include "graphics/opengl/kg_opengl.hpp"
+#include "graphics/opengl/kg_opengl_functions_core.hpp"
+#include "graphics/opengl/kg_opengl_functions_win.hpp"
 
 using KalaHeaders::Log;
 using KalaHeaders::LogType;

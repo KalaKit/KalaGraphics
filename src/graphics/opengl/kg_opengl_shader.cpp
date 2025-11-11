@@ -13,10 +13,10 @@
 
 #include "KalaHeaders/log_utils.hpp"
 
-#include "graphics/opengl/opengl_shader.hpp"
-#include "graphics/opengl/opengl_functions_core.hpp"
-#include "graphics/opengl/opengl.hpp"
-#include "core/core.hpp"
+#include "graphics/opengl/kg_opengl_shader.hpp"
+#include "graphics/opengl/kg_opengl_functions_core.hpp"
+#include "graphics/opengl/kg_opengl.hpp"
+#include "core/kg_core.hpp"
 
 using KalaHeaders::Log;
 using KalaHeaders::LogType;

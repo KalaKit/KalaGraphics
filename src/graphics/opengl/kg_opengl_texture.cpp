@@ -20,11 +20,11 @@
 
 #include "KalaHeaders/log_utils.hpp"
 
-#include "graphics/texture.hpp"
-#include "graphics/opengl/opengl_texture.hpp"
-#include "graphics/opengl/opengl_functions_core.hpp"
-#include "graphics/opengl/opengl.hpp"
-#include "core/core.hpp"
+#include "graphics/kg_texture.hpp"
+#include "graphics/opengl/kg_opengl_texture.hpp"
+#include "graphics/opengl/kg_opengl_functions_core.hpp"
+#include "graphics/opengl/kg_opengl.hpp"
+#include "core/kg_core.hpp"
 
 using KalaHeaders::vec2;
 

@@ -7,11 +7,11 @@
 
 #include "KalaHeaders/log_utils.hpp"
 
-#include "ui/image.hpp"
-#include "core/core.hpp"
-#include "graphics/opengl/opengl_functions_core.hpp"
-#include "graphics/opengl/opengl_texture.hpp"
-#include "graphics/opengl/opengl.hpp"
+#include "ui/kg_image.hpp"
+#include "core/kg_core.hpp"
+#include "graphics/opengl/kg_opengl_functions_core.hpp"
+#include "graphics/opengl/kg_opengl_texture.hpp"
+#include "graphics/opengl/kg_opengl.hpp"
 
 using KalaHeaders::Log;
 using KalaHeaders::LogType;

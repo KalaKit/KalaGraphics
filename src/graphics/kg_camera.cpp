@@ -7,8 +7,8 @@
 
 #include "KalaHeaders/log_utils.hpp"
 
-#include "core/core.hpp"
-#include "graphics/camera.hpp"
+#include "core/kg_core.hpp"
+#include "graphics/kg_camera.hpp"
 
 using KalaHeaders::Log;
 using KalaHeaders::LogType;

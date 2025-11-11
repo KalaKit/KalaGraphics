@@ -9,8 +9,8 @@
 #include "KalaHeaders/file_utils.hpp"
 #include "KalaHeaders/import_ktf.hpp"
 
-#include "ui/font.hpp"
-#include "core/core.hpp"
+#include "ui/kg_font.hpp"
+#include "core/kg_core.hpp"
 
 using KalaHeaders::Log;
 using KalaHeaders::LogType;
