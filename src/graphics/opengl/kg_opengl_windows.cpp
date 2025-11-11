@@ -10,7 +10,7 @@
 #include "core/kg_core.hpp"
 #include "graphics/opengl/kg_opengl.hpp"
 #include "graphics/opengl/kg_opengl_functions_core.hpp"
-#include "graphics/opengl/kg_opengl_functions_win.hpp"
+#include "graphics/opengl/kg_opengl_functions_windows.hpp"
 
 using KalaHeaders::Log;
 using KalaHeaders::LogType;

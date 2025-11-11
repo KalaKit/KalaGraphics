@@ -12,7 +12,7 @@
 #include "KalaHeaders/log_utils.hpp"
 #include "KalaHeaders/core_utils.hpp"
 
-#include "graphics/opengl/kg_opengl_functions_win.hpp"
+#include "graphics/opengl/kg_opengl_functions_windows.hpp"
 #include "graphics/opengl/kg_opengl.hpp"
 #include "core/kg_core.hpp"
 
@@ -51,15 +51,15 @@ namespace KalaGraphics::Graphics::OpenGLFunctions
     PFNWGLGETPIXELFORMATATTRIBFVARBPROC wglGetPixelFormatAttribfvARB = nullptr;
     PFNWGLGETPIXELFORMATATTRIBIVARBPROC wglGetPixelFormatAttribivARB = nullptr;
 
-	void OpenGL_Functions_Windows::LoadAllWinFunctions()
+	void OpenGL_Functions_Windows::LoadAllWindowsFunctions()
 	{
         for (const auto& func : functions)
         {
-            LoadWinFunction(func.name);
+            LoadWindowsFunction(func.name);
         }
 	}
 
-    void OpenGL_Functions_Windows::LoadWinFunction(const char* name)
+    void OpenGL_Functions_Windows::LoadWindowsFunction(const char* name)
     {
         //check if already loaded
         auto it = find_if(
