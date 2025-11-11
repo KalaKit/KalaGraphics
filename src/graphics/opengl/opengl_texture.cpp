@@ -25,7 +25,6 @@
 #include "graphics/opengl/opengl_functions_core.hpp"
 #include "graphics/opengl/opengl.hpp"
 #include "core/core.hpp"
-#include "utils/registry.hpp"
 
 using KalaHeaders::vec2;
 
@@ -39,7 +38,6 @@ using KalaGraphics::Graphics::TextureFormat;
 using KalaGraphics::Core::KalaGraphicsCore;
 using namespace KalaGraphics::Graphics::OpenGLFunctions;
 using KalaGraphics::Graphics::OpenGL::OpenGL_Core;
-using KalaGraphics::Utils::Registry;
 
 using std::string;
 using std::string_view;

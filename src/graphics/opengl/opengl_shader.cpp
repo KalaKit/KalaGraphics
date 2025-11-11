@@ -12,7 +12,6 @@
 #include <memory>
 
 #include "KalaHeaders/log_utils.hpp"
-#include "utils/registry.hpp"
 
 #include "graphics/opengl/opengl_shader.hpp"
 #include "graphics/opengl/opengl_functions_core.hpp"
@@ -29,7 +28,6 @@ using namespace KalaGraphics::Graphics::OpenGLFunctions;
 using KalaGraphics::Graphics::OpenGL::OpenGL_Core;
 using KalaGraphics::Graphics::OpenGL::WindowGLContext;
 using KalaGraphics::Core::KalaGraphicsCore;
-using KalaGraphics::Utils::Registry;
 
 using std::string;
 using std::to_string;
