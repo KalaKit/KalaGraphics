@@ -16,6 +16,7 @@
 
 #include "graphics/opengl/opengl_shader.hpp"
 #include "graphics/opengl/opengl_functions_core.hpp"
+#include "graphics/opengl/opengl.hpp"
 #include "core/core.hpp"
 
 using KalaHeaders::Log;
@@ -25,6 +26,8 @@ using KalaGraphics::Graphics::OpenGL::OpenGL_Shader;
 using KalaGraphics::Graphics::OpenGL::ShaderType;
 using KalaGraphics::Graphics::OpenGL::ShaderData;
 using namespace KalaGraphics::Graphics::OpenGLFunctions;
+using KalaGraphics::Graphics::OpenGL::OpenGL_Core;
+using KalaGraphics::Graphics::OpenGL::WindowGLContext;
 using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Utils::Registry;
 
@@ -78,42 +81,56 @@ static void DeleteShader(
 namespace KalaGraphics::Graphics::OpenGL
 {
     OpenGL_Shader* OpenGL_Shader::CreateShader(
-        const string& shaderName,
+		u32 windowID,
+        const string& name,
         const array<ShaderData, 3>& shaderData)
     {
-        if (!OpenGL_Global::IsInitialized())
-        {
-            KalaGraphicsCore::ForceClose(
-                "Shader error",
-                "Cannot create shader '" + shaderName + "' because OpenGL is not initialized!");
+		if (OpenGL_Core::GetGlobalContext() == NULL)
+		{
+			Log::Print(
+				"Cannot create shader '" + name + "' because its global OpenGL context is unassigned!",
+				"OPENGL_SHADER",
+				LogType::LOG_ERROR,
+				2);
 
-            return nullptr;
-        }
+			return nullptr;
+		}
+		
+        uintptr_t hdc{};
+		uintptr_t hglrc{};
+		
+		if (!OpenGL_Core::GetHandle(windowID, hdc))
+		{
+			Log::Print(
+				"Cannot create shader '" + name + "' because its OpenGL handle is unassigned!",
+				"OPENGL_SHADER",
+				LogType::LOG_ERROR,
+				2);
 
-        OpenGL_Context* context{};
+			return nullptr;
+		}
+		if (!OpenGL_Core::GetContext(windowID, hglrc))
+		{
+			Log::Print(
+				"Cannot create shader '" + name + "' because its OpenGL context is unassigned!",
+				"OPENGL_SHADER",
+				LogType::LOG_ERROR,
+				2);
 
-        if (!context
-            || !context->IsInitialized()
-            || !context->IsContextValid())
-        {
-            KalaGraphicsCore::ForceClose(
-                "Shader error",
-                "Cannot create shader '" + shaderName + "' because there is no valid OpenGL context!");
-
-            return nullptr;
-        }
+			return nullptr;
+		}
 
         u32 newID = ++KalaGraphicsCore::globalID;
         unique_ptr<OpenGL_Shader> newShader = make_unique<OpenGL_Shader>();
         OpenGL_Shader* shaderPtr = newShader.get();
 
         Log::Print(
-            "Creating shader '" + shaderName + "' with ID '" + to_string(newID) + "'.",
+            "Creating shader '" + name + "' with ID '" + to_string(newID) + "'.",
             "OPENGL_SHADER",
             LogType::LOG_DEBUG);
 
         CheckShaderData(
-            shaderName,
+            name,
             shaderData);
 
         bool vertShaderExists{};
@@ -191,9 +208,10 @@ namespace KalaGraphics::Graphics::OpenGL
         if (!vertShaderExists)
         {
             Log::Print(
-                "Cannot create shader '" + shaderName + "' because its vertex data is missing!",
+                "Cannot create shader '" + name + "' because its vertex data is missing!",
                 "OPENGL_SHADER",
-                LogType::LOG_ERROR);
+                LogType::LOG_ERROR,
+				2);
 
             return nullptr;
         }
@@ -201,9 +219,10 @@ namespace KalaGraphics::Graphics::OpenGL
         if (!fragShaderExists)
         {
             Log::Print(
-                "Cannot create shader '" + shaderName + "' because its fragment data is missing!",
+                "Cannot create shader '" + name + "' because its fragment data is missing!",
                 "OPENGL_SHADER",
-                LogType::LOG_ERROR);
+                LogType::LOG_ERROR,
+				2);
 
             return nullptr;
         }
@@ -211,9 +230,10 @@ namespace KalaGraphics::Graphics::OpenGL
         if (vertDuplicateExists)
         {
             Log::Print(
-                "Cannot create shader '" + shaderName + "' because more than one vertex shader was added!",
+                "Cannot create shader '" + name + "' because more than one vertex shader was added!",
                 "OPENGL_SHADER",
-                LogType::LOG_ERROR);
+                LogType::LOG_ERROR,
+				2);
 
             return nullptr;
         }
@@ -221,9 +241,10 @@ namespace KalaGraphics::Graphics::OpenGL
         if (fragDuplicateExists)
         {
             Log::Print(
-                "Cannot create shader '" + shaderName + "' because more than one fragment shader was added!",
+                "Cannot create shader '" + name + "' because more than one fragment shader was added!",
                 "OPENGL_SHADER",
-                LogType::LOG_ERROR);
+                LogType::LOG_ERROR,
+				2);
 
             return nullptr;
         }
@@ -231,9 +252,10 @@ namespace KalaGraphics::Graphics::OpenGL
         if (geomDuplicateExists)
         {
             Log::Print(
-                "Cannot create shader '" + shaderName + "' because more than one geometry shader was added!",
+                "Cannot create shader '" + name + "' because more than one geometry shader was added!",
                 "OPENGL_SHADER",
-                LogType::LOG_ERROR);
+                LogType::LOG_ERROR,
+				2);
 
             return nullptr;
         }
@@ -379,14 +401,14 @@ namespace KalaGraphics::Graphics::OpenGL
 
                 KalaGraphicsCore::ForceClose(
                     "OpenGL shader error",
-                    "Shader program validation failed for shader '" + shaderName + "'! Reason:\n" + logStr);
+                    "Shader program validation failed for shader '" + name + "'! Reason:\n" + logStr);
 
                 return nullptr;
             }
 
             KalaGraphicsCore::ForceClose(
                 "OpenGL shader error",
-                "Shader program validation failed for shader '" + shaderName + "'! No log info was provided.");
+                "Shader program validation failed for shader '" + name + "'! No log info was provided.");
 
             return nullptr;
         }
@@ -404,7 +426,7 @@ namespace KalaGraphics::Graphics::OpenGL
                 } });
 
             string title = "OpenGL shader error";
-            string reason = "Shader program ID " + to_string(shaderPtr->programID) + " for shader '" + shaderName + "' is not valid!";
+            string reason = "Shader program ID " + to_string(shaderPtr->programID) + " for shader '" + name + "' is not valid!";
 
             KalaGraphicsCore::ForceClose(title, reason);
 
@@ -415,7 +437,7 @@ namespace KalaGraphics::Graphics::OpenGL
             if (isVerboseLoggingEnabled)
             {
                 Log::Print(
-                    "Shader program ID " + to_string(shaderPtr->programID) + " for shader '" + shaderName + "' is valid!",
+                    "Shader program ID " + to_string(shaderPtr->programID) + " for shader '" + name + "' is valid!",
                     "OPENGL_SHADER",
                     LogType::LOG_SUCCESS);
             }
@@ -437,7 +459,7 @@ namespace KalaGraphics::Graphics::OpenGL
         if (fragShaderExists) shaderPtr->fragData = newFragData;
         if (geomShaderExists) shaderPtr->geomData = newGeomData;
 
-        if (!shaderPtr->SetName(shaderName))
+        if (!shaderPtr->SetName(name))
         {
             Log::Print(
                 "Shader name cannot be empty or longer than 50 characters!",
@@ -454,40 +476,68 @@ namespace KalaGraphics::Graphics::OpenGL
         registry.AddContent(newID, move(newShader));
 
         Log::Print(
-            "Created OpenGL shader '" + shaderName + "' with ID '" + to_string(newID) + "'!",
+            "Created OpenGL shader '" + name + "' with ID '" + to_string(newID) + "'!",
             "OPENGL_SHADER",
             LogType::LOG_SUCCESS);
 
         return shaderPtr;
     }
 
-    bool OpenGL_Shader::Bind() const
+    bool OpenGL_Shader::Bind(u32 windowID)
     {
-        if (!OpenGL_Global::IsInitialized())
-        {
-            Log::Print(
-                "Cannot bind shader '" + name + "' because OpenGL is not initialized!",
-                "OPENGL_SHADER",
-                LogType::LOG_ERROR,
-                2);
-            return false;
-        }
+		if (!checkedBindOnce)
+		{
+			if (OpenGL_Core::GetGlobalContext() == NULL)
+			{
+				Log::Print(
+					"Cannot bind shader '" + name + "' because its global OpenGL context is unassigned!",
+					"OPENGL_SHADER",
+					LogType::LOG_ERROR,
+					2);
 
-        OpenGL_Context* context{};
+				return false;
+			}
+			
+			uintptr_t hdc{};
+			uintptr_t hglrc{};
+			
+			if (!OpenGL_Core::GetHandle(windowID, hdc))
+			{
+				Log::Print(
+					"Cannot bind shader '" + name + "' because its OpenGL handle is unassigned!",
+					"OPENGL_SHADER",
+					LogType::LOG_ERROR,
+					2);
 
-        if (!context
-            || !context->IsInitialized()
-            || !context->IsContextValid())
-        {
-            Log::Print(
-                "Cannot bind shader '" + name + "' because there is no valid OpenGL context!",
-                "OPENGL_SHADER",
-                LogType::LOG_ERROR);
+				return false;
+			}
+			if (!OpenGL_Core::GetContext(windowID, hglrc))
+			{
+				Log::Print(
+					"Cannot bind shader '" + name + "' because its OpenGL context is unassigned!",
+					"OPENGL_SHADER",
+					LogType::LOG_ERROR,
+					2);
 
-            return false;
-        }
+				return false;
+			}
+			
+			checkedBindOnce = true;
+		}
+		
+        u32 lastProgramID{};
+		
+		if (!OpenGL_Core::GetLastProgramID(windowID, lastProgramID))
+		{
+			Log::Print(
+				"Cannot get last program ID for binding shader '" + name + "' because its window ID!",
+				"OPENGL_SHADER",
+				LogType::LOG_ERROR,
+				2);
 
-        u32 lastProgramID = context->GetLastProgramID();
+				return false;
+		}
+		
         u32 ID = programID;
 
         if (ID == 0)
@@ -497,11 +547,12 @@ namespace KalaGraphics::Graphics::OpenGL
                 "OPENGL_SHADER",
                 LogType::LOG_ERROR,
                 2);
+				
             return false;
         }
 
-        context->MakeContextCurrent();
-        if (!context->IsContextValid())
+        OpenGL_Core::MakeContextCurrent(windowID);
+        if (!OpenGL_Core::IsContextValid(windowID))
         {
             Log::Print(
                 "OpenGL shader bind failed! OpenGL context is invalid.",
@@ -560,7 +611,7 @@ namespace KalaGraphics::Graphics::OpenGL
             return false;
         }
 
-        string errorVal = OpenGL_Global::GetError();
+        string errorVal = OpenGL_Core::GetError();
         if (!errorVal.empty())
         {
             KalaGraphicsCore::ForceClose(
@@ -571,13 +622,29 @@ namespace KalaGraphics::Graphics::OpenGL
         }
 #endif
 
-        context->SetLastProgramID(ID);
+        OpenGL_Core::SetLastProgramID(windowID, ID);
 
         return true;
     }
 
-    bool OpenGL_Shader::HotReload()
+    bool OpenGL_Shader::HotReload(u32 windowID)
     {
+		WindowGLContext context{};
+		
+		if (!OpenGL_Core::GetWindowGLContext(
+			windowID,
+			context))
+		{
+			Log::Print(
+                "Hot reload failed for shader '" + name
+                + "' because the passed window ID is invalid.",
+                "OPENGL_SHADER",
+                LogType::LOG_ERROR,
+                2);
+
+            return false;
+		}
+		
         //back up old data
         array<ShaderData, 3> shaders = GetAllShaders();
 
@@ -598,6 +665,7 @@ namespace KalaGraphics::Graphics::OpenGL
         }
 
         auto reloadedShader = OpenGL_Shader::CreateShader(
+			windowID,
             name,
             shaders);
 
@@ -770,7 +838,7 @@ namespace KalaGraphics::Graphics::OpenGL
 }
 
 void CheckShaderData(
-    const string& shaderName,
+    const string& name,
     const array<ShaderData, 3>& shaderData)
 {
     //shader data must not be empty
@@ -778,7 +846,7 @@ void CheckShaderData(
     {
         KalaGraphicsCore::ForceClose(
             "OpenGL shader error",
-            "Shader '" + shaderName + "' has no data to load!");
+            "Shader '" + name + "' has no data to load!");
 
         return;
     }
@@ -801,7 +869,7 @@ void CheckShaderData(
         {
             KalaGraphicsCore::ForceClose(
                 "OpenGL shader error",
-                "Shader '" + shaderName + "' with type '" + type + "' has no file paths or shader data to load data from!");
+                "Shader '" + name + "' with type '" + type + "' has no file paths or shader data to load data from!");
 
             return;
         }
@@ -815,7 +883,7 @@ void CheckShaderData(
             {
                 KalaGraphicsCore::ForceClose(
                     "OpenGL shader error",
-                    "Shader '" + shaderName + "' path '" + shaderFileName + "' does not exist!");
+                    "Shader '" + name + "' path '" + shaderFileName + "' does not exist!");
 
                 return;
             }
@@ -825,7 +893,7 @@ void CheckShaderData(
             {
                 KalaGraphicsCore::ForceClose(
                     "OpenGL shader error",
-                    "Shader '" + shaderName + "' path '" + shaderFileName + "' has no extension!");
+                    "Shader '" + name + "' path '" + shaderFileName + "' has no extension!");
 
                 return;
             }
@@ -842,7 +910,7 @@ void CheckShaderData(
             {
                 KalaGraphicsCore::ForceClose(
                     "OpenGL shader error",
-                    "Shader '" + shaderName + "' path '" + shaderFileName + "' has an invalid extension '" + thisExtension + "'!");
+                    "Shader '" + name + "' path '" + shaderFileName + "' has an invalid extension '" + thisExtension + "'!");
 
                 return;
             }
@@ -853,7 +921,7 @@ void CheckShaderData(
             {
                 KalaGraphicsCore::ForceClose(
                     "OpenGL shader error",
-                    "Shader '" + shaderName + "' path '" + shaderFileName + "' has extension '" + thisExtension + "' but its type was set to 'SHADER_VERTEX'! Only '.vert' is allowed for vertex shaders.");
+                    "Shader '" + name + "' path '" + shaderFileName + "' has extension '" + thisExtension + "' but its type was set to 'SHADER_VERTEX'! Only '.vert' is allowed for vertex shaders.");
 
                 return;
             }
@@ -865,7 +933,7 @@ void CheckShaderData(
             {
                 KalaGraphicsCore::ForceClose(
                     "OpenGL shader error",
-                    "Shader '" + shaderName + "' path '" + shaderFileName + "' has extension '" + thisExtension + "' but its type was set to 'SHADER_FRAGMENT'! Only '.frag' is allowed for fragment shaders.");
+                    "Shader '" + name + "' path '" + shaderFileName + "' has extension '" + thisExtension + "' but its type was set to 'SHADER_FRAGMENT'! Only '.frag' is allowed for fragment shaders.");
 
                 return;
             }
@@ -876,7 +944,7 @@ void CheckShaderData(
             {
                 KalaGraphicsCore::ForceClose(
                     "OpenGL shader error",
-                    "Shader '" + shaderName + "' path '" + shaderFileName + "' has extension '" + thisExtension + "' but its type was set to 'SHADER_GEOMETRY'! Only '.geom' is allowed for geometry shaders.");
+                    "Shader '" + name + "' path '" + shaderFileName + "' has extension '" + thisExtension + "' but its type was set to 'SHADER_GEOMETRY'! Only '.geom' is allowed for geometry shaders.");
 
                 return;
             }
@@ -992,7 +1060,7 @@ void InitShader(ShaderData& data)
     ShaderType type = data.type;
 
     string shaderType = GetShaderTypeString(type);
-    string shaderName = path(shaderPath).filename().string();
+    string name = path(shaderPath).filename().string();
 
     string shaderCodeString{};
     if (!shaderPath.empty())
@@ -1002,7 +1070,7 @@ void InitShader(ShaderData& data)
         {
             KalaGraphicsCore::ForceClose(
                 "OpenGL shader error",
-                "Failed to read " + shaderType + " shader file '" + shaderName + "'!");
+                "Failed to read " + shaderType + " shader file '" + name + "'!");
 
             return;
         }
@@ -1051,7 +1119,7 @@ void InitShader(ShaderData& data)
 
         KalaGraphicsCore::ForceClose(
             "OpenGL shader error",
-            "Failed to compile " + shaderType + " shader '" + shaderName + "'!");
+            "Failed to compile " + shaderType + " shader '" + name + "'!");
 
         return;
     }

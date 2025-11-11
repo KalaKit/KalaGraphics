@@ -24,23 +24,8 @@ using std::max;
 
 namespace KalaGraphics::UI
 {
-	vector<Widget*> Widget::HitWidgets(vec2 mousePos)
+	vector<Widget*> Widget::GetHitWidgets(vec2 mousePos)
 	{
-		OpenGL_Context* context{};
-
-		if (!context
-			|| !context->IsInitialized()
-			|| !context->IsContextValid())
-		{
-			Log::Print(
-				"Cannot get hit widgets because the OpenGL context is invalid!",
-				"WIDGET",
-				LogType::LOG_ERROR,
-				2);
-
-			return{};
-		}
-
 		//
 		// 2D HIT TEST
 		//
@@ -72,7 +57,7 @@ namespace KalaGraphics::UI
 		return hitWidgets;
 	}
 
-	bool Widget::IsHovered() const
+	bool Widget::IsHovered(vec2 mousePos) const
 	{
 		if (!isInteractable)
 		{
@@ -84,22 +69,7 @@ namespace KalaGraphics::UI
 			return false;
 		}
 
-		OpenGL_Context* context{};
-
-		if (!context
-			|| !context->IsInitialized()
-			|| !context->IsContextValid())
-		{
-			Log::Print(
-				"Cannot check widget '" + name + "' hover state because the OpenGL context is invalid!",
-				"WIDGET",
-				LogType::LOG_ERROR,
-				2);
-
-			return false;
-		}
-
-		const vector<Widget*>& hitWidgets = HitWidgets();
+		const vector<Widget*>& hitWidgets = GetHitWidgets(windowID);
 
 		if (hitWidgets.empty()) return false;
 

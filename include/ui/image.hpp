@@ -20,6 +20,7 @@ namespace KalaGraphics::UI
 		//Initialize a new Image widget.
 		//Parent widget is optional
 		static Image* Initialize(
+			u32 windowID,
 			const string& name,
 			const vec2 pos,
 			const float rot,
@@ -29,7 +30,9 @@ namespace KalaGraphics::UI
 			OpenGL_Shader* shader);
 
 		//Render the image
-		virtual bool Render(const mat4& projection) override;
+		virtual bool Render(
+			u32 windowID,
+			const mat4& projection) override;
 
 		//Do not destroy manually, erase from registry instead
 		virtual ~Image() override;

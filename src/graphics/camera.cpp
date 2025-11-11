@@ -29,19 +29,6 @@ namespace KalaGraphics::Graphics
 		const vec3& pos,
 		const vec3& rot)
 	{
-		OpenGL_Context* context{};
-
-		if (!context
-			|| !context->IsInitialized())
-		{
-			Log::Print(
-				"Cannot load camera because its OpenGL context is invalid!",
-				"CAMERA",
-				LogType::LOG_ERROR);
-
-			return nullptr;
-		}
-
 		u32 newID = ++KalaGraphicsCore::globalID;
 		unique_ptr<Camera> newCam = make_unique<Camera>();
 		Camera* camPtr = newCam.get();
@@ -78,17 +65,6 @@ namespace KalaGraphics::Graphics
 
 	Camera::~Camera()
 	{
-		if (!isInitialized)
-		{
-			Log::Print(
-				"Cannot destroy camera '" + name + "' with ID '" + to_string(ID) + "' because it is not initialized!",
-				"CAMERA",
-				LogType::LOG_ERROR,
-				2);
-
-			return;
-		}
-
 		Log::Print(
 			"Destroying camera '" + name + "' with ID '" + to_string(ID) + "'.",
 			"CAMERA",

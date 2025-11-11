@@ -12,6 +12,7 @@
 #include "KalaHeaders/core_utils.hpp"
 
 #include "graphics/opengl/opengl_functions_linux.hpp"
+#include "graphics/opengl/opengl.hpp"
 #include "core/core.hpp"
 
 using KalaHeaders::Log;
@@ -19,7 +20,7 @@ using KalaHeaders::LogType;
 
 using KalaGraphics::Core::KalaGraphicsCore;
 using namespace KalaGraphics::Graphics::OpenGLFunctions;
-using KalaGraphics::Graphics::OpenGL::OpenGL_Renderer;
+using KalaGraphics::Graphics::OpenGL::OpenGL_Core;
 
 using std::vector;
 using std::string;
@@ -95,7 +96,7 @@ namespace KalaWindow::Graphics::OpenGL
             reinterpret_cast<const GLubyte*>(name)));
         if (!ptr)
         {
-            void* module = ToVar<void*>(GlobalHandle::GetOpenGLHandle());
+            void* module = ToVar<void*>(OpenGL_Core::GetOpenGLHandle());
             ptr = reinterpret_cast<void*>(GetProcAddress(module, name));
         }
 

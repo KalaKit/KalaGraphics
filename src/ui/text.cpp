@@ -13,6 +13,7 @@
 #include "ui/font.hpp"
 #include "graphics/opengl/opengl_functions_core.hpp"
 #include "graphics/opengl/opengl_texture.hpp"
+#include "graphics/opengl/opengl.hpp"
 
 using KalaHeaders::Log;
 using KalaHeaders::LogType;
@@ -23,6 +24,8 @@ using KalaHeaders::GlyphBlock;
 using KalaGraphics::Core::KalaGraphicsCore;
 using namespace KalaGraphics::Graphics::OpenGLFunctions;
 using KalaGraphics::Graphics::TextureFormat;
+using KalaGraphics::Graphics::OpenGL::OpenGL_Core;
+using KalaGraphics::Graphics::OpenGL::WindowGLContext;
 
 using std::unique_ptr;
 using std::make_unique;
@@ -31,6 +34,7 @@ using std::to_string;
 namespace KalaGraphics::UI
 {
 	Text* Text::Initialize(
+		u32 windowID,
 		const string& name,
 		u32 glyphIndex,
 		u32 fontID,
@@ -41,16 +45,37 @@ namespace KalaGraphics::UI
 		OpenGL_Texture* texture,
 		OpenGL_Shader* shader)
 	{
-		OpenGL_Context* context{};
-
-		if (!context
-			|| !context->IsInitialized()
-			|| !context->IsContextValid())
+		if (OpenGL_Core::GetGlobalContext() == NULL)
 		{
 			Log::Print(
-				"Cannot load text '" + name + "' because its OpenGL context is invalid!",
+				"Cannot load text '" + name + "' because its global OpenGL context is unassigned!",
 				"TEXT",
-				LogType::LOG_ERROR);
+				LogType::LOG_ERROR,
+				2);
+
+			return nullptr;
+		}
+		
+		uintptr_t hdc{};
+		uintptr_t hglrc{};
+		
+		if (!OpenGL_Core::GetHandle(windowID, hdc))
+		{
+			Log::Print(
+				"Cannot load text '" + name + "' because its OpenGL handle is unassigned!",
+				"TEXT",
+				LogType::LOG_ERROR,
+				2);
+
+			return nullptr;
+		}
+		if (!OpenGL_Core::GetContext(windowID, hglrc))
+		{
+			Log::Print(
+				"Cannot load text '" + name + "' because its OpenGL context is unassigned!",
+				"TEXT",
+				LogType::LOG_ERROR,
+				2);
 
 			return nullptr;
 		}
@@ -78,7 +103,8 @@ namespace KalaGraphics::UI
 			Log::Print(
 				"Failed to load Text widget '" + name + "' because its shader context is invalid!",
 				"TEXT",
-				LogType::LOG_ERROR);
+				LogType::LOG_ERROR,
+				2);
 
 			return nullptr;
 		}
@@ -98,7 +124,8 @@ namespace KalaGraphics::UI
 			Log::Print(
 				"Failed to load Text widget '" + name + "' because its Font ID '" + to_string(fontID) + "' is unassigned!",
 				"TEXT",
-				LogType::LOG_ERROR);
+				LogType::LOG_ERROR,
+				2);
 
 			return nullptr;
 		}
@@ -109,7 +136,8 @@ namespace KalaGraphics::UI
 			Log::Print(
 				"Failed to load Text widget '" + name + "' because its Font ID '" + to_string(fontID) + "' is invalid!",
 				"TEXT",
-				LogType::LOG_ERROR);
+				LogType::LOG_ERROR,
+				2);
 
 			return nullptr;
 		}
@@ -123,7 +151,8 @@ namespace KalaGraphics::UI
 			Log::Print(
 				"Failed to load Text widget '" + name + "' because the Glyph index '" + to_string(glyphIndex) + "' is out of range!",
 				"TEXT",
-				LogType::LOG_ERROR);
+				LogType::LOG_ERROR,
+				2);
 
 			return nullptr;
 		}
@@ -213,7 +242,8 @@ namespace KalaGraphics::UI
 			Log::Print(
 				"Cannot set Text widget '" + name + "' font to Font ID because it is empty!",
 				"TEXT",
-				LogType::LOG_ERROR);
+				LogType::LOG_ERROR,
+				2);
 
 			return;
 		}
@@ -222,26 +252,45 @@ namespace KalaGraphics::UI
 		if (font) fontID = newValue;
 	}
 
-	bool Text::Render(const mat4& projection)
+	bool Text::Render(
+		u32 windowID,
+		const mat4& projection)
 	{
 		if (!render.canUpdate) return false;
+		
+		WindowGLContext context{};
+		
+		if (!OpenGL_Core::GetWindowGLContext(
+			windowID,
+			context))
+		{
+			Log::Print(
+                "Failed to render Text widget '" + name + "' because its window ID is invalid!",
+                "TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return false;
+		}
 
 		if (!render.shader)
 		{
 			Log::Print(
 				"Failed to render Text widget '" + name + "' because its shader is nullptr!",
 				"TEXT",
-				LogType::LOG_ERROR);
+				LogType::LOG_ERROR,
+				2);
 
 			return false;
 		}
 
-		if (!render.shader->Bind())
+		if (!render.shader->Bind(windowID))
 		{
 			Log::Print(
 				"Failed to render Text widget '" + name + "' because its shader '" + render.shader->GetName() + "' failed to bind!",
 				"IMAGE",
-				LogType::LOG_ERROR);
+				LogType::LOG_ERROR,
+				2);
 
 			return false;
 		}

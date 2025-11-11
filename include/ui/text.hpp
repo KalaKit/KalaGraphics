@@ -21,6 +21,7 @@ namespace KalaGraphics::UI
 		//Initialize a new Text widget.
 		//Parent widget and texture are optional
 		static Text* Initialize(
+			u32 windowID,
 			const string& name,
 			u32 glyphIndex,
 			u32 fontID,
@@ -32,7 +33,9 @@ namespace KalaGraphics::UI
 			OpenGL_Shader* shader);
 			
 		//Render the text
-		virtual bool Render(const mat4& projection) override;
+		virtual bool Render(
+			u32 windowID,
+			const mat4& projection) override;
 
 		inline void AddChar(u32 newValue) { text.push_back(newValue); }
 		inline void AddTab()

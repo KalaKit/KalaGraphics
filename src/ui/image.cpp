@@ -11,6 +11,7 @@
 #include "core/core.hpp"
 #include "graphics/opengl/opengl_functions_core.hpp"
 #include "graphics/opengl/opengl_texture.hpp"
+#include "graphics/opengl/opengl.hpp"
 
 using KalaHeaders::Log;
 using KalaHeaders::LogType;
@@ -18,6 +19,8 @@ using KalaHeaders::LogType;
 using KalaGraphics::Core::KalaGraphicsCore;
 using namespace KalaGraphics::Graphics::OpenGLFunctions;
 using KalaGraphics::Graphics::TextureFormat;
+using KalaGraphics::Graphics::OpenGL::OpenGL_Core;
+using KalaGraphics::Graphics::OpenGL::WindowGLContext;
 
 using std::unique_ptr;
 using std::make_unique;
@@ -26,6 +29,7 @@ using std::to_string;
 namespace KalaGraphics::UI
 {
 	Image* Image::Initialize(
+		u32 windowID,
 		const string& name,
 		const vec2 pos,
 		const float rot,
@@ -34,16 +38,37 @@ namespace KalaGraphics::UI
 		OpenGL_Texture* texture,
 		OpenGL_Shader* shader)
 	{
-		OpenGL_Context* context{};
-
-		if (!context
-			|| !context->IsInitialized()
-			|| !context->IsContextValid())
+		if (OpenGL_Core::GetGlobalContext() == NULL)
 		{
 			Log::Print(
-				"Cannot load image '" + name + "' because its OpenGL context is invalid!",
+				"Cannot load image '" + name + "' because its global OpenGL context is unassigned!",
 				"IMAGE",
-				LogType::LOG_ERROR);
+				LogType::LOG_ERROR,
+				2);
+
+			return nullptr;
+		}
+		
+		uintptr_t hdc{};
+		uintptr_t hglrc{};
+		
+		if (!OpenGL_Core::GetHandle(windowID, hdc))
+		{
+			Log::Print(
+				"Cannot load image '" + name + "' because its OpenGL handle is unassigned!",
+				"IMAGE",
+				LogType::LOG_ERROR,
+				2);
+
+			return nullptr;
+		}
+		if (!OpenGL_Core::GetContext(windowID, hglrc))
+		{
+			Log::Print(
+				"Cannot load image '" + name + "' because its OpenGL context is unassigned!",
+				"IMAGE",
+				LogType::LOG_ERROR,
+				2);
 
 			return nullptr;
 		}
@@ -64,7 +89,8 @@ namespace KalaGraphics::UI
 			Log::Print(
 				"Failed to load Image widget '" + name + "' because its texture context is invalid!",
 				"TEXT",
-				LogType::LOG_ERROR);
+				LogType::LOG_ERROR,
+				2);
 
 			return nullptr;
 		}
@@ -77,7 +103,8 @@ namespace KalaGraphics::UI
 			Log::Print(
 				"Failed to load Image widget '" + name + "' because its shader context is invalid!",
 				"TEXT",
-				LogType::LOG_ERROR);
+				LogType::LOG_ERROR,
+				2);
 
 			return nullptr;
 		}
@@ -124,26 +151,45 @@ namespace KalaGraphics::UI
 		return imagePtr;
 	}
 
-	bool Image::Render(const mat4& projection)
+	bool Image::Render(
+		u32 windowID,
+		const mat4& projection)
 	{
 		if (!render.canUpdate) return false;
+		
+		WindowGLContext context{};
+		
+		if (!OpenGL_Core::GetWindowGLContext(
+			windowID,
+			context))
+		{
+			Log::Print(
+                "Failed to render Image widget '" + name + "' because its window ID is invalid!",
+                "IMAGE",
+                LogType::LOG_ERROR,
+                2);
+
+            return false;
+		}
 
 		if (!render.shader)
 		{
 			Log::Print(
 				"Failed to render Image widget '" + name + "' because its shader is nullptr!",
 				"IMAGE",
-				LogType::LOG_ERROR);
+				LogType::LOG_ERROR,
+				2);
 
 			return false;
 		}
 
-		if (!render.shader->Bind())
+		if (!render.shader->Bind(windowID))
 		{
 			Log::Print(
 				"Failed to render Image widget '" + name + "' because its shader '" + render.shader->GetName() + "' failed to bind!",
 				"IMAGE",
-				LogType::LOG_ERROR);
+				LogType::LOG_ERROR,
+				2);
 
 			return false;
 		}

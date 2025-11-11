@@ -21,7 +21,7 @@ using namespace KalaGraphics::Graphics::OpenGLFunctions;
 
 using std::to_string;
 
-namespace KalaGraphics::OpenGL
+namespace KalaGraphics::Graphics::OpenGL
 {
 	void OpenGL_Core::SwapOpenGLBuffers(u32 windowID)
 	{

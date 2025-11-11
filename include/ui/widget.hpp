@@ -126,7 +126,7 @@ namespace KalaGraphics::UI
 		static inline Registry<Widget> registry{};
 	
 		//Returns all hit widgets at mouse position sorted by highest Z first
-		static vector<Widget*> HitWidgets();
+		static vector<Widget*> GetHitWidgets(vec2 mousePos);
 
 		//
 		// CORE
@@ -134,7 +134,9 @@ namespace KalaGraphics::UI
 
 		inline bool IsInitialized() const { return isInitialized; }
 
-		virtual bool Render(const mat4& projection) = 0;
+		virtual bool Render(
+			u32 windowID,
+			const mat4& projection) = 0;
 
 		//Adjusts widget position relative to viewport size and offset,
 		//offset at {1.0f, 1.0f} means the widget is centered, {0.0f, 0.0f} moves it to the bottom left corner
@@ -264,7 +266,7 @@ namespace KalaGraphics::UI
 
 		//If the cursor is over this widget and this widget is not
 		//covered entirely or partially by another widget then this returns true
-		bool IsHovered() const;
+		bool IsHovered(vec2 mousePos) const;
 
 		//Accepts mouse buttons for pressed, released, held and dragged events.
 		//Use 'SetMouseHoverEvent()' and 'SetMouseScrollEvent()' to assign those events

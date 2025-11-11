@@ -10,7 +10,7 @@
 
 #include "KalaHeaders/core_utils.hpp"
 
-namespace KalaGraphics::OpenGL
+namespace KalaGraphics::Graphics::OpenGL
 {
 	using std::string;
 	using std::unordered_map;
@@ -71,19 +71,20 @@ namespace KalaGraphics::OpenGL
 			u32 windowID,
 			uintptr_t newValue)
 		{
-			if (!windowContexts.contains(windowID))
-			{
-				windowContexts[windowID] = {};
-			}
+			if (!windowContexts.contains(windowID)) windowContexts[windowID] = {};
 			
 			windowContexts[windowID].hdc = newValue;
 		}
 		//Get HDC
-		static inline bool GetHDC(
+		static inline bool GetHandle(
 			u32 windowID,
 			uintptr_t& target)
 		{
-			if (!windowContexts.contains(windowID)) return false;
+			if (!windowContexts.contains(windowID)
+				|| windowContexts[windowID].hdc == NULL)
+			{
+				return false;
+			}
 			
 			target = windowContexts[windowID].hdc;
 			return true;
@@ -94,10 +95,7 @@ namespace KalaGraphics::OpenGL
 			u32 windowID,
 			uintptr_t newValue)
 		{
-			if (!windowContexts.contains(windowID))
-			{
-				windowContexts[windowID] = {};
-			}
+			if (!windowContexts.contains(windowID)) windowContexts[windowID] = {};
 			
 			windowContexts[windowID].hglrc = newValue;
 		}
@@ -106,7 +104,11 @@ namespace KalaGraphics::OpenGL
 			u32 windowID,
 			uintptr_t& target)
 		{
-			if (!windowContexts.contains(windowID)) return false;
+			if (!windowContexts.contains(windowID)
+				|| windowContexts[windowID].hglrc == NULL)
+			{
+				return false;
+			}
 			
 			target = windowContexts[windowID].hglrc;
 			return true;
@@ -129,10 +131,7 @@ namespace KalaGraphics::OpenGL
 			u32 windowID,
 			u32 newValue)
 		{
-			if (!windowContexts.contains(windowID))
-			{
-				windowContexts[windowID] = {};
-			}
+			if (!windowContexts.contains(windowID)) windowContexts[windowID] = {};
 			
 			windowContexts[windowID].lastProgramID = newValue;
 		}

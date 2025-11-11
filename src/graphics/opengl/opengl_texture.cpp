@@ -23,6 +23,7 @@
 #include "graphics/texture.hpp"
 #include "graphics/opengl/opengl_texture.hpp"
 #include "graphics/opengl/opengl_functions_core.hpp"
+#include "graphics/opengl/opengl.hpp"
 #include "core/core.hpp"
 #include "utils/registry.hpp"
 
@@ -37,6 +38,7 @@ using KalaGraphics::Graphics::TextureType;
 using KalaGraphics::Graphics::TextureFormat;
 using KalaGraphics::Core::KalaGraphicsCore;
 using namespace KalaGraphics::Graphics::OpenGLFunctions;
+using KalaGraphics::Graphics::OpenGL::OpenGL_Core;
 using KalaGraphics::Utils::Registry;
 
 using std::string;
@@ -162,6 +164,7 @@ static GLFormatInfo ToGLFormat(TextureFormat fmt);
 namespace KalaGraphics::Graphics::OpenGL
 {
 	OpenGL_Texture* OpenGL_Texture::LoadTexture(
+		u32 windowID,
 		const string& name,
 		const string& path,
 		TextureType type,
@@ -171,6 +174,7 @@ namespace KalaGraphics::Graphics::OpenGL
 		u8 mipMapLevels)
 	{
 		return TextureBody(
+			windowID,
 			name,
 			{ path },
 			type,
@@ -254,6 +258,7 @@ namespace KalaGraphics::Graphics::OpenGL
 	}
 
 	OpenGL_Texture* OpenGL_Texture::LoadCubeMapTexture(
+		u32 windowID,
 		const string& name,
 		const array<string, 6>& texturePaths,
 		TextureFormat format,
@@ -261,6 +266,7 @@ namespace KalaGraphics::Graphics::OpenGL
 		u8 mipMapLevels)
 	{
 		return TextureBody(
+			windowID,
 			name,
 			{ 
 				texturePaths[0],
@@ -401,6 +407,7 @@ namespace KalaGraphics::Graphics::OpenGL
 	}
 
 	OpenGL_Texture* OpenGL_Texture::Load2DArrayTexture(
+		u32 windowID,
 		const string& name,
 		const vector<string>& texturePaths,
 		TextureFormat format,
@@ -408,6 +415,7 @@ namespace KalaGraphics::Graphics::OpenGL
 		u8 mipMapLevels)
 	{
 		return TextureBody(
+			windowID,
 			name,
 			texturePaths,
 			TextureType::Type_2DArray,
@@ -575,7 +583,7 @@ namespace KalaGraphics::Graphics::OpenGL
 			newTexture->type = TextureType::Type_2D;
 			newTexture->format = TextureFormat::Format_RGBA8;
 
-			string errorVal = OpenGL_Global::GetError();
+			string errorVal = OpenGL_Core::GetError();
 			if (!errorVal.empty())
 			{
 				KalaGraphicsCore::ForceClose(
@@ -601,6 +609,7 @@ namespace KalaGraphics::Graphics::OpenGL
 	}
 
 	OpenGL_Texture* OpenGL_Texture::TextureBody(
+		u32 windowID,
 		const string& name,
 		const vector<string>& texturePaths,
 		TextureType type,
@@ -615,26 +624,37 @@ namespace KalaGraphics::Graphics::OpenGL
 			TextureFormat& outFormat)>&
 		customTextureInitData)
 	{
-		if (!OpenGL_Global::IsInitialized())
+		if (OpenGL_Core::GetGlobalContext() == NULL)
 		{
 			Log::Print(
-				"Cannot load texture '" + name + "' because OpenGL has not been initialized!",
+				"Cannot load texture '" + name + "' because its global OpenGL context is unassigned!",
 				"OPENGL_TEXTURE",
-				LogType::LOG_ERROR);
+				LogType::LOG_ERROR,
+				2);
 
 			return nullptr;
 		}
-
-		OpenGL_Context* context{};
-
-		if (!context
-			|| !context->IsInitialized()
-			|| !context->IsContextValid())
+		
+        uintptr_t hdc{};
+		uintptr_t hglrc{};
+		
+		if (!OpenGL_Core::GetHandle(windowID, hdc))
 		{
 			Log::Print(
-				"Cannot load texture '" + name + "' because its OpenGL context is invalid!",
+				"Cannot load texture '" + name + "' because its OpenGL handle is unassigned!",
 				"OPENGL_TEXTURE",
-				LogType::LOG_ERROR);
+				LogType::LOG_ERROR,
+				2);
+
+			return nullptr;
+		}
+		if (!OpenGL_Core::GetContext(windowID, hglrc))
+		{
+			Log::Print(
+				"Cannot load texture '" + name + "' because its OpenGL context is unassigned!",
+				"OPENGL_TEXTURE",
+				LogType::LOG_ERROR,
+				2);
 
 			return nullptr;
 		}
@@ -725,7 +745,7 @@ namespace KalaGraphics::Graphics::OpenGL
 			static_cast<u8>(1),
 			maxPossibleLevels);
 
-		string errorVal = OpenGL_Global::GetError();
+		string errorVal = OpenGL_Core::GetError();
 		if (!errorVal.empty())
 		{
 			KalaGraphicsCore::ForceClose(
@@ -935,7 +955,7 @@ namespace KalaGraphics::Graphics::OpenGL
 		pixels = move(resized);
 		size = { (f32)newSize.x, (f32)newSize.y };
 
-		string errorVal = OpenGL_Global::GetError();
+		string errorVal = OpenGL_Core::GetError();
 		if (!errorVal.empty())
 		{
 			KalaGraphicsCore::ForceClose(
@@ -1158,7 +1178,7 @@ namespace KalaGraphics::Graphics::OpenGL
 
 		if (mipMapLevels > 1) glGenerateMipmap(targetType);
 
-		string errorVal = OpenGL_Global::GetError();
+		string errorVal = OpenGL_Core::GetError();
 		if (!errorVal.empty())
 		{
 			KalaGraphicsCore::ForceClose(
