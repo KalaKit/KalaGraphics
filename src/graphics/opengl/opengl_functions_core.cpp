@@ -10,16 +10,14 @@
 #include "KalaHeaders/log_utils.hpp"
 #include "KalaHeaders/core_utils.hpp"
 
-#include "graphics/opengl/opengl.hpp"
 #include "graphics/opengl/opengl_functions_core.hpp"
 #include "core/core.hpp"
 
 using KalaHeaders::Log;
 using KalaHeaders::LogType;
 
-using KalaWindow::Core::KalaWindowCore;
-using namespace KalaWindow::Graphics::OpenGLFunctions;
-using KalaWindow::Graphics::OpenGL::OpenGL_Global;
+using KalaGraphics::Core::KalaGraphicsCore;
+using namespace KalaGraphics::Graphics::OpenGLFunctions;
 
 using std::vector;
 using std::string;
@@ -180,7 +178,7 @@ CoreGLFunction functions[] =
 
 static inline vector<CoreGLFunction> loadedCoreFunctions{};
 
-namespace KalaWindow::Graphics::OpenGLFunctions
+namespace KalaGraphics::Graphics::OpenGLFunctions
 {
     //
     // DEBUGGING
@@ -233,12 +231,13 @@ namespace KalaWindow::Graphics::OpenGLFunctions
             default:                             severityValue = "UNKNOWN"; break;
         }
 
-        //skip Notification logging if verbose logging is disabled
-        if (!OpenGL_Global::IsVerboseLoggingEnabled()
-            && severity == GL_DEBUG_SEVERITY_NOTIFICATION)
+#ifndef _DEBUG
+        //skip Notification logging if not in debug
+        if (severity == GL_DEBUG_SEVERITY_NOTIFICATION)
         {
             return;
         }
+#endif
 
         ostringstream oss{};
 
@@ -253,7 +252,7 @@ namespace KalaWindow::Graphics::OpenGLFunctions
 
         if (severity == GL_DEBUG_SEVERITY_HIGH)
         {
-            KalaWindowCore::ForceClose(
+            KalaGraphicsCore::ForceClose(
                 "OpenGL critical error",
                 oss.str());
 
@@ -418,7 +417,7 @@ namespace KalaWindow::Graphics::OpenGLFunctions
         {
             Log::Print(
                 "Function '" + string(name) + "' is already loaded!",
-                "OPENGL CORE FUNCTION",
+                "OPENGL_CORE",
                 LogType::LOG_ERROR,
                 2);
 
@@ -439,7 +438,7 @@ namespace KalaWindow::Graphics::OpenGLFunctions
         {
             Log::Print(
                 "Function '" + string(name) + "' does not exist!",
-                "OPENGL CORE FUNCTION",
+                "OPENGL_CORE",
                 LogType::LOG_ERROR,
                 2);
 
@@ -453,14 +452,6 @@ namespace KalaWindow::Graphics::OpenGLFunctions
         ptr = reinterpret_cast<void*>(wglGetProcAddress(name));
         if (!ptr)
         {
-            if (OpenGL_Global::IsVerboseLoggingEnabled())
-            {
-                Log::Print(
-                    "Failed to load function '" + string(name) + "'! Trying again with handle.",
-                    "OPENGL CORE FUNCTION",
-                    LogType::LOG_WARNING);
-            }
-
             HMODULE module = ToVar<HMODULE>(OpenGL_Global::GetOpenGLLibrary());
             ptr = reinterpret_cast<void*>(GetProcAddress(module, name));
         }
@@ -476,7 +467,7 @@ namespace KalaWindow::Graphics::OpenGLFunctions
 
         if (!ptr)
         {
-            KalaWindowCore::ForceClose(
+            KalaGraphicsCore::ForceClose(
                 "OpenGL Core function error",
                 "Failed to load OpenGL error '" + string(name) + "'!");
         }
@@ -490,12 +481,9 @@ namespace KalaWindow::Graphics::OpenGLFunctions
                 entry->target
             });
 
-        if (OpenGL_Global::IsVerboseLoggingEnabled())
-        {
-            Log::Print(
-                "Loaded '" + string(name) + "'!",
-                "OPENGL CORE FUNCTION",
-                LogType::LOG_SUCCESS);
-        }
+        Log::Print(
+            "Loaded '" + string(name) + "'!",
+            "OPENGL_CORE",
+            LogType::LOG_DEBUG);
     }
 }

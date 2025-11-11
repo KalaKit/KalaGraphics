@@ -12,7 +12,7 @@
 
 #include "utils/registry.hpp"
 
-namespace KalaWindow::Graphics
+namespace KalaGraphics::Graphics
 {
 	using std::string;
 
@@ -28,7 +28,7 @@ namespace KalaWindow::Graphics
 	using KalaHeaders::angleaxis;
 	using KalaHeaders::wrap;
 	
-	using KalaWindow::Utils::Registry;
+	using KalaGraphics::Utils::Registry;
 
 	class LIB_API Camera
 	{
@@ -37,7 +37,7 @@ namespace KalaWindow::Graphics
 
 		static Camera* Initialize(
 			const string& cameraName,
-			u32 windowID,
+			vec2 framebufferSize,
 			f32 fov,
 			f32 speed,
 			const vec3& pos = vec3(0),
@@ -46,7 +46,6 @@ namespace KalaWindow::Graphics
 		inline bool IsInitialized() const { return isInitialized; }
 
 		inline u32 GetID() const { return ID; }
-		inline u32 GetWindowID() const { return windowID; }
 
 		inline void SetName(const string& newName)
 		{
@@ -212,7 +211,6 @@ namespace KalaWindow::Graphics
 		string name{};
 
 		u32 ID{};
-		u32 windowID{};
 
 		f32 fov{};
 		f32 speed{};

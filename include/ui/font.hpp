@@ -23,7 +23,7 @@ namespace KalaGraphics::UI
 	using KalaHeaders::GlyphTable;
 	using KalaHeaders::GlyphBlock;
 	
-	using KalaGraphics::Core::Registry;
+	using KalaGraphics::Utils::Registry;
 
 	class LIB_API Font
 	{

@@ -33,6 +33,10 @@ else()
     message(FATAL_ERROR "Unknown CMAKE_BUILD_TYPE: '${CMAKE_BUILD_TYPE}'! Must be Debug, Release, or RelWithDebInfo.")
 endif()
 
+# Dependencies
+find_package(OpenGL REQUIRED)
+# find_package(Vulkan REQUIRED)
+
 # Directory Setup
 set(INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include")
 set(EXT_SHARED_DIR "${CMAKE_SOURCE_DIR}/_external_shared")
@@ -85,6 +89,12 @@ target_compile_definitions(KalaGraphics PRIVATE
 	LIB_EXPORT
 	WIN32_LEAN_AND_MEAN
 	NOMINMAX)
+	
+# Link libraries
+target_link_libraries(KalaGraphics PRIVATE
+	OpenGL::GL
+	${EXT_SHARED_DIR}/Vulkan/vulkan-1.lib
+)
 	
 # Expose version string
 add_compile_definitions(

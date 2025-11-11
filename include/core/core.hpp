@@ -8,6 +8,7 @@
 #include <string>
 #include <functional>
 
+#include "KalaHeaders/core_utils.hpp"
 #include "KalaHeaders/log_utils.hpp"
 
 namespace KalaGraphics::Core

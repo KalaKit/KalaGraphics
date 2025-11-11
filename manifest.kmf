@@ -56,3 +56,21 @@ action: forcecopy
 origin: release@_KalaGraphics1.lib
 target: ..@Circuit-chan@_external_shared@KalaGraphics@release@_KalaGraphics1.lib, ..@Elypso-engine@_external_shared@KalaGraphics@release@_KalaGraphics1.lib, ..@Elypso-hub@_external_shared@KalaGraphics@release@_KalaGraphics1.lib, ..@Solin@_external_shared@KalaGraphics@release@_KalaGraphics1.lib
 action: forcecopy
+
+//
+// EXTERNAL LIBRARIES
+//
+
+//KalaHeaders
+origin: _external_shared@KalaHeaders
+target: ..@Circuit-chan@_external_shared@KalaHeaders, ..@Elypso-engine@_external_shared@KalaHeaders, ..@Elypso-hub@_external_shared@KalaHeaders, ..@Solin@_external_shared@KalaHeaders
+action: copy
+
+//OpenGL
+origin: _external_shared@OpenGL
+target: ..@Circuit-chan@_external_shared@OpenGL, ..@Elypso-engine@_external_shared@OpenGL, ..@Elypso-hub@_external_shared@OpenGL, ..@Solin@_external_shared@OpenGL
+action: copy
+
+//stb
+origin: _external_shared@stb
+target: ..@Circuit-chan@_external_shared@stb, ..@Elypso-engine@_external_shared@stb, ..@Elypso-hub@_external_shared@stb, ..@Solin@_external_shared@stb

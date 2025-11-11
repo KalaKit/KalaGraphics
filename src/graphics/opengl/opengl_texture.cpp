@@ -21,8 +21,6 @@
 #include "KalaHeaders/log_utils.hpp"
 
 #include "graphics/texture.hpp"
-#include "graphics/window.hpp"
-#include "graphics/opengl/opengl.hpp"
 #include "graphics/opengl/opengl_texture.hpp"
 #include "graphics/opengl/opengl_functions_core.hpp"
 #include "core/core.hpp"
@@ -33,17 +31,13 @@ using KalaHeaders::vec2;
 using KalaHeaders::Log;
 using KalaHeaders::LogType;
 
-using KalaWindow::Graphics::OpenGL::OpenGL_Global;
-using KalaWindow::Graphics::OpenGL::OpenGL_Texture;
-using KalaWindow::Graphics::Window;
-using KalaWindow::Graphics::TargetType;
-using KalaWindow::Graphics::Texture;
-using KalaWindow::Graphics::TextureType;
-using KalaWindow::Graphics::TextureFormat;
-using KalaWindow::Core::KalaWindowCore;
-using KalaWindow::Core::globalID;
-using namespace KalaWindow::Graphics::OpenGLFunctions;
-using KalaWindow::Utils::Registry;
+using KalaGraphics::Graphics::OpenGL::OpenGL_Texture;
+using KalaGraphics::Graphics::Texture;
+using KalaGraphics::Graphics::TextureType;
+using KalaGraphics::Graphics::TextureFormat;
+using KalaGraphics::Core::KalaGraphicsCore;
+using namespace KalaGraphics::Graphics::OpenGLFunctions;
+using KalaGraphics::Utils::Registry;
 
 using std::string;
 using std::string_view;
@@ -165,10 +159,9 @@ static GLenum ToGLTarget(TextureType type);
 
 static GLFormatInfo ToGLFormat(TextureFormat fmt);
 
-namespace KalaWindow::Graphics::OpenGL
+namespace KalaGraphics::Graphics::OpenGL
 {
 	OpenGL_Texture* OpenGL_Texture::LoadTexture(
-		u32 windowID,
 		const string& name,
 		const string& path,
 		TextureType type,
@@ -178,7 +171,6 @@ namespace KalaWindow::Graphics::OpenGL
 		u8 mipMapLevels)
 	{
 		return TextureBody(
-			windowID,
 			name,
 			{ path },
 			type,
@@ -262,7 +254,6 @@ namespace KalaWindow::Graphics::OpenGL
 	}
 
 	OpenGL_Texture* OpenGL_Texture::LoadCubeMapTexture(
-		u32 windowID,
 		const string& name,
 		const array<string, 6>& texturePaths,
 		TextureFormat format,
@@ -270,7 +261,6 @@ namespace KalaWindow::Graphics::OpenGL
 		u8 mipMapLevels)
 	{
 		return TextureBody(
-			windowID,
 			name,
 			{ 
 				texturePaths[0],
@@ -411,7 +401,6 @@ namespace KalaWindow::Graphics::OpenGL
 	}
 
 	OpenGL_Texture* OpenGL_Texture::Load2DArrayTexture(
-		u32 windowID,
 		const string& name,
 		const vector<string>& texturePaths,
 		TextureFormat format,
@@ -419,7 +408,6 @@ namespace KalaWindow::Graphics::OpenGL
 		u8 mipMapLevels)
 	{
 		return TextureBody(
-			windowID,
 			name,
 			texturePaths,
 			TextureType::Type_2DArray,
@@ -574,7 +562,7 @@ namespace KalaWindow::Graphics::OpenGL
 
 			glGenerateMipmap(GL_TEXTURE_2D);
 
-			u32 newID = ++globalID;
+			u32 newID = ++KalaGraphicsCore::globalID;
 			unique_ptr<OpenGL_Texture> newTexture = make_unique<OpenGL_Texture>();
 			OpenGL_Texture* texturePtr = newTexture.get();
 
@@ -590,7 +578,7 @@ namespace KalaWindow::Graphics::OpenGL
 			string errorVal = OpenGL_Global::GetError();
 			if (!errorVal.empty())
 			{
-				KalaWindowCore::ForceClose(
+				KalaGraphicsCore::ForceClose(
 					"OpenGL texture error",
 					"Failed to load fallback texture! Reason: " + errorVal);
 
@@ -613,7 +601,6 @@ namespace KalaWindow::Graphics::OpenGL
 	}
 
 	OpenGL_Texture* OpenGL_Texture::TextureBody(
-		u32 windowID,
 		const string& name,
 		const vector<string>& texturePaths,
 		TextureType type,
@@ -638,21 +625,7 @@ namespace KalaWindow::Graphics::OpenGL
 			return nullptr;
 		}
 
-		Window* window = Window::registry.GetContent(windowID);
-
-		if (!window
-			|| !window->IsInitialized())
-		{
-			Log::Print(
-				"Cannot load texture '" + name + "' because its window reference is invalid!",
-				"OPENGL_TEXTURE",
-				LogType::LOG_ERROR);
-
-			return nullptr;
-		}
-
-		vector<OpenGL_Context*> contexts = Registry<OpenGL_Context>::GetAllWindowContent(windowID);
-		OpenGL_Context* context = contexts.empty() ? nullptr : contexts.front();
+		OpenGL_Context* context{};
 
 		if (!context
 			|| !context->IsInitialized()
@@ -666,7 +639,7 @@ namespace KalaWindow::Graphics::OpenGL
 			return nullptr;
 		}
 
-		u32 newID = ++globalID;
+		u32 newID = ++KalaGraphicsCore::globalID;
 		unique_ptr<OpenGL_Texture> newTexture = make_unique<OpenGL_Texture>();
 		OpenGL_Texture* texturePtr = newTexture.get();
 
@@ -755,7 +728,7 @@ namespace KalaWindow::Graphics::OpenGL
 		string errorVal = OpenGL_Global::GetError();
 		if (!errorVal.empty())
 		{
-			KalaWindowCore::ForceClose(
+			KalaGraphicsCore::ForceClose(
 				"OpenGL texture error",
 				"Failed to load texture '" + name + "'! Reason: " + errorVal);
 
@@ -965,7 +938,7 @@ namespace KalaWindow::Graphics::OpenGL
 		string errorVal = OpenGL_Global::GetError();
 		if (!errorVal.empty())
 		{
-			KalaWindowCore::ForceClose(
+			KalaGraphicsCore::ForceClose(
 				"OpenGL texture error",
 				"Failed to rescale texture '" + name + "'! Reason: " + errorVal);
 
@@ -1188,7 +1161,7 @@ namespace KalaWindow::Graphics::OpenGL
 		string errorVal = OpenGL_Global::GetError();
 		if (!errorVal.empty())
 		{
-			KalaWindowCore::ForceClose(
+			KalaGraphicsCore::ForceClose(
 				"OpenGL texture error",
 				"Failed to hot-reload texture '" + name + "' with " + target + "! Reason: " + errorVal);
 

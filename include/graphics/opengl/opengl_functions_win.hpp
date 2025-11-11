@@ -11,7 +11,7 @@
 
 #include "OpenGL/wglext.h" //Windows-only OpenGL extension header
 
-namespace KalaWindow::Graphics::OpenGLFunctions
+namespace KalaGraphics::Graphics::OpenGLFunctions
 {
 	//Creates an OpenGL rendering context with specific attributes (version, profile)
 	extern PFNWGLCREATECONTEXTATTRIBSARBPROC   wglCreateContextAttribsARB;

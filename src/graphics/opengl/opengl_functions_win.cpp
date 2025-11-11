@@ -13,15 +13,13 @@
 #include "KalaHeaders/core_utils.hpp"
 
 #include "graphics/opengl/opengl_functions_win.hpp"
-#include "graphics/opengl/opengl.hpp"
 #include "core/core.hpp"
 
 using KalaHeaders::Log;
 using KalaHeaders::LogType;
 
-using KalaWindow::Core::KalaWindowCore;
-using namespace KalaWindow::Graphics::OpenGLFunctions;
-using KalaWindow::Graphics::OpenGL::OpenGL_Global;
+using KalaGraphics::Core::KalaGraphicsCore;
+using namespace KalaGraphics::Graphics::OpenGLFunctions;
 
 using std::vector;
 using std::string;
@@ -43,7 +41,7 @@ WinGLFunction functions[] =
     { "wglGetPixelFormatAttribivARB", reinterpret_cast<void**>(&wglGetPixelFormatAttribivARB) }
 };
 
-namespace KalaWindow::Graphics::OpenGLFunctions
+namespace KalaGraphics::Graphics::OpenGLFunctions
 {
 	PFNWGLCREATECONTEXTATTRIBSARBPROC   wglCreateContextAttribsARB = nullptr;
 	PFNWGLCHOOSEPIXELFORMATARBPROC      wglChoosePixelFormatARB    = nullptr;
@@ -72,7 +70,7 @@ namespace KalaWindow::Graphics::OpenGLFunctions
         {
             Log::Print(
                 "Function '" + string(name) + "' is already loaded!",
-                "OPENGL WIN FUNCTION",
+                "OPENGL_WINDOWS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -93,7 +91,7 @@ namespace KalaWindow::Graphics::OpenGLFunctions
         {
             Log::Print(
                 "Function '" + string(name) + "' does not exist!",
-                "OPENGL WIN FUNCTION",
+                "OPENGL_WINDOWS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -106,21 +104,13 @@ namespace KalaWindow::Graphics::OpenGLFunctions
         ptr = reinterpret_cast<void*>(wglGetProcAddress(name));
         if (!ptr)
         {
-            if (OpenGL_Global::IsVerboseLoggingEnabled())
-            {
-                Log::Print(
-                    "Failed to load function '" + string(name) + "'! Trying again with handle.",
-                    "OPENGL WIN FUNCTION",
-                    LogType::LOG_WARNING);
-            }
-
             HMODULE module = ToVar<HMODULE>(OpenGL_Global::GetOpenGLLibrary());
             ptr = reinterpret_cast<void*>(GetProcAddress(module, name));
         }
 
         if (!ptr)
         {
-            KalaWindowCore::ForceClose(
+            KalaGraphicsCore::ForceClose(
                 "OpenGL Windows function error",
                 "Failed to load OpenGL error '" + string(name) + "'!");
         }
@@ -134,13 +124,10 @@ namespace KalaWindow::Graphics::OpenGLFunctions
                 entry->target
             });
 
-        if (OpenGL_Global::IsVerboseLoggingEnabled())
-        {
-            Log::Print(
-                "Loaded '" + string(name) + "'!",
-                "OPENGL WIN FUNCTION",
-                LogType::LOG_INFO);
-        }
+        Log::Print(
+            "Loaded '" + string(name) + "'!",
+            "OPENGL_WINDOWS",
+            LogType::LOG_DEBUG);
     }
 }
 

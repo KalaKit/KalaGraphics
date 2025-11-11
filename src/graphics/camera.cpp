@@ -9,16 +9,11 @@
 
 #include "core/core.hpp"
 #include "graphics/camera.hpp"
-#include "graphics/opengl/opengl.hpp"
-#include "utils/registry.hpp"
 
 using KalaHeaders::Log;
 using KalaHeaders::LogType;
 
-using KalaGraphics::KalaGraphicsCore::globalID;
-using KalaGraphics::Graphics::TargetType;
-using KalaGraphics::Graphics::OpenGL::OpenGL_Context;
-using KalaGraphics::Core::Registry;
+using KalaGraphics::Core::KalaGraphicsCore;
 
 using std::to_string;
 using std::unique_ptr;
@@ -47,7 +42,7 @@ namespace KalaGraphics::Graphics
 			return nullptr;
 		}
 
-		u32 newID = ++globalID;
+		u32 newID = ++KalaGraphicsCore::globalID;
 		unique_ptr<Camera> newCam = make_unique<Camera>();
 		Camera* camPtr = newCam.get();
 

@@ -21,7 +21,7 @@ using KalaHeaders::GlyphHeader;
 using KalaHeaders::GlyphTable;
 using KalaHeaders::GlyphBlock;
 
-using KalaGraphics::Core::globalID;
+using KalaGraphics::Core::KalaGraphicsCore;
 
 using std::to_string;
 using std::unique_ptr;
@@ -37,7 +37,7 @@ namespace KalaGraphics::UI
 		const string& name,
 		const string& fontPath)
 	{
-		u32 newID = ++globalID;
+		u32 newID = ++KalaGraphicsCore::globalID;
 		unique_ptr<Font> newFont = make_unique<Font>();
 		Font* fontPtr = newFont.get();
 

@@ -13,7 +13,7 @@
 
 #include "utils/registry.hpp"
 
-namespace KalaWindow::Graphics::OpenGL
+namespace KalaGraphics::Graphics::OpenGL
 {
 	using std::string;
 	using std::array;
@@ -25,7 +25,7 @@ namespace KalaWindow::Graphics::OpenGL
 	using KalaHeaders::mat3;
 	using KalaHeaders::mat4;
 	
-	using KalaWindow::Utils::Registry;
+	using KalaGraphics::Utils::Registry;
 
 	enum class ShaderType
 	{
@@ -35,7 +35,7 @@ namespace KalaWindow::Graphics::OpenGL
 		SHADER_GEOMETRY
 	};
 
-	struct ShaderData
+	struct LIB_API ShaderData
 	{
 		//either fill shader data or shader path,
 		//it picks data by default if both are filled
@@ -60,7 +60,6 @@ namespace KalaWindow::Graphics::OpenGL
 		//Create a new shader with up to three types of shader files.
 		//Geometry shaders are optional but vert and frag shader must always be filled
 		static OpenGL_Shader* CreateShader(
-			u32 windowID,
 			const string& shaderName,
 			const array<ShaderData, 3>& shaderData);
 
@@ -86,7 +85,6 @@ namespace KalaWindow::Graphics::OpenGL
 		}
 
 		inline u32 GetID() const { return ID; }
-		inline u32 GetWindowID() const { return windowID; }
 
 		inline u32 GetProgramID() const { return programID; }
 
@@ -188,7 +186,6 @@ namespace KalaWindow::Graphics::OpenGL
 		string name{};
 
 		u32 ID{};
-		u32 windowID{};
 
 		u32 programID{};
 

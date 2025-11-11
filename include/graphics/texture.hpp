@@ -11,7 +11,7 @@
 #include "KalaHeaders/core_utils.hpp"
 #include "KalaHeaders/math_utils.hpp"
 
-namespace KalaWindow::Graphics
+namespace KalaGraphics::Graphics
 {
 	using std::string;
 	using std::vector;
@@ -52,7 +52,7 @@ namespace KalaWindow::Graphics
 		Format_RGBA32F,
 
 		//compressed formats
-		//BC1-BC7 support will not be added to OpenGL on KalaWindow
+		//BC1-BC7 support will not be added to OpenGL in KalaGraphics
 
 		Format_BC1, //DXT1 - RGB, no alpha
 		Format_BC3, //DXT5 - RGBA
