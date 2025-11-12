@@ -20,7 +20,7 @@ using KalaGraphics::Core::KalaGraphicsCore;
 using namespace KalaGraphics::Graphics::OpenGLFunctions;
 using KalaGraphics::Graphics::TextureFormat;
 using KalaGraphics::Graphics::OpenGL::OpenGL_Core;
-using KalaGraphics::Graphics::OpenGL::WindowGLContext;
+using KalaGraphics::Graphics::OpenGL::GLContext;
 
 using std::unique_ptr;
 using std::make_unique;
@@ -30,6 +30,7 @@ namespace KalaGraphics::UI
 {
 	Image* Image::Initialize(
 		u32 windowID,
+		u32 glID,
 		const string& name,
 		const vec2 pos,
 		const float rot,
@@ -38,11 +39,11 @@ namespace KalaGraphics::UI
 		OpenGL_Texture* texture,
 		OpenGL_Shader* shader)
 	{
-		uintptr_t hglrc{};
-		if (!OpenGL_Core::GetContext(windowID, hglrc))
+		uintptr_t context{};
+		if (!OpenGL_Core::GetContext(glID, context))
 		{
 			Log::Print(
-				"Cannot load image '" + name + "' because its OpenGL context is unassigned!",
+				"Cannot load image '" + name + "' because its gl context is unassigned!",
 				"IMAGE",
 				LogType::LOG_ERROR,
 				2);
@@ -64,7 +65,7 @@ namespace KalaGraphics::UI
 			|| !texture->IsInitialized())
 		{
 			Log::Print(
-				"Failed to load Image widget '" + name + "' because its texture context is invalid!",
+				"Failed to load Image widget '" + name + "' because its texture context is unassigned!",
 				"TEXT",
 				LogType::LOG_ERROR,
 				2);
@@ -78,7 +79,7 @@ namespace KalaGraphics::UI
 			|| !shader->IsInitialized())
 		{
 			Log::Print(
-				"Failed to load Image widget '" + name + "' because its shader context is invalid!",
+				"Failed to load Image widget '" + name + "' because its shader context is unassigned!",
 				"TEXT",
 				LogType::LOG_ERROR,
 				2);
@@ -111,6 +112,8 @@ namespace KalaGraphics::UI
 
 		imagePtr->ID = newID;
 		imagePtr->windowID = windowID;
+		imagePtr->glID = glID;
+		
 		imagePtr->SetName(name);
 		imagePtr->render.canUpdate = true;
 		imagePtr->transform->SetPos(pos, PosTarget::POS_WORLD);
@@ -130,20 +133,19 @@ namespace KalaGraphics::UI
 	}
 
 	bool Image::Render(
-		u32 windowID,
 		uintptr_t handle,
 		const mat4& projection)
 	{
 		if (!render.canUpdate) return false;
 		
-		WindowGLContext context{};
+		uintptr_t context{};
 		
-		if (!OpenGL_Core::GetWindowGLContext(
-			windowID,
+		if (!OpenGL_Core::GetContext(
+			glID,
 			context))
 		{
 			Log::Print(
-                "Failed to render Image widget '" + name + "' because its window ID is invalid!",
+                "Failed to render Image widget '" + name + "' because its gl context is unassigned!",
                 "IMAGE",
                 LogType::LOG_ERROR,
                 2);
@@ -162,7 +164,7 @@ namespace KalaGraphics::UI
 			return false;
 		}
 
-		if (handle == NULL)
+		if (!handle)
 		{
 			Log::Print(
 				"Failed to render Text widget '" + name + "' because its handle is unassigned!",
@@ -173,7 +175,7 @@ namespace KalaGraphics::UI
 			return false;
 		}
 
-		if (!render.shader->Bind(handle, windowID))
+		if (!render.shader->Bind(glID, handle))
 		{
 			Log::Print(
 				"Failed to render Image widget '" + name + "' because its shader '" + render.shader->GetName() + "' failed to bind!",
@@ -220,7 +222,7 @@ namespace KalaGraphics::UI
 		if (render.texture)
 		{
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, render.texture->GetOpenGLID());
+			glBindTexture(GL_TEXTURE_2D, render.texture->GetTextureID());
 			render.shader->SetInt(programID, "uTexture", 0);
 			render.shader->SetBool(programID, "uUseTexture", true);
 		}

@@ -162,7 +162,7 @@ static GLFormatInfo ToGLFormat(TextureFormat fmt);
 namespace KalaGraphics::Graphics::OpenGL
 {
 	OpenGL_Texture* OpenGL_Texture::LoadTexture(
-		u32 windowID,
+		u32 glID,
 		const string& name,
 		const string& path,
 		TextureType type,
@@ -172,7 +172,7 @@ namespace KalaGraphics::Graphics::OpenGL
 		u8 mipMapLevels)
 	{
 		return TextureBody(
-			windowID,
+			glID,
 			name,
 			{ path },
 			type,
@@ -256,7 +256,7 @@ namespace KalaGraphics::Graphics::OpenGL
 	}
 
 	OpenGL_Texture* OpenGL_Texture::LoadCubeMapTexture(
-		u32 windowID,
+		u32 glID,
 		const string& name,
 		const array<string, 6>& texturePaths,
 		TextureFormat format,
@@ -264,7 +264,7 @@ namespace KalaGraphics::Graphics::OpenGL
 		u8 mipMapLevels)
 	{
 		return TextureBody(
-			windowID,
+			glID,
 			name,
 			{ 
 				texturePaths[0],
@@ -405,7 +405,7 @@ namespace KalaGraphics::Graphics::OpenGL
 	}
 
 	OpenGL_Texture* OpenGL_Texture::Load2DArrayTexture(
-		u32 windowID,
+		u32 glID,
 		const string& name,
 		const vector<string>& texturePaths,
 		TextureFormat format,
@@ -413,7 +413,7 @@ namespace KalaGraphics::Graphics::OpenGL
 		u8 mipMapLevels)
 	{
 		return TextureBody(
-			windowID,
+			glID,
 			name,
 			texturePaths,
 			TextureType::Type_2DArray,
@@ -575,7 +575,7 @@ namespace KalaGraphics::Graphics::OpenGL
 			newTexture->name = string(fallbackTextureName);
 			newTexture->ID = newID;
 			newTexture->size = { 32.0f, 32.0f };
-			newTexture->openGLID = newTextureID;
+			newTexture->textureID = newTextureID;
 			const auto& pixelData = GetFallbackPixels();
 			newTexture->pixels.assign(pixelData.begin(), pixelData.end());
 			newTexture->type = TextureType::Type_2D;
@@ -607,7 +607,7 @@ namespace KalaGraphics::Graphics::OpenGL
 	}
 
 	OpenGL_Texture* OpenGL_Texture::TextureBody(
-		u32 windowID,
+		u32 glID,
 		const string& name,
 		const vector<string>& texturePaths,
 		TextureType type,
@@ -623,7 +623,7 @@ namespace KalaGraphics::Graphics::OpenGL
 		customTextureInitData)
 	{
 		uintptr_t hglrc{};
-		if (!OpenGL_Core::GetContext(windowID, hglrc))
+		if (!OpenGL_Core::GetContext(glID, hglrc))
 		{
 			Log::Print(
 				"Cannot load texture '" + name + "' because its OpenGL context is unassigned!",
@@ -667,8 +667,10 @@ namespace KalaGraphics::Graphics::OpenGL
 
 		texturePtr->name = name;
 		texturePtr->ID = newID;
+		texturePtr->glID = glID;
+		
 		texturePtr->size = newSize;
-		texturePtr->openGLID = newTextureID;
+		texturePtr->textureID = newTextureID;
 		texturePtr->type = type;
 		texturePtr->format = newFormat;
 
@@ -954,7 +956,7 @@ namespace KalaGraphics::Graphics::OpenGL
 	{
 		GLenum targetType = ToGLTarget(type);
 		
-		glBindTexture(targetType, openGLID);
+		glBindTexture(targetType, textureID);
 
 		GLFormatInfo fmt = ToGLFormat(format);
 
@@ -1176,10 +1178,10 @@ namespace KalaGraphics::Graphics::OpenGL
 			"OPENGL_TEXTURE",
 			LogType::LOG_INFO);
 
-		if (openGLID != 0)
+		if (textureID != 0)
 		{
-			glDeleteTextures(1, &openGLID);
-			openGLID = 0;
+			glDeleteTextures(1, &textureID);
+			textureID = 0;
 		}
 	}
 }

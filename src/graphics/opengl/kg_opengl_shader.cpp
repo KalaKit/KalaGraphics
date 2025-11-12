@@ -26,7 +26,7 @@ using KalaGraphics::Graphics::OpenGL::ShaderType;
 using KalaGraphics::Graphics::OpenGL::ShaderData;
 using namespace KalaGraphics::Graphics::OpenGLFunctions;
 using KalaGraphics::Graphics::OpenGL::OpenGL_Core;
-using KalaGraphics::Graphics::OpenGL::WindowGLContext;
+using KalaGraphics::Graphics::OpenGL::GLContext;
 using KalaGraphics::Core::KalaGraphicsCore;
 
 using std::string;
@@ -79,12 +79,12 @@ static void DeleteShader(
 namespace KalaGraphics::Graphics::OpenGL
 {
     OpenGL_Shader* OpenGL_Shader::CreateShader(
-		u32 windowID,
+		u32 glID,
         const string& name,
         const array<ShaderData, 3>& shaderData)
     {
-		uintptr_t hglrc{};
-		if (!OpenGL_Core::GetContext(windowID, hglrc))
+		uintptr_t context{};
+		if (!OpenGL_Core::GetContext(glID, context))
 		{
 			Log::Print(
 				"Cannot create shader '" + name + "' because its OpenGL context is unassigned!",
@@ -444,7 +444,9 @@ namespace KalaGraphics::Graphics::OpenGL
 
             return nullptr;
         }
+		
         shaderPtr->ID = newID;
+		shaderPtr->glID = glID;
 
         shaderPtr->isInitialized = true;
 
@@ -459,13 +461,13 @@ namespace KalaGraphics::Graphics::OpenGL
     }
 
     bool OpenGL_Shader::Bind(
-		u32 windowID,
+		u32 glID,
 		uintptr_t handle)
     {
 		if (!checkedBindOnce)
 		{
-			uintptr_t hglrc{};
-			if (!OpenGL_Core::GetContext(windowID, hglrc))
+			uintptr_t context{};
+			if (!OpenGL_Core::GetContext(glID, context))
 			{
 				Log::Print(
 					"Cannot bind shader '" + name + "' because its OpenGL context is unassigned!",
@@ -481,10 +483,10 @@ namespace KalaGraphics::Graphics::OpenGL
 		
         u32 lastProgramID{};
 		
-		if (!OpenGL_Core::GetLastProgramID(windowID, lastProgramID))
+		if (!OpenGL_Core::GetLastProgramID(glID, lastProgramID))
 		{
 			Log::Print(
-				"Cannot get last program ID for binding shader '" + name + "' because its window '" + to_string(windowID) + "' is invalid'!",
+				"Cannot get last program ID for binding shader '" + name + "' because its gl context '" + to_string(glID) + "' is unassigned'!",
 				"OPENGL_SHADER",
 				LogType::LOG_ERROR,
 				2);
@@ -492,10 +494,10 @@ namespace KalaGraphics::Graphics::OpenGL
 				return false;
 		}
 		
-		if (handle == NULL)
+		if (!handle)
 		{
 			Log::Print(
-				"Cannot bind shader '" + name + "' for window '" + to_string(windowID) + "' because its handle (hdc) is invalid!",
+				"Cannot bind shader '" + name + "' for the gl context '" + to_string(glID) + "' because the handle (hdc) is unassigned!",
 				"OPENGL_SHADER",
 				LogType::LOG_ERROR,
 				2);
@@ -516,8 +518,8 @@ namespace KalaGraphics::Graphics::OpenGL
             return false;
         }
 
-        OpenGL_Core::MakeContextCurrent(windowID, handle);
-        if (!OpenGL_Core::IsContextValid(windowID))
+        OpenGL_Core::MakeContextCurrent(glID, handle);
+        if (!OpenGL_Core::IsContextValid(glID))
         {
             Log::Print(
                 "OpenGL shader bind failed! OpenGL context is invalid.",
@@ -587,22 +589,22 @@ namespace KalaGraphics::Graphics::OpenGL
         }
 #endif
 
-        OpenGL_Core::SetLastProgramID(windowID, ID);
+        OpenGL_Core::SetLastProgramID(glID, ID);
 
         return true;
     }
 
-    bool OpenGL_Shader::HotReload(u32 windowID)
+    bool OpenGL_Shader::HotReload(u32 glID)
     {
-		WindowGLContext context{};
+		uintptr_t context{};
 		
-		if (!OpenGL_Core::GetWindowGLContext(
-			windowID,
+		if (!OpenGL_Core::GetContext(
+			glID,
 			context))
 		{
 			Log::Print(
                 "Hot reload failed for shader '" + name
-                + "' because the passed window ID is invalid.",
+                + "' because the gl context is unassigned!",
                 "OPENGL_SHADER",
                 LogType::LOG_ERROR,
                 2);
@@ -630,7 +632,7 @@ namespace KalaGraphics::Graphics::OpenGL
         }
 
         auto reloadedShader = OpenGL_Shader::CreateShader(
-			windowID,
+			glID,
             name,
             shaders);
 

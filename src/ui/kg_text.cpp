@@ -25,7 +25,7 @@ using KalaGraphics::Core::KalaGraphicsCore;
 using namespace KalaGraphics::Graphics::OpenGLFunctions;
 using KalaGraphics::Graphics::TextureFormat;
 using KalaGraphics::Graphics::OpenGL::OpenGL_Core;
-using KalaGraphics::Graphics::OpenGL::WindowGLContext;
+using KalaGraphics::Graphics::OpenGL::GLContext;
 
 using std::unique_ptr;
 using std::make_unique;
@@ -35,6 +35,7 @@ namespace KalaGraphics::UI
 {
 	Text* Text::Initialize(
 		u32 windowID,
+		u32 glID,
 		const string& name,
 		u32 glyphIndex,
 		u32 fontID,
@@ -45,11 +46,11 @@ namespace KalaGraphics::UI
 		OpenGL_Texture* texture,
 		OpenGL_Shader* shader)
 	{
-		uintptr_t hglrc{};
-		if (!OpenGL_Core::GetContext(windowID, hglrc))
+		uintptr_t context{};
+		if (!OpenGL_Core::GetContext(glID, context))
 		{
 			Log::Print(
-				"Cannot load text '" + name + "' because its OpenGL context is unassigned!",
+				"Cannot load text '" + name + "' because its gl context is unassigned!",
 				"TEXT",
 				LogType::LOG_ERROR,
 				2);
@@ -78,7 +79,7 @@ namespace KalaGraphics::UI
 			|| !shader->IsInitialized())
 		{
 			Log::Print(
-				"Failed to load Text widget '" + name + "' because its shader context is invalid!",
+				"Failed to load Text widget '" + name + "' because its shader context is unassigned!",
 				"TEXT",
 				LogType::LOG_ERROR,
 				2);
@@ -111,7 +112,7 @@ namespace KalaGraphics::UI
 		if (!font)
 		{
 			Log::Print(
-				"Failed to load Text widget '" + name + "' because its Font ID '" + to_string(fontID) + "' is invalid!",
+				"Failed to load Text widget '" + name + "' because its Font ID '" + to_string(fontID) + "' is unassigned!",
 				"TEXT",
 				LogType::LOG_ERROR,
 				2);
@@ -195,6 +196,8 @@ namespace KalaGraphics::UI
 
 		textPtr->ID = newID;
 		textPtr->windowID = windowID;
+		textPtr->glID = glID;
+		
 		textPtr->SetName(name);
 		textPtr->render.canUpdate = true;
 		textPtr->transform->SetPos(pos, PosTarget::POS_WORLD);
@@ -231,20 +234,19 @@ namespace KalaGraphics::UI
 	}
 
 	bool Text::Render(
-		u32 windowID,
 		uintptr_t handle,
 		const mat4& projection)
 	{
 		if (!render.canUpdate) return false;
 		
-		WindowGLContext context{};
+		uintptr_t context{};
 		
-		if (!OpenGL_Core::GetWindowGLContext(
-			windowID,
+		if (!OpenGL_Core::GetContext(
+			glID,
 			context))
 		{
 			Log::Print(
-                "Failed to render Text widget '" + name + "' because its window ID is invalid!",
+                "Failed to render Text widget '" + name + "' because its gl context is unassigned!",
                 "TEXT",
                 LogType::LOG_ERROR,
                 2);
@@ -263,10 +265,10 @@ namespace KalaGraphics::UI
 			return false;
 		}
 		
-		if (handle == NULL)
+		if (!handle)
 		{
 			Log::Print(
-				"Failed to render Text widget '" + name + "' because its handle is invalid!",
+				"Failed to render Text widget '" + name + "' because its handle is unassigned!",
 				"TEXT",
 				LogType::LOG_ERROR,
 				2);
@@ -274,7 +276,7 @@ namespace KalaGraphics::UI
 			return false;
 		}
 
-		if (!render.shader->Bind(handle, windowID))
+		if (!render.shader->Bind(glID, handle))
 		{
 			Log::Print(
 				"Failed to render Text widget '" + name + "' because its shader '" + render.shader->GetName() + "' failed to bind!",
@@ -321,7 +323,7 @@ namespace KalaGraphics::UI
 		if (render.texture)
 		{
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, render.texture->GetOpenGLID());
+			glBindTexture(GL_TEXTURE_2D, render.texture->GetTextureID());
 			render.shader->SetInt(programID, "uTexture", 0);
 			render.shader->SetBool(programID, "uUseTexture", true);
 		}

@@ -23,14 +23,14 @@ using std::to_string;
 namespace KalaGraphics::Graphics::OpenGL
 {
 	void OpenGL_Core::SwapOpenGLBuffers(
-		u32 windowID,
+		u32 glID,
 		uintptr_t handle)
 	{
-		if (windowContexts.empty()
-			|| !windowContexts.contains(windowID))
+		if (glContexts.empty()
+			|| !glContexts.contains(glID))
 		{
 			Log::Print(
-				"Cannot swap OpenGL buffers for window '" + to_string(windowID) + "' because the window doesn't exist!",
+				"Cannot swap OpenGL buffers for gl context '" + to_string(glID) + "' because the gl context doesn't exist!",
 				"OPENGL",
 				LogType::LOG_ERROR,
 				2);
@@ -38,10 +38,10 @@ namespace KalaGraphics::Graphics::OpenGL
 			return;
 		}
 		
-		if (handle == NULL)
+		if (!handle)
 		{
 			Log::Print(
-				"Cannot swap OpenGL buffers for window '" + to_string(windowID) + "' because its handle (hdc) is invalid!",
+				"Cannot swap OpenGL buffers for gl the context '" + to_string(glID) + "' because the window handle (hdc) is invalid!",
 				"OPENGL",
 				LogType::LOG_ERROR,
 				2);
@@ -53,14 +53,14 @@ namespace KalaGraphics::Graphics::OpenGL
 	}
 	
 	void OpenGL_Core::MakeContextCurrent(
-		u32 windowID,
+		u32 glID,
 		uintptr_t handle)
 	{
-		if (windowContexts.empty()
-			|| !windowContexts.contains(windowID))
+		if (glContexts.empty()
+			|| !glContexts.contains(glID))
 		{
 			Log::Print(
-				"Cannot make OpenGL context current for window '" + to_string(windowID) + "' because the window doesn't exist!",
+				"Cannot make OpenGL context current for the gl context '" + to_string(glID) + "' because it doesn't exist!",
 				"OPENGL",
 				LogType::LOG_ERROR,
 				2);
@@ -69,11 +69,11 @@ namespace KalaGraphics::Graphics::OpenGL
 		}
 		
 		HGLRC storedHGLRC{};
-		if (handle == NULL
-			|| windowContexts[windowID].hglrc == NULL)
+		if (!handle
+			|| !glContexts[glID].hglrc)
 		{
 			Log::Print(
-				"Cannot make OpenGL context current for window '" + to_string(windowID) + "' because its handle (hdc) or context (hglrc) is invalid!",
+				"Cannot make OpenGL context current for the gl context '" + to_string(glID) + "' because the handle (hdc) or the stored gl context (hglrc) is invalid!",
 				"OPENGL",
 				LogType::LOG_ERROR,
 				2);
@@ -81,19 +81,19 @@ namespace KalaGraphics::Graphics::OpenGL
 			return;
 		}
 
-		storedHGLRC = ToVar<HGLRC>(windowContexts[windowID].hglrc);
+		storedHGLRC = ToVar<HGLRC>(glContexts[glID].hglrc);
 
 		if (wglGetCurrentContext() != storedHGLRC) wglMakeCurrent(
 			ToVar<HDC>(handle),
 			storedHGLRC);
 	}
-	bool OpenGL_Core::IsContextValid(u32 windowID)
+	bool OpenGL_Core::IsContextValid(u32 glID)
 	{
-		if (windowContexts.empty()
-			|| !windowContexts.contains(windowID))
+		if (glContexts.empty()
+			|| !glContexts.contains(glID))
 		{
 			Log::Print(
-				"Cannot check OpenGL context validity for window '" + to_string(windowID) + "' because the window doesn't exist!",
+				"Cannot check OpenGL context validity for the gl context '" + to_string(glID) + "' because it doesn't exist!",
 				"OPENGL",
 				LogType::LOG_ERROR,
 				2);
@@ -102,10 +102,10 @@ namespace KalaGraphics::Graphics::OpenGL
 		}
 		
 		HGLRC storedHGLRC{};
-		if (windowContexts[windowID].hglrc == NULL)
+		if (!glContexts[glID].hglrc)
 		{
 			Log::Print(
-				"Cannot check OpenGL context validity for window '" + to_string(windowID) + "' because its hglrc is not assigned!",
+				"Cannot check OpenGL context validity for the gl context '" + to_string(glID) + "' because its stored context (hglrc) is unassigned!",
 				"OPENGL",
 				LogType::LOG_ERROR,
 				2);
@@ -113,13 +113,13 @@ namespace KalaGraphics::Graphics::OpenGL
 			return false;
 		}
 
-		storedHGLRC = ToVar<HGLRC>(windowContexts[windowID].hglrc);
+		storedHGLRC = ToVar<HGLRC>(glContexts[glID].hglrc);
 
 		HGLRC current = wglGetCurrentContext();
 		if (!current)
 		{
 			Log::Print(
-				"Cannot check OpenGL context validity for window '" + to_string(windowID) + "' because the context is null!",
+				"Cannot check OpenGL context validity for the gl context '" + to_string(glID) + "' because it is unassigned!",
 				"OPENGL",
 				LogType::LOG_ERROR,
 				2);
@@ -154,11 +154,20 @@ namespace KalaGraphics::Graphics::OpenGL
 		openGL32Lib = FromVar(handle);
 	}
 	
-	void OpenGL_Core::SetVSyncState(
-		u32 windowID,
+	bool OpenGL_Core::SetVSyncState(
+		u32 glID,
 		VSyncState newValue)
 	{
-		if (!windowContexts.contains(windowID)) windowContexts[windowID] = {};
+		if (!glContexts.contains(glID))
+		{
+			Log::Print(
+				"Cannot set vsync state with gl ID '" + to_string(glID) + "' because the ID is unassigned!",
+				"OPENGL",
+				LogType::LOG_ERROR,
+				2);
+			
+			return false;
+		}
 		
 		if (!wglSwapIntervalEXT)
 		{
@@ -168,14 +177,16 @@ namespace KalaGraphics::Graphics::OpenGL
 				LogType::LOG_ERROR,
 				2);
 				
-			return;
+			return false;
 		}
 		
-		windowContexts[windowID].vsyncState = newValue;
+		glContexts[glID].vsyncState = newValue;
 
 		wglSwapIntervalEXT(newValue == VSyncState::VSYNC_ON
 			? 1
 			: 0);
+			
+		return true;
 	}
 	
 	string OpenGL_Core::GetError()
