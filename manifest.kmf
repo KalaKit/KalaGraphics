@@ -33,28 +33,28 @@ action: forcecopy
 //
 
 //copy debug dll
-origin: debug@_KalaGraphics1d.dll
-target: ..@Circuit-chan@_external_shared@KalaGraphics@debug@_KalaAudio1d.dll, ..@Elypso-engine@_external_shared@KalaGraphics@debug@_KalaAudio1d.dll, ..@Elypso-hub@_external_shared@KalaGraphics@debug@_KalaAudio1d.dll, ..@Solin@_external_shared@KalaGraphics@debug@_KalaGraphics1d.dll
+origin: debug@KalaGraphics1d.dll
+target: ..@Circuit-chan@_external_shared@KalaGraphics@debug@KalaGraphics1d.dll, ..@Elypso-engine@_external_shared@KalaGraphics@debug@KalaGraphics1d.dll, ..@Elypso-hub@_external_shared@KalaGraphics@debug@KalaGraphics1d.dll, ..@Solin@_external_shared@KalaGraphics@debug@KalaGraphics1d.dll
 action: forcecopy
 
 //copy debug lib
-origin: debug@_KalaGraphics1d.lib
-target: ..@Circuit-chan@_external_shared@KalaGraphics@debug@_KalaGraphics1d.lib, ..@Elypso-engine@_external_shared@KalaGraphics@debug@_KalaGraphics1d.lib, ..@Elypso-hub@_external_shared@KalaGraphics@debug@_KalaAudio1d.lib, ..@Solin@_external_shared@KalaGraphics@debug@_KalaGraphics1d.lib
+origin: debug@KalaGraphics1d.lib
+target: ..@Circuit-chan@_external_shared@KalaGraphics@debug@KalaGraphics1d.lib, ..@Elypso-engine@_external_shared@KalaGraphics@debug@KalaGraphics1d.lib, ..@Elypso-hub@_external_shared@KalaGraphics@debug@KalaGraphics1d.lib, ..@Solin@_external_shared@KalaGraphics@debug@KalaGraphics1d.lib
 action: forcecopy
 
 //copy debug pdb
-origin: debug@_KalaGraphics1d.pdb
-target: ..@Circuit-chan@_external_shared@KalaGraphics@debug@_KalaGraphics1d.pdb, ..@Elypso-engine@_external_shared@KalaGraphics@debug@_KalaGraphics1d.pdb, ..@Elypso-hub@_external_shared@KalaGraphics@debug@_KalaAudio1d.pdb, ..@Solin@_external_shared@KalaGraphics@debug@_KalaGraphics1d.pdb
+origin: debug@KalaGraphics1d.pdb
+target: ..@Circuit-chan@_external_shared@KalaGraphics@debug@KalaGraphics1d.pdb, ..@Elypso-engine@_external_shared@KalaGraphics@debug@KalaGraphics1d.pdb, ..@Elypso-hub@_external_shared@KalaGraphics@debug@KalaGraphics1d.pdb, ..@Solin@_external_shared@KalaGraphics@debug@KalaGraphics1d.pdb
 action: forcecopy
 
 //copy release dll
-origin: release@_KalaGraphics1.dll
-target: ..@Circuit-chan@_external_shared@KalaGraphics@release@_KalaGraphics1.dll, ..@Elypso-engine@_external_shared@KalaGraphics@release@_KalaGraphics1.dll, ..@Elypso-hub@_external_shared@KalaGraphics@release@_KalaGraphics1.dll, ..@Solin@_external_shared@KalaGraphics@release@_KalaGraphics1.dll
+origin: release@KalaGraphics1.dll
+target: ..@Circuit-chan@_external_shared@KalaGraphics@release@KalaGraphics1.dll, ..@Elypso-engine@_external_shared@KalaGraphics@release@KalaGraphics1.dll, ..@Elypso-hub@_external_shared@KalaGraphics@release@KalaGraphics1.dll, ..@Solin@_external_shared@KalaGraphics@release@KalaGraphics1.dll
 action: forcecopy
 
 //copy release lib
-origin: release@_KalaGraphics1.lib
-target: ..@Circuit-chan@_external_shared@KalaGraphics@release@_KalaGraphics1.lib, ..@Elypso-engine@_external_shared@KalaGraphics@release@_KalaGraphics1.lib, ..@Elypso-hub@_external_shared@KalaGraphics@release@_KalaGraphics1.lib, ..@Solin@_external_shared@KalaGraphics@release@_KalaGraphics1.lib
+origin: release@KalaGraphics1.lib
+target: ..@Circuit-chan@_external_shared@KalaGraphics@release@KalaGraphics1.lib, ..@Elypso-engine@_external_shared@KalaGraphics@release@KalaGraphics1.lib, ..@Elypso-hub@_external_shared@KalaGraphics@release@KalaGraphics1.lib, ..@Solin@_external_shared@KalaGraphics@release@KalaGraphics1.lib
 action: forcecopy
 
 //

@@ -54,12 +54,6 @@ add_library(KalaGraphics SHARED ${SOURCE_FILES})
 if (MSVC)
     target_compile_options(KalaGraphics PRIVATE /EHsc)
 endif()
-
-# Get prefix
-set(KALA_PREFIX "")
-if (KALA_PRERELEASE)
-	set(KALA_PREFIX "_")
-endif()
 	
 # Get suffix
 if (IS_RELEASE)
@@ -70,7 +64,7 @@ endif()
 
 # Set output name with renderer suffix and debug postfix
 set_target_properties(KalaGraphics PROPERTIES
-	OUTPUT_NAME "${KALA_PREFIX}KalaGraphics${PROJECT_VERSION_MAJOR}${KALA_SUFFIX}"
+	OUTPUT_NAME "KalaGraphics${PROJECT_VERSION_MAJOR}${KALA_SUFFIX}"
 )
 
 # Includes
