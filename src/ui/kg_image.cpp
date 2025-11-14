@@ -263,8 +263,6 @@ namespace KalaGraphics::UI
 			"WIDGET",
 			LogType::LOG_INFO);
 
-		registry.hierarchy[this].RemoveAllChildren(true);
-
 		u32 vao = GetVAO();
 		u32 vbo = GetVBO();
 		u32 ebo = GetEBO();
