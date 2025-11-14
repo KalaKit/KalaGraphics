@@ -3,6 +3,8 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
+#include <sstream>
+
 #include "KalaHeaders/log_utils.hpp"
 
 #include "core/kg_core.hpp"
@@ -21,6 +23,7 @@ using std::to_string;
 using std::back_inserter;
 using std::min;
 using std::max;
+using std::ostringstream;
 
 namespace KalaGraphics::UI
 {
@@ -32,12 +35,33 @@ namespace KalaGraphics::UI
 
 		vector<Widget*> hitWidgets{};
 
-		vector<Widget*> existingWidgets{};
-		vector<Widget*> widgets{};
-
-		for (auto& w : existingWidgets)
+		for (const auto& w : registry.runtimeContent)
 		{
 			if (!w->isInteractable) continue;
+			
+			/*
+			ostringstream oss{};
+			
+			vec2 pos = w->transform->GetPos(PosTarget::POS_COMBINED);
+			f32 rot = w->transform->GetRot(RotTarget::ROT_COMBINED);
+			vec2 size = w->transform->GetSize(SizeTarget::SIZE_COMBINED);
+			
+			oss << w->name << "\n"
+				<< "  mouse:         " << mousePos.x << ", " << mousePos.y << "\n"
+				<< "  combined pos:  " << pos.x << ", " << pos.y << "\n"
+				<< "  combined rot:  " << rot << "\n"
+				<< "  combined size: " << size.x << ", " << size.y << "\n"
+				<< "  aabb:          " 
+					<< w->render.aabb[0].x << ", " 
+					<< w->render.aabb[0].y << ", " 
+					<< w->render.aabb[1].x << ", " 
+					<< w->render.aabb[1].y << "\n";
+				
+			Log::Print(
+				oss.str(),
+				"WIDGET",
+				LogType::LOG_INFO);
+			*/
 
 			if (mousePos.x >= w->render.aabb[0].x
 				&& mousePos.x <= w->render.aabb[1].x

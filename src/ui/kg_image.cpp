@@ -66,7 +66,7 @@ namespace KalaGraphics::UI
 		{
 			Log::Print(
 				"Failed to load Image widget '" + name + "' because its texture context is unassigned!",
-				"TEXT",
+				"IMAGE",
 				LogType::LOG_ERROR,
 				2);
 
@@ -80,7 +80,7 @@ namespace KalaGraphics::UI
 		{
 			Log::Print(
 				"Failed to load Image widget '" + name + "' because its shader context is unassigned!",
-				"TEXT",
+				"IMAGE",
 				LogType::LOG_ERROR,
 				2);
 
@@ -167,8 +167,8 @@ namespace KalaGraphics::UI
 		if (!handle)
 		{
 			Log::Print(
-				"Failed to render Text widget '" + name + "' because its handle is unassigned!",
-				"TEXT",
+				"Failed to render Image widget '" + name + "' because its handle is unassigned!",
+				"IMAGE",
 				LogType::LOG_ERROR,
 				2);
 
@@ -184,6 +184,23 @@ namespace KalaGraphics::UI
 				2);
 
 			return false;
+		}
+		
+		//ensure AABB is up to date if pos, rot or size of the image changes
+		if (transform->GetPos(PosTarget::POS_COMBINED) != lastPos
+			|| transform->GetRot(RotTarget::ROT_COMBINED) != lastRot
+			|| transform->GetSize(SizeTarget::SIZE_COMBINED) != lastSize)
+		{
+			UpdateAABB();
+			
+			lastPos = transform->GetPos(PosTarget::POS_COMBINED);
+			lastRot = transform->GetRot(RotTarget::ROT_COMBINED);
+			lastSize = transform->GetSize(SizeTarget::SIZE_COMBINED);
+			
+			Log::Print(
+				"Updated AABB for image '" + name + "'.",
+				"IMAGE",
+				LogType::LOG_DEBUG);
 		}
 
 		u32 programID = render.shader->GetProgramID();

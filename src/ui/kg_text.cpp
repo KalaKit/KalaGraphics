@@ -40,8 +40,8 @@ namespace KalaGraphics::UI
 		u32 glyphIndex,
 		u32 fontID,
 		const vec2 pos,
-		const float rot,
-		const vec2 size,
+		f32 rot,
+		float sizeMultiplier,
 		Widget* parentWidget,
 		OpenGL_Texture* texture,
 		OpenGL_Shader* shader)
@@ -202,7 +202,9 @@ namespace KalaGraphics::UI
 		textPtr->render.canUpdate = true;
 		textPtr->transform->SetPos(pos, PosTarget::POS_WORLD);
 		textPtr->transform->SetRot(rot, RotTarget::ROT_WORLD);
-		textPtr->transform->SetSize(size, SizeTarget::SIZE_WORLD);
+		textPtr->transform->SetSize(
+			vec2(glyph.width, glyph.height) * sizeMultiplier, 
+			SizeTarget::SIZE_WORLD);
 
 		textPtr->isInitialized = true;
 
@@ -280,18 +282,35 @@ namespace KalaGraphics::UI
 		{
 			Log::Print(
 				"Failed to render Text widget '" + name + "' because its shader '" + render.shader->GetName() + "' failed to bind!",
-				"IMAGE",
+				"TEXT",
 				LogType::LOG_ERROR,
 				2);
 
 			return false;
+		}
+		
+		//ensure AABB is up to date if pos, rot or size of the text changes
+		if (transform->GetPos(PosTarget::POS_COMBINED) != lastPos
+			|| transform->GetRot(RotTarget::ROT_COMBINED) != lastRot
+			|| transform->GetSize(SizeTarget::SIZE_COMBINED) != lastSize)
+		{
+			UpdateAABB();
+			
+			lastPos = transform->GetPos(PosTarget::POS_COMBINED);
+			lastRot = transform->GetRot(RotTarget::ROT_COMBINED);
+			lastSize = transform->GetSize(SizeTarget::SIZE_COMBINED);
+			
+			Log::Print(
+				"Updated AABB for text '" + name + "'.",
+				"TEXT",
+				LogType::LOG_DEBUG);
 		}
 
 		u32 programID = render.shader->GetProgramID();
 
 		vec2 pos = transform->GetPos(PosTarget::POS_COMBINED);
 		float rot = transform->GetRot(RotTarget::ROT_COMBINED);
-		vec2 size = transform->GetSize(SizeTarget::SIZE_COMBINED);
+		vec2 size = transform->GetSize(SizeTarget::SIZE_COMBINED) / 12.5f;
 
 		mat4 model = createumodel(pos, rot, size);
 
