@@ -1,0 +1,10 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Detect build system
+CMakeLists.txt linguist-detectable=true
+*.cmake linguist-detectable=true
+
+# Documentation is excluded
+*.md linguist-documentation
+*.txt linguist-documentation
