@@ -53,8 +53,8 @@ namespace KalaGraphics::Core
     static vector<Context> contexts{};
 
     bool KalaGraphicsCore::Initialize(
+        const vector<Context>& in_contexts,
         const optional<vector<GraphicsFeature>> in_gfxFeatures,
-        const optional<vector<Context>>& in_contexts,
         const optional<VkInstance>& in_vk_instance)
     {
         if (isInitialized)
@@ -75,7 +75,16 @@ namespace KalaGraphics::Core
 
         gfxFeatures = in_gfxFeatures.value_or({});
         vk_instance = in_vk_instance.value_or(nullptr);
-        contexts = in_contexts.value_or({});
+        contexts = in_contexts;
+
+        if (contexts.empty())
+        {
+            ForceClose(
+                "KalaGraphics initialization error",
+                "Failed to initialize KalaGraphics because no contexts were passed!");
+
+            return false;
+        }
 
         for (const auto& c : contexts)
         {
@@ -309,95 +318,100 @@ namespace KalaGraphics::Core
             }
         }
 
-        if (contexts.empty()) renderTarget = RenderTarget::RT_SOFTWARE;
+        bool forceSoftware = ContainsValue(gfxFeatures, GraphicsFeature::GF_FORCE_SOFTWARE);
+        bool forceOpenGL = ContainsValue(gfxFeatures, GraphicsFeature::GF_FORCE_OPENGL);
+        bool forceVulkan = ContainsValue(gfxFeatures, GraphicsFeature::GF_FORCE_VULKAN);
+
+        auto can_use_opengl = []() -> bool
+            {
+                for (const auto& c : contexts)
+                {
+                    if (c.context_gl) return true;
+                }
+
+                return false;
+            };
+
+        auto can_use_vulkan = []() -> bool
+            {
+                for (const auto& c : contexts)
+                {
+                    if (c.context_vk_surface)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            };
+
+        if (forceSoftware) renderTarget = RenderTarget::RT_SOFTWARE;
+        else if (forceOpenGL)
+        {
+            if (!can_use_opengl())
+            {
+                ForceClose(
+                    "KalaGraphics initialization error",
+                    "Failed to force OpenGL because no OpenGL context was passed or no OpenGL contexts camne with a valid window!");
+
+                return false;
+            }
+            else renderTarget = RenderTarget::RT_OPENGL;
+        }
+        else if (forceVulkan)
+        {
+            if (!can_use_vulkan())
+            {
+                ForceClose(
+                    "KalaGraphics initialization error",
+                    "Failed to force Vulkan because no Vulkan context was passed or no Vulkan contexts camne with a valid window!");
+
+                return false;
+            }
+            else renderTarget = RenderTarget::RT_VULKAN;
+        }
+
+        //default path - user did not force any specific render pipeline
         else
         {
-            bool forceSoftware = ContainsValue(gfxFeatures, GraphicsFeature::GF_FORCE_SOFTWARE);
-            bool forceOpenGL = ContainsValue(gfxFeatures, GraphicsFeature::GF_FORCE_OPENGL);
-            bool forceVulkan = ContainsValue(gfxFeatures, GraphicsFeature::GF_FORCE_VULKAN);
+            bool wantsToUseVulkan =
+                ContainsValue(gfxFeatures, GraphicsFeature::GF_COMPUTE_SHADERS)
+                || ContainsValue(gfxFeatures, GraphicsFeature::GF_RAY_TRACING)
+                || ContainsValue(gfxFeatures, GraphicsFeature::GF_PATH_TRACING);
 
-            auto can_use_opengl = []() -> bool
-                {
-                    for (const auto& c : contexts)
-                    {
-                        if (c.context_gl) return true;
-                    }
-
-                    return false;
-                };
-
-            auto can_use_vulkan = []() -> bool
-                {
-                    for (const auto& c : contexts)
-                    {
-                        if (c.context_vk_surface)
-                        {
-                            return true;
-                        }
-                    }
-
-                    return false;
-                };
-
-            if (forceSoftware) renderTarget = RenderTarget::RT_SOFTWARE;
-            else if (forceOpenGL)
-            {
-                if (!can_use_opengl())
-                {
-                    ForceClose(
-                        "KalaGraphics initialization error",
-                        "Failed to force OpenGL because no OpenGL context was passed or no OpenGL contexts camne with a valid window!");
-
-                    return false;
-                }
-                else renderTarget = RenderTarget::RT_OPENGL;
-            }
-            else if (forceVulkan)
+            if (wantsToUseVulkan)
             {
                 if (!can_use_vulkan())
                 {
                     ForceClose(
                         "KalaGraphics initialization error",
-                        "Failed to force Vulkan because no Vulkan context was passed or no Vulkan contexts camne with a valid window!");
-
+                        "Failed to use Vulkan through Vulkan-only Graphics features because no Vulkan context was passed or no Vulkan contexts came with a valid window!");
+                
                     return false;
                 }
-                else renderTarget = RenderTarget::RT_VULKAN;
-            }
 
-            //default path - user did not force any specific render pipeline
+                renderTarget = RenderTarget::RT_VULKAN;
+            }
             else
             {
-                bool wantsToUseVulkan =
-                    ContainsValue(gfxFeatures, GraphicsFeature::GF_COMPUTE_SHADERS)
-                    || ContainsValue(gfxFeatures, GraphicsFeature::GF_RAY_TRACING)
-                    || ContainsValue(gfxFeatures, GraphicsFeature::GF_PATH_TRACING);
-
-                if (wantsToUseVulkan)
+                if (can_use_opengl()) renderTarget = RenderTarget::RT_OPENGL;
+                else if (can_use_vulkan())
                 {
-                    if (!can_use_vulkan())
-                    {
-                        ForceClose(
-                           "KalaGraphics initialization error",
-                           "Failed to use Vulkan through Vulkan-only Graphics features because no Vulkan context was passed or no Vulkan contexts came with a valid window!");
-                    
-                        return false;
-                    }
+                    Log::Print(
+                        "Using Vulkan because no valid OpenGL contexts were passed.", 
+                        "KALAGRAPHICS_CORE",
+                        LogType::LOG_WARNING);
 
                     renderTarget = RenderTarget::RT_VULKAN;
                 }
                 else
                 {
-                    if (can_use_opengl()) renderTarget = RenderTarget::RT_OPENGL;
-                    else
-                    {
-                        Log::Print(
-                            "Fell back to software rendering because no valid OpenGL contexts or contexts with valid windows were passed.", 
-                            "KALAGRAPHICS_CORE",
-                            LogType::LOG_WARNING);
+                    Log::Print(
+                        "Fell back to software rendering because no valid OpenGL or Vulkan contexts were passed.", 
+                        "KALAGRAPHICS_CORE",
+                        LogType::LOG_WARNING);
 
-                        renderTarget = RenderTarget::RT_SOFTWARE;
-                    }
+                    renderTarget = RenderTarget::RT_SOFTWARE;
                 }
             }
         }

@@ -88,8 +88,8 @@ namespace KalaGraphics::Core
         //Initialize KalaGraphics with your desired features and contexts.
         //If no GL or VK contexts were passed then KalaGraphics falls back to software rendering.
         static bool Initialize(
+            const vector<Context>& contexts,
             const optional<vector<GraphicsFeature>> gfxFeatures = nullopt,
-            const optional<vector<Context>>& contexts = nullopt,
             const optional<VkInstance>& vk_instance = nullopt);
 
         static bool IsInitialized();
