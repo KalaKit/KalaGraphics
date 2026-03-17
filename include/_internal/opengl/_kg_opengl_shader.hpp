@@ -5,7 +5,7 @@
 
 #pragma once
 
-
+/*
 #include <string>
 #include <array>
 
@@ -127,3 +127,4 @@ namespace KalaWindow::OpenGL
 		OpenGL_ShaderData geomData{};
 	};
 }
+*/
