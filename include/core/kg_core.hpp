@@ -94,6 +94,12 @@ namespace KalaGraphics::Core
 
         static bool IsInitialized();
 
+        //Regular update - single draw call
+        static void Update();
+
+        //Called to trigger resize events - single draw call
+        static void ResizeUpdate();
+
         //Returns the final render target chosen during initialization
         static RenderTarget GetRenderTarget();
 
@@ -107,6 +113,9 @@ namespace KalaGraphics::Core
 
         //Gives the global vk instance
         static VkInstance GetVKInstance();
+
+        //Shuts down KalaGraphics cleanly and frees all resources
+        static void Shutdown();
 
         //Force-closes the application and gives a breakpoint, good for hard stops or bad user errors
 		static void ForceClose(

@@ -428,6 +428,16 @@ namespace KalaGraphics::Core
 
     bool KalaGraphicsCore::IsInitialized() { return isInitialized; }
 
+    void KalaGraphicsCore::Update()
+    {
+        
+    }
+
+    void KalaGraphicsCore::ResizeUpdate()
+    {
+        
+    }
+
     RenderTarget KalaGraphicsCore::GetRenderTarget() { return renderTarget; }
 
     string KalaGraphicsCore::GetRenderTargetName()
@@ -503,6 +513,11 @@ namespace KalaGraphics::Core
         }
 
         return vk_instance;
+    }
+
+    void KalaGraphicsCore::Shutdown()
+    {
+
     }
 
     void KalaGraphicsCore::ForceClose(
