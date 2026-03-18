@@ -7,11 +7,11 @@
 
 #include "core_utils.hpp"
 
-namespace KalaGraphics::Core
+namespace KalaGraphics::Internal::OpenGL
 {
-    class LIB_API Font
+    class LIB_API OpenGL_Framebuffer
     {
     public:
-    
+        
     };
 }

@@ -3,15 +3,9 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#pragma once
+#include "_internal/vulkan/_kg_vulkan_framebuffer.hpp"
 
-#include "core_utils.hpp"
-
-namespace KalaGraphics::Core
+namespace KalaGraphics::Internal::Vulkan
 {
-    class LIB_API Font
-    {
-    public:
     
-    };
 }

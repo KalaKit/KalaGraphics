@@ -3,6 +3,13 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
+#include "_internal/opengl/_kg_opengl_shader.hpp"
+
+namespace KalaGraphics::Internal::OpenGL
+{
+    
+}
+
 /*
 #include <string>
 #include <fstream>

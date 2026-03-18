@@ -7,11 +7,11 @@
 
 #include "core_utils.hpp"
 
-namespace KalaGraphics::Core
+namespace KalaGraphics::Internal::Vulkan
 {
-    class LIB_API Font
+    class LIB_API Vulkan_Shader
     {
     public:
-    
+        
     };
 }

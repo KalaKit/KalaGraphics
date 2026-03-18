@@ -35,7 +35,7 @@ namespace KalaGraphics::Internal::OpenGL
 {
 	static unordered_map<u32, VSyncState> vsyncStates{};
 
-	void OpenGL::AddWindow(
+	void OpenGL_Core::AddWindow(
 		u32 windowID,
 		VSyncState vsyncState)
 	{
@@ -43,7 +43,7 @@ namespace KalaGraphics::Internal::OpenGL
 		{
 			Log::Print(
 				"Cannot add window ID '" + to_string(windowID) + "' because it has already been added!",
-				"OPENGL_INTERNAL",
+				"GL_INTERNAL",
 				LogType::LOG_ERROR,
 				2);
 
@@ -53,7 +53,17 @@ namespace KalaGraphics::Internal::OpenGL
 		vsyncStates[windowID] = vsyncState;
 	}
 
-    void OpenGL::SetVSyncState(
+	void OpenGL_Core::Update()
+    {
+
+    }
+
+    void OpenGL_Core::ResizeUpdate()
+    {
+
+    }
+
+    void OpenGL_Core::SetVSyncState(
 		u32 windowID,
 		VSyncState newValue)
 	{		
@@ -62,7 +72,7 @@ namespace KalaGraphics::Internal::OpenGL
 		{
 			Log::Print(
 				"Cannot set vsync state because the global window manager has not been initialized!",
-				"OPENGL",
+				"GL_INTERNAL",
 				LogType::LOG_ERROR,
 				2);
 
@@ -75,7 +85,7 @@ namespace KalaGraphics::Internal::OpenGL
 		{
 			Log::Print(
 				"wglSwapIntervalEXT not supported! VSync setting ignored.",
-				"OPENGL",
+				"GL_INTERNAL",
 				LogType::LOG_ERROR,
 				2);
 				
@@ -89,7 +99,7 @@ namespace KalaGraphics::Internal::OpenGL
 			: 0);
 		*/
 	}
-	VSyncState OpenGL::GetVSyncState(u32 windowID) 
+	VSyncState OpenGL_Core::GetVSyncState(u32 windowID) 
 	{
 		if (!vsyncStates.contains(windowID))
 		{
@@ -105,7 +115,7 @@ namespace KalaGraphics::Internal::OpenGL
 		return vsyncStates[windowID];
 	}
 
-	void OpenGL::SwapOpenGLBuffers(u32 windowID)
+	void OpenGL_Core::SwapOpenGLBuffers(u32 windowID)
 	{
 		if (!KalaGraphicsCore::IsInitialized())
 		{
@@ -129,9 +139,9 @@ namespace KalaGraphics::Internal::OpenGL
 			return;
 		}
 
-		Context context = KalaGraphicsCore::GetContext(windowID);
+		Context* context = KalaGraphicsCore::GetContext(windowID);
 
-		if (context.context_gl == 0)
+		if (context->context_gl == 0)
 		{
 			Log::Print(
 				"Failed to get vsync state because passed window ID '" + to_string(windowID) + "' has no attached GL context!",
@@ -147,10 +157,15 @@ namespace KalaGraphics::Internal::OpenGL
 
 		SwapBuffers(ToVar<HDC>(context));
 #else
-		Display* display = ToVar<Display*>(context.context_display);
-		Window window = ToVar<Window>(context.context_window);
+		Display* display = ToVar<Display*>(context->context_display);
+		Window window = ToVar<Window>(context->context_window);
 
 		glXSwapBuffers(display, window);
 #endif
 	}
+
+	void OpenGL_Core::Shutdown()
+    {
+        
+    }
 }
