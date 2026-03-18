@@ -9,15 +9,17 @@
 
 namespace KalaGraphics::Internal::Vulkan
 {
+    using u32 = uint32_t;
+
     class LIB_API Vulkan_Core
     {
     public:
-        //Main update draw call for Vulkan
-        static void Update();
+        //Main draw call
+        static void Update(u32 windowID);
+        //Actions that occur only when the window size changes
+        static void ResizeUpdate(u32 windowID);
 
-        static void ResizeUpdate();
-
-        //Clean all Vulkan resources
-        static void Shutdown();
+        //Clean all resources
+        static void Shutdown(u32 windowID);
     };
 }

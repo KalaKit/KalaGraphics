@@ -24,10 +24,10 @@ namespace KalaGraphics::Internal::OpenGL
             u32 windowID,
             VSyncState vsyncState);
 
-        //Main update draw call for OpenGL
-        static void Update();
-
-        static void ResizeUpdate();
+        //Main draw call
+        static void Update(u32 windowID);
+        //Actions that occur only when the window size changes
+        static void ResizeUpdate(u32 windowID);
     
         static void SetVSyncState(
             u32 windowID,
@@ -37,7 +37,7 @@ namespace KalaGraphics::Internal::OpenGL
         //Called at the end of each frame
 		static void SwapOpenGLBuffers(u32 windowID);
 
-        //Clean all OpenGL resources
-        static void Shutdown();
+        //Clean all resources
+        static void Shutdown(u32 windowID);
     };
 }

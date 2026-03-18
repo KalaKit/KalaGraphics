@@ -53,12 +53,12 @@ namespace KalaGraphics::Internal::OpenGL
 		vsyncStates[windowID] = vsyncState;
 	}
 
-	void OpenGL_Core::Update()
+	void OpenGL_Core::Update(u32 windowID)
     {
 
     }
 
-    void OpenGL_Core::ResizeUpdate()
+    void OpenGL_Core::ResizeUpdate(u32 windowID)
     {
 
     }
@@ -164,7 +164,7 @@ namespace KalaGraphics::Internal::OpenGL
 #endif
 	}
 
-	void OpenGL_Core::Shutdown()
+	void OpenGL_Core::Shutdown(u32 windowID)
     {
         
     }

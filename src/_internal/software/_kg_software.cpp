@@ -7,18 +7,18 @@
 
 namespace KalaGraphics::Internal::Software
 {
-    void Software_Core::Update()
+    void Software_Core::Update(u32 windowID)
     {
 
     }
 
-    void Software_Core::ResizeUpdate()
+    void Software_Core::ResizeUpdate(u32 windowID)
     {
 
     }
 
-    void Software_Core::Shutdown()
+    void Software_Core::Shutdown(u32 windowID)
     {
-        
+
     }
 }

@@ -7,17 +7,17 @@
 
 namespace KalaGraphics::Internal::Vulkan
 {
-    void Vulkan_Core::Update()
+    void Vulkan_Core::Update(u32 windowID)
     {
 
     }
 
-    void Vulkan_Core::ResizeUpdate()
+    void Vulkan_Core::ResizeUpdate(u32 windowID)
     {
 
     }
 
-    void Vulkan_Core::Shutdown()
+    void Vulkan_Core::Shutdown(u32 windowID)
     {
         
     }

@@ -205,6 +205,15 @@ namespace KalaGraphics::Core
             }
             string windowIDStr = to_string(c.windowID);
 
+            if (registry.createdContent.contains(c.windowID))
+            {
+                ForceClose(
+                    "KalaGraphics initialization error",
+                    "Failed to initialize KalaGraphics because a context window ID '" + windowIDStr + "' was added more than once!");
+
+                return false;
+            }
+
 #ifdef _WIN32
             if (!c.context_window)
             {
@@ -428,36 +437,13 @@ namespace KalaGraphics::Core
             bool forceOpenGL = ContainsValue(gfxFeatures, GraphicsFeature::GF_FORCE_OPENGL);
             bool forceVulkan = ContainsValue(gfxFeatures, GraphicsFeature::GF_FORCE_VULKAN);
 
-            auto can_use_opengl = []() -> bool
-                {
-                    for (const auto& c : registry.runtimeContent)
-                    {
-                        if (c->context_gl) return true;
-                    }
-
-                    return false;
-                };
-
-            auto can_use_vulkan = []() -> bool
-                {
-                    for (const auto& c : registry.runtimeContent)
-                    {
-                        if (c->context_vk_surface)
-                        {
-                            return true;
-                        }
-                    }
-
-                    return false;
-                };
-
             unique_ptr<Context> newCont = make_unique<Context>(c);
             Context* cont = newCont.get();
 
             if (forceSoftware) newCont->renderTarget = RenderTarget::RT_SOFTWARE;
             else if (forceOpenGL)
             {
-                if (!can_use_opengl())
+                if (!cont->context_gl)
                 {
                     ForceClose(
                         "KalaGraphics initialization error",
@@ -469,7 +455,7 @@ namespace KalaGraphics::Core
             }
             else if (forceVulkan)
             {
-                if (!can_use_vulkan())
+                if (!cont->context_vk_surface)
                 {
                     ForceClose(
                         "KalaGraphics initialization error",
@@ -490,7 +476,7 @@ namespace KalaGraphics::Core
 
                 if (wantsToUseVulkan)
                 {
-                    if (!can_use_vulkan())
+                    if (!cont->context_vk_surface)
                     {
                         ForceClose(
                             "KalaGraphics initialization error",
@@ -503,8 +489,8 @@ namespace KalaGraphics::Core
                 }
                 else
                 {
-                    if (can_use_opengl()) newCont->renderTarget = RenderTarget::RT_OPENGL;
-                    else if (can_use_vulkan())
+                    if (cont->context_gl) newCont->renderTarget = RenderTarget::RT_OPENGL;
+                    else if (cont->context_vk_surface)
                     {
                         Log::Print(
                             "Using Vulkan because no valid OpenGL contexts were passed.", 
@@ -530,13 +516,12 @@ namespace KalaGraphics::Core
 
             registry.AddContent(newID, std::move(newCont));
 
-            string winID = to_string(cont->windowID);
             string isFBDynamic = string(BoolValue(cont->isFramebufferDynamic));
             string fbVal = string(GetFramebufferName(cont->fbSize));
             string renderTarget = GetRenderTargetName(cont->windowID);
 
             Log::Print(
-                "Added valid context '" + winID + "'!\n"
+                "Added valid context '" + windowIDStr + "'!\n"
                 "    Render target: " + renderTarget + "\n"
                 "    Framebuffer is dynamic: " + isFBDynamic + "\n"
                 "    Framebuffer size: " + fbVal,
@@ -565,14 +550,17 @@ namespace KalaGraphics::Core
                 default:
                 case RenderTarget::RT_SOFTWARE:
                 {
+                    Software_Core::Update(c->windowID);
                     break;
                 }
                 case RenderTarget::RT_OPENGL:
                 {
+                    OpenGL_Core::Update(c->windowID);
                     break;
                 }
                 case RenderTarget::RT_VULKAN:
                 {
+                    Vulkan_Core::Update(c->windowID);
                     break;
                 }
             }   
@@ -588,14 +576,17 @@ namespace KalaGraphics::Core
                 default:
                 case RenderTarget::RT_SOFTWARE:
                 {
+                    Software_Core::ResizeUpdate(c->windowID);
                     break;
                 }
                 case RenderTarget::RT_OPENGL:
                 {
+                    OpenGL_Core::ResizeUpdate(c->windowID);
                     break;
                 }
                 case RenderTarget::RT_VULKAN:
                 {
+                    Vulkan_Core::ResizeUpdate(c->windowID);
                     break;
                 }
             }   
@@ -875,18 +866,23 @@ namespace KalaGraphics::Core
                 default:
                 case RenderTarget::RT_SOFTWARE:
                 {
+                    Software_Core::Shutdown(c->windowID);
                     break;
                 }
                 case RenderTarget::RT_OPENGL:
                 {
+                    OpenGL_Core::Shutdown(c->windowID);
                     break;
                 }
                 case RenderTarget::RT_VULKAN:
                 {
+                    Vulkan_Core::Shutdown(c->windowID);
                     break;
                 }
             }   
         }
+
+        registry.RemoveAllContent();
     }
 
     void KalaGraphicsCore::ForceClose(
