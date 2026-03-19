@@ -10,6 +10,7 @@
 
 #include "_internal/software/_kg_software_framebuffer.hpp"
 #include "core/kg_core.hpp"
+#include "core/kg_context.hpp"
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
@@ -17,7 +18,8 @@ using KalaHeaders::KalaLog::LogType;
 using KalaHeaders::KalaMath::toint;
 
 using KalaGraphics::Core::KalaGraphicsCore;
-using KalaGraphics::Core::Context;
+using KalaGraphics::Core::WindowContext;
+using KalaGraphics::Core::WindowContextData;
 
 using std::unique_ptr;
 using std::make_unique;
@@ -31,17 +33,6 @@ namespace KalaGraphics::Internal::Software
 
     Software_Framebuffer* Software_Framebuffer::Initialize(u32 windowID)
     {
-        if (!KalaGraphicsCore::IsInitialized())
-        {
-            Log::Print(
-                "Failed to create software framebuffer for window '" + to_string(windowID) + "' because KalaGraphics has not been initialized!", 
-                "KALAGRAPHICS_CORE",
-                LogType::LOG_ERROR,
-                2);
-
-            return nullptr;
-        }
-
         Log::Print(
             "Initializing KalaGraphics.", 
             "SW_FRAMEBUFFER_INTERNAL",

@@ -18,7 +18,7 @@
 #include "log_utils.hpp"
 
 #include "_internal/opengl/_kg_opengl.hpp"
-#include "core/kg_core.hpp"
+#include "core/kg_context.hpp"
 
 using std::unordered_map;
 using std::to_string;
@@ -28,8 +28,8 @@ using KalaHeaders::KalaCore::ToVar;
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
 
-using KalaGraphics::Core::KalaGraphicsCore;
-using KalaGraphics::Core::Context;
+using KalaGraphics::Core::WindowContext;
+using KalaGraphics::Core::WindowContextData;
 
 namespace KalaGraphics::Internal::OpenGL
 {
@@ -117,17 +117,6 @@ namespace KalaGraphics::Internal::OpenGL
 
 	void OpenGL_Core::SwapOpenGLBuffers(u32 windowID)
 	{
-		if (!KalaGraphicsCore::IsInitialized())
-		{
-			Log::Print(
-				"Cannot swap OpenGL buffers because KalaGraphics has not been initialized!",
-				"OPENGL_INTERNAL",
-				LogType::LOG_ERROR,
-				2);
-
-			return;
-		}
-
 		if (!vsyncStates.contains(windowID))
 		{
 			Log::Print(
@@ -139,9 +128,10 @@ namespace KalaGraphics::Internal::OpenGL
 			return;
 		}
 
-		Context* context = KalaGraphicsCore::GetContext(windowID);
+		WindowContext* c = WindowContext::GetRegistry().GetContent(windowID);
+		const WindowContextData& context = c->GetWindowContextData();
 
-		if (context->context_gl == 0)
+		if (context.context_gl == 0)
 		{
 			Log::Print(
 				"Failed to get vsync state because passed window ID '" + to_string(windowID) + "' has no attached GL context!",
@@ -157,8 +147,8 @@ namespace KalaGraphics::Internal::OpenGL
 
 		SwapBuffers(ToVar<HDC>(context));
 #else
-		Display* display = ToVar<Display*>(context->context_display);
-		Window window = ToVar<Window>(context->context_window);
+		Display* display = ToVar<Display*>(context.context_display);
+		Window window = ToVar<Window>(context.context_window);
 
 		glXSwapBuffers(display, window);
 #endif
