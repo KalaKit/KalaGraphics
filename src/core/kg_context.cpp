@@ -5,7 +5,8 @@
 
 #ifdef _WIN32
 #include <windows.h>
-#include "wglext.h"
+#include <GL/gl.h>
+#include "glcorearb.h"
 #else
 #include <X11/X.h>
 #include <X11/Xlib.h>

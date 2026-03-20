@@ -4,7 +4,8 @@
 //Read LICENSE.md for more information.
 
 #ifdef _WIN32
-#include "wglext.h"
+#include <windows.h>
+#include <GL/gl.h>
 #else
 #include <X11/Xlib.h>
 #include <GL/glx.h>
@@ -143,9 +144,7 @@ namespace KalaGraphics::Internal::OpenGL
 		}
 
 #ifdef _WIN32
-		HDC context = context.context_gl;
-
-		SwapBuffers(ToVar<HDC>(context));
+		SwapBuffers(ToVar<HDC>(*context.context_gl));
 #else
 		Display* display = ToVar<Display*>(context.context_display);
 		Window window = ToVar<Window>(context.context_window);
