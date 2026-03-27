@@ -16,6 +16,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #ifdef _WIN32
 #define VK_USE_PLATFORM_WIN32_KHR
@@ -49,6 +50,7 @@ using KalaHeaders::KalaString::BoolValue;
 using KalaHeaders::KalaMath::vec2;
 
 using KalaGraphics::Core::FramebufferSize;
+using KalaGraphics::Core::GraphicsFeature;
 using KalaGraphics::Internal::Software::Software_Core;
 using KalaGraphics::Internal::OpenGL::OpenGL_Core;
 using KalaGraphics::Internal::Vulkan::Vulkan_Core;
@@ -57,6 +59,7 @@ using std::string;
 using std::string_view;
 using std::to_string;
 using std::unordered_map;
+using std::vector;
 
 //4:3
 
@@ -318,6 +321,43 @@ namespace KalaGraphics::Core
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
                 "Failed to initialize window context '" + windowIDStr + "' because it contained both an OpenGL and Vulkan context!");
+
+            return nullptr;
+        }
+
+        bool conflictsWithSW = !(cont->graphicsFeatures.empty()
+            || (cont->graphicsFeatures.size() == 1
+            && ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_FORCE_SOFTWARE)));
+
+        bool conflictsWithGL = !((cont->graphicsFeatures.empty()
+            || (cont->graphicsFeatures.size() == 1
+            && ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_FORCE_OPENGL))));
+
+        bool conflictsWithVK = ((cont->graphicsFeatures.size() >= 1
+            && (ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_FORCE_SOFTWARE)
+            || ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_FORCE_OPENGL))));
+
+        if (conflictsWithSW)
+        {
+            KalaGraphicsCore::ForceClose(
+                "Window context init error",
+                "Failed to initialize window context '" + windowIDStr + "' because conflicting Software Renderer graphics features were passed!");
+
+            return nullptr;
+        }
+        if (conflictsWithGL)
+        {
+            KalaGraphicsCore::ForceClose(
+                "Window context init error",
+                "Failed to initialize window context '" + windowIDStr + "' because conflicting OpenGL graphics features were passed!");
+
+            return nullptr;
+        }
+        if (conflictsWithVK)
+        {
+            KalaGraphicsCore::ForceClose(
+                "Window context init error",
+                "Failed to initialize window context '" + windowIDStr + "' because conflicting Vulkan graphics features were passed!");
 
             return nullptr;
         }

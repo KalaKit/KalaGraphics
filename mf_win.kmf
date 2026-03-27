@@ -8,53 +8,34 @@
 
 //copy readme
 origin: README.md
-target: ..@elypso-engine@_external_shared@KalaGraphics@README.md, ..@elypso-hub@_external_shared@KalaGraphics@README.md, ..@kalakit_test_projects@_external_shared@KalaGraphics@README.md
+target: ..@external-shared@KalaGraphics@README.md
 action: forcecopy
 
 //copy license
 origin: LICENSE.md
-target: ..@elypso-engine@_external_shared@KalaGraphics@LICENSE.md, ..@elypso-hub@_external_shared@KalaGraphics@LICENSE.md, ..@kalakit_test_projects@_external_shared@KalaGraphics@LICENSE.md
+target: ..@external-shared@KalaGraphics@LICENSE.md
 action: forcecopy
 
 //copy include files
 origin: include
-target: ..@elypso-engine@_external_shared@KalaGraphics@include, ..@elypso-hub@_external_shared@KalaGraphics@include, ..@kalakit_test_projects@_external_shared@KalaGraphics@include
+target: ..@external-shared@KalaGraphics@include
 action: forcecopy
 
 //copy docs
 origin: docs
-target: ..@elypso-engine@_external_shared@KalaGraphics@docs, ..@elypso-hub@_external_shared@KalaGraphics@docs, ..@kalakit_test_projects@_external_shared@KalaGraphics@docs
+target: ..@external-shared@KalaGraphics@docs
 action: forcecopy
 
 //
 // BINARIES
 //
 
-//copy debug lib
-origin: build@debug-windows@kalagraphicsd.lib
-target: ..@elypso-engine@_external_shared@KalaGraphics@debug@kalagraphicsd.lib, ..@elypso-hub@_external_shared@KalaGraphics@debug@kalagraphicsd.lib, ..@kalakit_test_projects@_external_shared@KalaGraphics@debug@kalagraphicsd.lib
+//copy debug
+origin: build@debug-linux@kalagraphicsd.lib
+target: ..@external-shared@KalaGraphics@debug@kalagraphicsd.lib
 action: forcecopy
 
-//copy release lib
-origin: build@release-windows@kalagraphics.lib
-target: ..@elypso-engine@_external_shared@KalaGraphics@release@kalagraphics.lib, ..@elypso-hub@_external_shared@KalaGraphics@release@kalagraphics.lib, ..@kalakit_test_projects@_external_shared@KalaGraphics@release@kalagraphics.lib
+//copy release
+origin: build@release-linux@kalagraphics.lib
+target: ..@external-shared@KalaGraphics@release@kalagraphics.lib
 action: forcecopy
-
-//
-// EXTERNAL LIBRARIES
-//
-
-//KalaHeaders
-origin: _external_shared@KalaHeaders
-target: ..@elypso-engine@_external_shared@KalaHeaders, ..@elypso-hub@_external_shared@KalaHeaders, ..@kalakit_test_projects@_external_shared@KalaHeaders
-action: copy
-
-//OpenGL
-origin: _external_shared@OpenGL
-target: ..@elypso-engine@_external_shared@OpenGL, ..@elypso-hub@_external_shared@OpenGL, ..@kalakit_test_projects@_external_shared@OpenGL
-action: copy
-
-//Vulkan
-origin: _external_shared@Vulkan
-target: ..@elypso-engine@_external_shared@Vulkan, ..@elypso-hub@_external_shared@Vulkan, ..@kalakit_test_projects@_external_shared@Vulkan
-action: copy
