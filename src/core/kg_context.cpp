@@ -241,13 +241,13 @@ namespace KalaGraphics::Core
         const WindowContextData& in_context,
         const optional<vector<GraphicsFeature>> in_gfxFeatures)
     {
-        Log::Print(
-            "Initializing window context.", 
-            "KALAGRAPHICS_CONTEXT",
-            LogType::LOG_INFO);
-
         unique_ptr<WindowContext> newCont = make_unique<WindowContext>();
         WindowContext* cont = newCont.get();
+
+        u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
+        KalaGraphicsCore::SetGlobalID(newID);
+
+        cont->ID = newID;
 
         cont->context = in_context;
         cont->graphicsFeatures = in_gfxFeatures.value_or({});
@@ -260,13 +260,14 @@ namespace KalaGraphics::Core
 
             return nullptr;
         }
-        string windowIDStr = to_string(cont->context.windowID);
+
+        string idStr = to_string(newID);
 
         if (registry.createdContent.contains(cont->context.windowID))
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + windowIDStr + "' because its ID was added more than once!");
+                "Failed to initialize window context '" + idStr + "' because its ID was added more than once!");
 
             return nullptr;
         }
@@ -276,7 +277,7 @@ namespace KalaGraphics::Core
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + windowIDStr + "' because it was missing its window!");
+                "Failed to initialize window context '" + idStr + "' because it was missing its window!");
 
             return nullptr;
         }
@@ -286,7 +287,7 @@ namespace KalaGraphics::Core
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + windowIDStr + "' because it did not contain a real window!");
+                "Failed to initialize window context '" + idStr + "' because it did not contain a real window!");
 
             return nullptr;
         }
@@ -296,7 +297,7 @@ namespace KalaGraphics::Core
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + windowIDStr + "' because it was missing its display or window!");
+                "Failed to initialize window context '" + idStr + "' because it was missing its display or window!");
 
             return nullptr;
         }
@@ -309,7 +310,7 @@ namespace KalaGraphics::Core
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + windowIDStr + "' because it did not contain a real display or window!");
+                "Failed to initialize window context '" + idStr + "' because it did not contain a real display or window!");
 
             return nullptr;
         }
@@ -320,28 +321,30 @@ namespace KalaGraphics::Core
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + windowIDStr + "' because it contained both an OpenGL and Vulkan context!");
+                "Failed to initialize window context '" + idStr + "' because it contained both an OpenGL and Vulkan context!");
 
             return nullptr;
         }
 
-        bool conflictsWithSW = !(cont->graphicsFeatures.empty()
-            || (cont->graphicsFeatures.size() == 1
-            && ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_FORCE_SOFTWARE)));
+        bool conflictsWithSW = cont->graphicsFeatures.size() > 1
+            && ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_FORCE_SOFTWARE);
 
-        bool conflictsWithGL = !((cont->graphicsFeatures.empty()
-            || (cont->graphicsFeatures.size() == 1
-            && ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_FORCE_OPENGL))));
+        bool conflictsWithGL = cont->graphicsFeatures.size() > 1
+            && ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_FORCE_OPENGL);
 
-        bool conflictsWithVK = ((cont->graphicsFeatures.size() >= 1
+        bool conflictsWithVK = cont->graphicsFeatures.size() > 1
+            && (ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_FORCE_VULKAN)
+            || ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_COMPUTE_SHADERS)
+            || ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_RAY_TRACING)
+            || ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_PATH_TRACING))
             && (ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_FORCE_SOFTWARE)
-            || ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_FORCE_OPENGL))));
+            || ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_FORCE_OPENGL));
 
         if (conflictsWithSW)
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + windowIDStr + "' because conflicting Software Renderer graphics features were passed!");
+                "Failed to initialize window context '" + idStr + "' because conflicting Software Renderer graphics features were passed!");
 
             return nullptr;
         }
@@ -349,7 +352,7 @@ namespace KalaGraphics::Core
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + windowIDStr + "' because conflicting OpenGL graphics features were passed!");
+                "Failed to initialize window context '" + idStr + "' because conflicting OpenGL graphics features were passed!");
 
             return nullptr;
         }
@@ -357,7 +360,7 @@ namespace KalaGraphics::Core
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + windowIDStr + "' because conflicting Vulkan graphics features were passed!");
+                "Failed to initialize window context '" + idStr + "' because conflicting Vulkan graphics features were passed!");
 
             return nullptr;
         }
@@ -377,7 +380,7 @@ namespace KalaGraphics::Core
 
                 KalaGraphicsCore::ForceClose(
                     "Window context init error",
-                    "Failed to initialize window context '" + windowIDStr + "' because it contained a broken OpenGL context!");
+                    "Failed to initialize window context '" + idStr + "' because it contained a broken OpenGL context!");
 
                 return nullptr;
             }
@@ -400,7 +403,7 @@ namespace KalaGraphics::Core
             {
                 KalaGraphicsCore::ForceClose(
                     "Window context init error",
-                    "Failed to initialize window ontext '" + windowIDStr + "' because its OpenGL context is invalid!");
+                    "Failed to initialize window ontext '" + idStr + "' because its OpenGL context is invalid!");
 
                 return nullptr;
             }
@@ -420,7 +423,7 @@ namespace KalaGraphics::Core
             {
                 KalaGraphicsCore::ForceClose(
                     "Window context init error",
-                    "Failed to initialize window context '" + windowIDStr + "' because its OpenGL version was lower than minimum required version 3.3!");
+                    "Failed to initialize window context '" + idStr + "' because its OpenGL version was lower than minimum required version 3.3!");
 
                 return nullptr;
             }
@@ -431,7 +434,7 @@ namespace KalaGraphics::Core
             {
                 KalaGraphicsCore::ForceClose(
                     "Window context init error",
-                    "Failed to initialize window context '" + windowIDStr + "' because it was aimed for Vulkan but no Vulkan instance was passed!");
+                    "Failed to initialize window context '" + idStr + "' because it was aimed for Vulkan but no Vulkan instance was passed!");
 
                 return nullptr;
             }
@@ -448,7 +451,7 @@ namespace KalaGraphics::Core
             {
                 KalaGraphicsCore::ForceClose(
                     "Window context init error",
-                    "Failed to initialize window context '" + windowIDStr + "' because its Vulkan version was lower than minimum required version 1.3!");
+                    "Failed to initialize window context '" + idStr + "' because its Vulkan version was lower than minimum required version 1.3!");
 
                 return nullptr;
             }
@@ -467,7 +470,7 @@ namespace KalaGraphics::Core
                 {
                     KalaGraphicsCore::ForceClose(
                     "Window context init error",
-                    "Failed to initialize window context '" + windowIDStr + "' because its Vulkan instance is invalid!");
+                    "Failed to initialize window context '" + idStr + "' because its Vulkan instance is invalid!");
 
                     return nullptr;
                 }
@@ -521,7 +524,7 @@ namespace KalaGraphics::Core
             {
                 KalaGraphicsCore::ForceClose(
                     "Window context init error",
-                    "Failed to initialize window context '" + windowIDStr + "' because its Vulkan surface is invalid!");
+                    "Failed to initialize window context '" + idStr + "' because its Vulkan surface is invalid!");
 
                 return nullptr;
             }
@@ -538,7 +541,7 @@ namespace KalaGraphics::Core
             {
                 KalaGraphicsCore::ForceClose(
                     "Window context init error",
-                    "Failed to force OpenGL for window context '" + windowIDStr + "' because no OpenGL context was passed or no OpenGL contexts camne with a valid window!");
+                    "Failed to force OpenGL for window context '" + idStr + "' because no OpenGL context was passed or no OpenGL contexts camne with a valid window!");
 
                 return nullptr;
             }
@@ -550,7 +553,7 @@ namespace KalaGraphics::Core
             {
                 KalaGraphicsCore::ForceClose(
                     "Window context init error",
-                    "Failed to force Vulkan for window context '" + windowIDStr + "' because no Vulkan context was passed or no Vulkan contexts camne with a valid window!");
+                    "Failed to force Vulkan for window context '" + idStr + "' because no Vulkan context was passed or no Vulkan contexts camne with a valid window!");
 
                 return nullptr;
             }
@@ -571,7 +574,7 @@ namespace KalaGraphics::Core
                 {
                     KalaGraphicsCore::ForceClose(
                         "Window context init error",
-                        "Failed to use Vulkan for window context '" + windowIDStr + "' through Vulkan-only Graphics features because no Vulkan context was passed or no Vulkan contexts came with a valid window!");
+                        "Failed to use Vulkan for window context '" + idStr + "' through Vulkan-only Graphics features because no Vulkan context was passed or no Vulkan contexts came with a valid window!");
                 
                     return nullptr;
                 }
@@ -593,7 +596,7 @@ namespace KalaGraphics::Core
                 else
                 {
                     Log::Print(
-                        "Fell back to software rendering for window context '" + windowIDStr + "' because no valid OpenGL or Vulkan contexts were passed.", 
+                        "Fell back to software rendering for window context '" + idStr + "' because no valid OpenGL or Vulkan contexts were passed.", 
                         "KALAGRAPHICS_CONTEXT",
                         LogType::LOG_WARNING);
 
@@ -602,11 +605,6 @@ namespace KalaGraphics::Core
             }
         }
 
-        u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
-        KalaGraphicsCore::SetGlobalID(newID);
-
-        cont->ID = newID;
-
         registry.AddContent(newID, std::move(newCont));
 
         string isFBDynamic = string(BoolValue(cont->context.isFramebufferDynamic));
@@ -614,7 +612,7 @@ namespace KalaGraphics::Core
         string renderTarget = string(GetRenderTargetName(cont->renderTarget));
 
         Log::Print(
-            "Initialized valid context '" + windowIDStr + "'!\n"
+            "Initialized valid context '" + idStr + "'!\n"
             "    Render target: " + renderTarget + "\n"
             "    Framebuffer is dynamic: " + isFBDynamic + "\n"
             "    Framebuffer size: " + fbVal,
