@@ -5,6 +5,15 @@
 
 #pragma once
 
+#ifdef _WIN32
+#include <windows.h>
+#include <GL/gl.h>
+#include "wglext.h"
+#else
+#include <GL/glx.h>
+#include <GL/glxext.h>
+#endif
+
 #include "core_utils.hpp"
 
 namespace KalaGraphics::Internal::OpenGL
@@ -17,12 +26,179 @@ namespace KalaGraphics::Internal::OpenGL
 		VSYNC_OFF //Framerate is uncapped, runs as fast as render loop allows, introduces tearing.
 	};
 
+    struct LIB_API OpenGL_Context
+    {
+        u32 windowID{};
+        VSyncState state{};
+        uintptr_t context{};
+    };
+
+    struct LIB_API OpenGL_Core_Functions
+    {
+        //
+        // SHADERS
+        //
+
+		//Attaches a shader object to a program
+		PFNGLATTACHSHADERPROC glAttachShader;
+
+		//Compiles a shader object
+		PFNGLCOMPILESHADERPROC glCompileShader;
+
+		//Creates a new shader program object
+		PFNGLCREATEPROGRAMPROC glCreateProgram;
+
+		//Creates a shader object of the specified type (GL_VERTEX_SHADER, etc.)
+		PFNGLCREATESHADERPROC glCreateShader;
+
+		//Deletes a shader object
+		PFNGLDELETESHADERPROC glDeleteShader;
+
+		//Deletes a program object
+		PFNGLDELETEPROGRAMPROC glDeleteProgram;
+
+		//Detaches a shader object from a program
+		PFNGLDETACHSHADERPROC glDetachShader;
+
+		//Retrieves information about an active attribute variable
+		PFNGLGETACTIVEATTRIBPROC glGetActiveAttrib;
+
+		//Returns the attribute location within a shader program
+		PFNGLGETATTRIBLOCATIONPROC glGetAttribLocation;
+
+		//Retrieves a parameter from a program object
+		PFNGLGETPROGRAMIVPROC glGetProgramiv;
+
+		//Returns the information log for a program object
+		PFNGLGETPROGRAMINFOLOGPROC glGetProgramInfoLog;
+
+		//Retrieves a parameter from a shader object
+		PFNGLGETSHADERIVPROC glGetShaderiv;
+
+		//Returns the information log for a shader object
+		PFNGLGETSHADERINFOLOGPROC glGetShaderInfoLog;
+
+		//Links a program object
+		PFNGLLINKPROGRAMPROC glLinkProgram;
+
+		//Sets the source code for a shader
+		PFNGLSHADERSOURCEPROC glShaderSource;
+
+		//Activates a shader program for rendering
+		PFNGLUSEPROGRAMPROC glUseProgram;
+
+		//Validates a program object to see if it's executable
+		PFNGLVALIDATEPROGRAMPROC glValidateProgram;
+
+		//Returns whether a given program name is a valid program object
+		PFNGLISPROGRAMPROC glIsProgram;
+
+        //
+        // UNIFORMS
+        //
+
+        //Retrieves the location of a uniform variable within a shader program
+		PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
+
+		//Find block index by name
+		PFNGLGETUNIFORMBLOCKINDEXPROC glGetUniformBlockIndex;
+
+		//Bind block index to binding point
+		PFNGLUNIFORMBLOCKBINDINGPROC glUniformBlockBinding;
+
+        //Sets a float uniform
+		PFNGLUNIFORM1FPROC glUniform1f;
+
+		//Sets a integer uniform
+		PFNGLUNIFORM1IPROC glUniform1i;
+
+		//Sets a float uniform from an array
+		PFNGLUNIFORM1FVPROC glUniform1fv;
+
+		//Sets a int uniform from an array
+		PFNGLUNIFORM1IVPROC glUniform1iv;
+
+		//Sets a vec2 float uniform
+		PFNGLUNIFORM2FPROC glUniform2f;
+
+		//Sets a vec2 integer uniform
+		PFNGLUNIFORM2IPROC glUniform2i;
+
+		//Sets a vec2 float uniform from an array
+		PFNGLUNIFORM2FVPROC glUniform2fv;
+
+		//Sets a vec2 int uniform from an array
+		PFNGLUNIFORM2IVPROC glUniform2iv;
+
+		//Sets a vec3 float uniform
+		PFNGLUNIFORM3FPROC glUniform3f;
+
+		//Sets a vec3 integer uniform
+		PFNGLUNIFORM3IPROC glUniform3i;
+
+		//Sets a vec3 float uniform from an array
+		PFNGLUNIFORM3FVPROC glUniform3fv;
+
+		//Sets a vec3 int uniform from an array
+		PFNGLUNIFORM3IVPROC glUniform3iv;
+
+		//Sets a vec4 float uniform
+		PFNGLUNIFORM4FPROC glUniform4f;
+
+		//Sets a vec4 integer uniform
+		PFNGLUNIFORM4IPROC glUniform4i;
+
+		//Sets a vec4 float uniform from an array
+		PFNGLUNIFORM4FVPROC glUniform4fv;
+
+		//Sets a vec4 int uniform from an array
+		PFNGLUNIFORM4IVPROC glUniform4iv;
+
+		//Sets a 2x2 matrix uniform from an array of floats
+		PFNGLUNIFORMMATRIX2FVPROC glUniformMatrix2fv;
+
+		//Sets a 3x3 matrix uniform from an array of floats
+		PFNGLUNIFORMMATRIX3FVPROC glUniformMatrix3fv;
+
+		//Sets a 4x4 matrix uniform from an array of floats
+		PFNGLUNIFORMMATRIX4FVPROC glUniformMatrix4fv;
+    };
+
+#ifdef _WIN32
+    struct LIB_API OpenGL_Windows_Functions
+    {
+        PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT;
+    };
+#else
+    struct LIB_API OpenGL_Linux_Functions
+    {
+        PFNGLXSWAPINTERVALEXTPROC glXSwapIntervalEXT;
+    };
+#endif
+
     class LIB_API OpenGL_Core
     {
     public:
-        static void AddWindow(
-            u32 windowID,
-            VSyncState vsyncState);
+        static void AddWindow(const OpenGL_Context& ctxt);
+
+        static void SetCoreFunctions(const OpenGL_Core_Functions& coreFunc);
+        static const OpenGL_Core_Functions& GetCoreFunctions();
+#ifdef _WIN32
+        static void SetWindowsFunctions(const OpenGL_Windows_Functions& winFunc);
+        static const OpenGL_Windows_Functions& GetWindowsFunctions();
+#else
+        static void SetLinuxFunctions(const OpenGL_Linux_Functions& linFunc);
+        static const OpenGL_Linux_Functions& GetLinuxFunctions();
+#endif
+
+		//Make the GL context correct for the current window
+		static void MakeContextCurrent(
+		    u32 windowID,
+			uintptr_t context,
+			uintptr_t handle);
+
+		//Confirms that the GL context is the same as the stored context for this window
+		static bool IsContextValid(uintptr_t context);
 
         //Main draw call
         static void Update(u32 windowID);
