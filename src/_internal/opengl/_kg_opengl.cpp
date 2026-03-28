@@ -12,17 +12,16 @@
 #include <GL/glxext.h>
 #endif
 
-#include <vector>
 #include <string>
 
 #include "core_utils.hpp"
 #include "log_utils.hpp"
 
 #include "_internal/opengl/_kg_opengl.hpp"
+#include "_internal/opengl/_kg_opengl_flags.hpp"
 #include "core/kg_core.hpp"
 #include "core/kg_context.hpp"
 
-using std::vector;
 using std::to_string;
 
 using KalaHeaders::KalaCore::ToVar;
@@ -33,6 +32,8 @@ using KalaHeaders::KalaLog::LogType;
 using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Core::WindowContext;
 using KalaGraphics::Core::WindowContextData;
+using KalaGraphics::Core::VSyncState;
+using KalaGraphics::Internal::OpenGL::OpenGL_Flags;
 
 namespace KalaGraphics::Internal::OpenGL
 {
@@ -43,47 +44,13 @@ namespace KalaGraphics::Internal::OpenGL
 	static OpenGL_Linux_Functions linFunc{};
 #endif
 
-	static vector<OpenGL_Context> contexts{};
-
-	static bool ContainsContext(u32 windowID)
-	{
-		for (const auto& c : contexts)
-		{
-			if (c.windowID == windowID) return true;
-		}
-		return false;
-	}
-
-	static u32 GetContext(u32 windowID)
+	static bool ContainsContext(u32 contextID)
 	{
 		for (const auto& c : WindowContext::GetRegistry().runtimeContent)
 		{
-			if (c->GetWindowContextData().windowID == windowID)
-			{
-				return c->GetID();
-			}
+			if (c->GetID() == contextID) return true;
 		}
-
-		return 0;
-	}
-
-	void OpenGL_Core::AddWindow(const OpenGL_Context& newCtx)
-	{
-		for (const auto& c : contexts)
-		{
-			if (c.windowID == newCtx.windowID)
-			{
-				Log::Print(
-					"Cannot add window ID '" + to_string(newCtx.windowID) + "' because it has already been added!",
-					"GL_INTERNAL",
-					LogType::LOG_ERROR,
-					2);
-
-				return;
-			}
-		}
-
-		contexts.push_back(newCtx);
+		return false;
 	}
 
 	void OpenGL_Core::SetCoreFunctions(const OpenGL_Core_Functions& newCoreFunc)
@@ -105,21 +72,20 @@ namespace KalaGraphics::Internal::OpenGL
 	const OpenGL_Linux_Functions& OpenGL_Core::GetLinuxFunctions() { return linFunc; }
 #endif
 
-    void OpenGL_Core::MakeContextCurrent(
-		u32 windowID,
-		uintptr_t context,
-		uintptr_t handle)
+    void OpenGL_Core::MakeContextCurrent(u32 contextID)
     {
-		if (!context)
+        if (!WindowContext::GetRegistry().createdContent.contains(contextID))
 		{
 			Log::Print(
-				"Cannot set OpenGL context because the attached context doesn't exist!",
-				"OPENGL",
+				"Cannot check OpenGL context current because the passed context ID '" + to_string(contextID) + "' was not found!",
+				"GL_INTERNAL",
 				LogType::LOG_ERROR,
 				2);
 
 			return;
 		}
+
+		uintptr_t context = *WindowContext::GetRegistry().createdContent[contextID]->GetWindowContextData().context_gl;
 
 #ifdef _WIN32
 		HGLRC storedContext = ToVar<HGLRC>(context);
@@ -128,24 +94,12 @@ namespace KalaGraphics::Internal::OpenGL
 			ToVar<HDC>(handle),
 			storedContext);
 #else
-		u32 ctxID = GetContext(windowID);
-		if (ctxID == 0)
+		uintptr_t displayPtr = WindowContext::GetRegistry().createdContent[contextID]->GetWindowContextData().context_display;
+
+		if (!displayPtr)
 		{
 			Log::Print(
-				"Cannot make context current because the passed window ID '" + to_string(windowID) + "' was not found!",
-				"GL_INTERNAL",
-				LogType::LOG_ERROR,
-				2);
-				
-			return;
-		}
-
-		const WindowContextData& ctxData = WindowContext::GetRegistry().GetContent(ctxID)->GetWindowContextData();
-
-		if (!ctxData.context_display)
-		{
-			Log::Print(
-				"Cannot set VSync state because context '" + to_string(ctxID) + "' does not have a valid display!",
+				"Cannot set VSync state because context '" + to_string(contextID) + "' does not have a valid display!",
 				"GL_INTERNAL",
 				LogType::LOG_ERROR,
 				2);
@@ -153,10 +107,10 @@ namespace KalaGraphics::Internal::OpenGL
 			return;
 		}
 
-		Display* display = ToVar<Display*>(ctxData.context_display);
+		Display* display = ToVar<Display*>(displayPtr);
 
 		GLXContext stored = ToVar<GLXContext>(context);
-		GLXDrawable drawable = scast<GLXDrawable>(handle);
+		GLXDrawable drawable = scast<GLXDrawable>(context);
 
 		if (glXGetCurrentContext() != stored
 			&& !glXMakeCurrent(display, drawable, stored))
@@ -167,18 +121,20 @@ namespace KalaGraphics::Internal::OpenGL
 		}
 #endif
     }
-    bool OpenGL_Core::IsContextValid(uintptr_t context)
+    bool OpenGL_Core::IsContextValid(u32 contextID)
     {
-        if (!context)
+        if (!WindowContext::GetRegistry().createdContent.contains(contextID))
 		{
 			Log::Print(
-				"Cannot check OpenGL context validity because the attached context doesn't exist!",
-				"OPENGL",
+				"Cannot check OpenGL context validity because the passed context ID '" + to_string(contextID) + "' was not found!",
+				"GL_INTERNAL",
 				LogType::LOG_ERROR,
 				2);
 
 			return false;
 		}
+
+		uintptr_t context = *WindowContext::GetRegistry().createdContent[contextID]->GetWindowContextData().context_gl;
 
 #ifdef _WIN32
 		HGLRC storedContext = ToVar<HGLRC>(context);
@@ -227,129 +183,126 @@ namespace KalaGraphics::Internal::OpenGL
 		return true;
     }
 
-	void OpenGL_Core::Update(u32 windowID)
+	void OpenGL_Core::Update(u32 contextID)
+    {
+		OpenGL_Flags::SetGLClearColor(
+			contextID,
+			0.31f,
+			0.84f,
+			0.48f,
+			1);
+		OpenGL_Flags::ClearBuffers(contextID, true);
+
+		//handle content here...
+
+		SwapOpenGLBuffers(contextID);
+    }
+
+    void OpenGL_Core::ResizeUpdate(u32 contextID)
     {
 
     }
 
-    void OpenGL_Core::ResizeUpdate(u32 windowID)
-    {
-
-    }
-
-    void OpenGL_Core::SetVSyncState(
-		u32 windowID,
-		VSyncState newValue)
+    bool OpenGL_Core::SetVSyncState(
+		u32 contextID,
+		u8 newValue)
 	{		
-		for (auto& c : contexts)
-		{
-			if (c.windowID == windowID)
-			{
-				u32 ctxID = GetContext(windowID);
-				if (ctxID == 0)
-				{
-					Log::Print(
-						"Cannot set VSync state because the passed window ID '" + to_string(windowID) + "' was not found!",
-						"GL_INTERNAL",
-						LogType::LOG_ERROR,
-						2);
-						
-					return;
-				}
-
-#ifdef _WIN32
-				if (!winFunc.wglSwapIntervalEXT)
-				{
-					Log::Print(
-						"Cannot set VSync state because wglSwapIntervalEXT has not been assigned!",
-						"GL_INTERNAL",
-						LogType::LOG_ERROR,
-						2);
-						
-					return;
-				}
-				
-				winFunc.wglSwapIntervalEXT(newValue == VSyncState::VSYNC_ON
-					? 1
-					: 0);
-#else
-				if (!linFunc.glXSwapIntervalEXT)
-				{
-					Log::Print(
-						"Cannot set VSync state because glXSwapIntervalEXT has not been assigned!",
-						"GL_INTERNAL",
-						LogType::LOG_ERROR,
-						2);
-						
-					return;
-				}
-
-				const WindowContextData& ctxData = WindowContext::GetRegistry().GetContent(ctxID)->GetWindowContextData();
-
-				if (!ctxData.context_display)
-				{
-					Log::Print(
-						"Cannot set VSync state because context '" + to_string(ctxID) + "' does not have a valid display!",
-						"GL_INTERNAL",
-						LogType::LOG_ERROR,
-						2);
-
-					return;
-				}
-				if (!ctxData.context_window)
-				{
-					Log::Print(
-						"Cannot set VSync state because context '" + to_string(ctxID) + "' does not have a valid window!",
-						"GL_INTERNAL",
-						LogType::LOG_ERROR,
-						2);
-
-					return;
-				}
-
-				Display* display = ToVar<Display*>(ctxData.context_display);
-				Window window = ToVar<Window>(ctxData.context_window);
-
-				linFunc.glXSwapIntervalEXT(
-					display, 
-					window, 
-					(newValue == VSyncState::VSYNC_ON ? 1 : 0));
-#endif
-
-				c.state = newValue;
-
-				break;
-			}
-		}
-
-		Log::Print(
-			"Cannot set VSync state because the passed window ID '" + to_string(windowID) + "' was not found!",
-			"GL_INTERNAL",
-			LogType::LOG_ERROR,
-			2);
-	}
-	VSyncState OpenGL_Core::GetVSyncState(u32 windowID) 
-	{
-		for (const auto& c : contexts)
-		{
-			if (c.windowID == windowID) return c.state;
-		}
-
-		Log::Print(
-			"Failed to get vsync state because the passed window ID '" + to_string(windowID) + "' has not beed added!",
-			"OPENGL_INTERNAL",
-			LogType::LOG_ERROR,
-			2);
-
-		return VSyncState::VSYNC_OFF;
-	}
-
-	void OpenGL_Core::SwapOpenGLBuffers(u32 windowID)
-	{
-		if (!ContainsContext(windowID))
+		if (!WindowContext::GetRegistry().createdContent.contains(contextID))
 		{
 			Log::Print(
-				"Cannot swap OpenGL buffers because the passed window ID '" + to_string(windowID) + "' was not found!",
+				"Cannot set VSync state because the passed context ID '" + to_string(contextID) + "' was not found!",
+				"GL_INTERNAL",
+				LogType::LOG_ERROR,
+				2);
+				
+			return false;
+		}
+
+		auto& ctx = WindowContext::GetRegistry().createdContent[contextID];
+
+		if (newValue != scast<u8>(VSyncState::VSYNC_ON)
+			&& newValue != scast<u8>(VSyncState::VSYNC_OFF))
+		{
+			Log::Print(
+				"Cannot set VSync state because the passed vsync state value '" + to_string(newValue) + "' is not a valid state!",
+				"GL_INTERNAL",
+				LogType::LOG_ERROR,
+				2);
+				
+			return false;
+		}
+		VSyncState state = scast<VSyncState>(newValue);
+
+#ifdef _WIN32
+		if (!winFunc.wglSwapIntervalEXT)
+		{
+			Log::Print(
+				"Cannot set VSync state because wglSwapIntervalEXT has not been assigned!",
+				"GL_INTERNAL",
+				LogType::LOG_ERROR,
+				2);
+				
+			return false;
+		}
+		
+		winFunc.wglSwapIntervalEXT(state == VSyncState::VSYNC_ON
+			? 1
+			: 0);
+#else
+		if (!linFunc.glXSwapIntervalEXT)
+		{
+			Log::Print(
+				"Cannot set VSync state because glXSwapIntervalEXT has not been assigned!",
+				"GL_INTERNAL",
+				LogType::LOG_ERROR,
+				2);
+				
+			return false;
+		}
+
+		const WindowContextData& ctxData = WindowContext::GetRegistry().GetContent(contextID)->GetWindowContextData();
+
+		if (!ctxData.context_display)
+		{
+			Log::Print(
+				"Cannot set VSync state because context '" + to_string(contextID) + "' does not have a valid display!",
+				"GL_INTERNAL",
+				LogType::LOG_ERROR,
+				2);
+
+			return false;
+		}
+		if (!ctxData.context_window)
+		{
+			Log::Print(
+				"Cannot set VSync state because context '" + to_string(contextID) + "' does not have a valid window!",
+				"GL_INTERNAL",
+				LogType::LOG_ERROR,
+				2);
+
+			return false;
+		}
+
+		Display* display = ToVar<Display*>(ctxData.context_display);
+		Window window = ToVar<Window>(ctxData.context_window);
+
+		linFunc.glXSwapIntervalEXT(
+			display, 
+			window, 
+			(state == VSyncState::VSYNC_ON ? 1 : 0));
+#endif
+
+		ctx->context.state = state;
+
+		return true;
+	}
+
+	void OpenGL_Core::SwapOpenGLBuffers(u32 contextID)
+	{
+		if (!ContainsContext(contextID))
+		{
+			Log::Print(
+				"Cannot swap OpenGL buffers because the passed context ID '" + to_string(contextID) + "' was not found!",
 				"OPENGL_INTERNAL",
 				LogType::LOG_ERROR,
 				2);
@@ -357,13 +310,13 @@ namespace KalaGraphics::Internal::OpenGL
 			return;
 		}
 
-		WindowContext* c = WindowContext::GetRegistry().GetContent(windowID);
+		WindowContext* c = WindowContext::GetRegistry().GetContent(contextID);
 		const WindowContextData& context = c->GetWindowContextData();
 
 		if (context.context_gl == 0)
 		{
 			Log::Print(
-				"Failed to get vsync state because passed window ID '" + to_string(windowID) + "' has no attached GL context!",
+				"Failed to get vsync state because passed context ID '" + to_string(contextID) + "' has no attached GL context!",
 				"OPENGL_INTERNAL",
 				LogType::LOG_ERROR,
 				2);
@@ -381,7 +334,7 @@ namespace KalaGraphics::Internal::OpenGL
 #endif
 	}
 
-	void OpenGL_Core::Shutdown(u32 windowID)
+	void OpenGL_Core::Shutdown(u32 contextID)
     {
         
     }

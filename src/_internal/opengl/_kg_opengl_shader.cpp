@@ -121,7 +121,7 @@ namespace KalaGraphics::Internal::OpenGL
 
         Log::Print(
             "Creating shader '" + string(name) + "' with ID '" + to_string(newID) + "'.",
-            "OPENGL_SHADER",
+            "GL_SHADER_INTERNAL",
             LogType::LOG_DEBUG);
 
         CheckShaderData(
@@ -204,7 +204,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Cannot create shader '" + string(name) + "' because its vertex data is missing!",
-                "OPENGL_SHADER",
+                "GL_SHADER_INTERNAL",
                 LogType::LOG_ERROR,
 				2);
 
@@ -215,7 +215,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Cannot create shader '" + string(name) + "' because its fragment data is missing!",
-                "OPENGL_SHADER",
+                "GL_SHADER_INTERNAL",
                 LogType::LOG_ERROR,
 				2);
 
@@ -226,7 +226,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Cannot create shader '" + string(name) + "' because more than one vertex shader was added!",
-                "OPENGL_SHADER",
+                "GL_SHADER_INTERNAL",
                 LogType::LOG_ERROR,
 				2);
 
@@ -237,7 +237,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Cannot create shader '" + string(name) + "' because more than one fragment shader was added!",
-                "OPENGL_SHADER",
+                "GL_SHADER_INTERNAL",
                 LogType::LOG_ERROR,
 				2);
 
@@ -248,7 +248,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Cannot create shader '" + string(name) + "' because more than one geometry shader was added!",
-                "OPENGL_SHADER",
+                "GL_SHADER_INTERNAL",
                 LogType::LOG_ERROR,
 				2);
 
@@ -264,7 +264,7 @@ namespace KalaGraphics::Internal::OpenGL
             {
                 Log::Print(
                     "Skipped loading geometry shader because it was not assigned as a shader stage.",
-                    "OPENGL_SHADER",
+                    "GL_SHADER_INTERNAL",
                     LogType::LOG_INFO);
             }
         }
@@ -433,7 +433,7 @@ namespace KalaGraphics::Internal::OpenGL
             {
                 Log::Print(
                     "Shader program ID " + to_string(shaderPtr->programID) + " for shader '" + string(name) + "' is valid!",
-                    "OPENGL_SHADER",
+                    "GL_SHADER_INTERNAL",
                     LogType::LOG_SUCCESS);
             }
         }
@@ -458,7 +458,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Shader name cannot be empty or longer than 50 characters!",
-                "OPENGL_SHADER",
+                "GL_SHADER_INTERNAL",
                 LogType::LOG_ERROR,
                 2);
 
@@ -474,7 +474,7 @@ namespace KalaGraphics::Internal::OpenGL
 
         Log::Print(
             "Created OpenGL shader '" + string(name) + "' with ID '" + to_string(newID) + "'!",
-            "OPENGL_SHADER",
+            "GL_SHADER_INTERNAL",
             LogType::LOG_SUCCESS);
 
         return shaderPtr;
@@ -582,7 +582,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "GL_LINK_STATUS = " + to_string(linked),
-                "OPENGL_SHADER",
+                "GL_SHADER_INTERNAL",
                 LogType::LOG_WARNING);
         }
 
@@ -595,7 +595,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "GL_VALIDATE_STATUS = " + to_string(validated),
-                "OPENGL_SHADER",
+                "GL_SHADER_INTERNAL",
                 LogType::LOG_WARNING);
         }
 #endif
@@ -613,7 +613,7 @@ namespace KalaGraphics::Internal::OpenGL
             Log::Print(
                 "OpenGL shader bind failed! Program ID not bound after glUseProgram." +
                 string("Expected ID: '") + to_string(programID) + "', but got: '" + to_string(activeProgram) + "'.",
-                "OPENGL_SHADER",
+                "GL_SHADER_INTERNAL",
                 LogType::LOG_ERROR,
                 2);
             return false;
@@ -660,7 +660,7 @@ namespace KalaGraphics::Internal::OpenGL
                 Log::Print(
                     "Hot reload failed for shader '" + name
                     + "' because one or more shader types had invalid data! Keeping old version.",
-                    "OPENGL_SHADER",
+                    "GL_SHADER_INTERNAL",
                     LogType::LOG_ERROR,
                     2);
 
@@ -678,7 +678,7 @@ namespace KalaGraphics::Internal::OpenGL
             Log::Print(
                 "Hot reload failed for shader '" + name
                 + "' because the new shader failed to be created! Keeping old version.",
-                "OPENGL_SHADER",
+                "GL_SHADER_INTERNAL",
                 LogType::LOG_ERROR,
                 2);
 
@@ -700,7 +700,7 @@ namespace KalaGraphics::Internal::OpenGL
 
         Log::Print(
             "Shader '" + name + "' was hot reloaded!",
-            "OPENGL_SHADER",
+            "GL_SHADER_INTERNAL",
             LogType::LOG_SUCCESS);
 
         return true;
@@ -823,7 +823,7 @@ namespace KalaGraphics::Internal::OpenGL
 
         Log::Print(
             "Destroying shader '" + name + "' with ID '" + to_string(ID) + "'.",
-            "OPENGL_SHADER",
+            "GL_SHADER_INTERNAL",
             LogType::LOG_INFO);
 
         auto DestroyShader = [&](u32& ID)
@@ -1015,7 +1015,7 @@ bool CheckCompileErrors(u32 shader, string_view type)
             {
                 Log::Print(
                     "Shader linking succeeded (" + string(type) + ")",
-                    "OPENGL_SHADER",
+                    "GL_SHADER_INTERNAL",
                     LogType::LOG_SUCCESS);
             }
         }
@@ -1061,7 +1061,7 @@ bool CheckCompileErrors(u32 shader, string_view type)
             {
                 Log::Print(
                     "Shader compilation succeeded (" + string(type) + ")",
-                    "OPENGL_SHADER",
+                    "GL_SHADER_INTERNAL",
                     LogType::LOG_SUCCESS);
             }
         }
@@ -1153,7 +1153,7 @@ void InitShader(OpenGL_ShaderData& data)
     {
         Log::Print(
             "Initialized " + shaderType + " shader!",
-            "OPENGL_SHADER",
+            "GL_SHADER_INTERNAL",
             LogType::LOG_SUCCESS);
     }
 }

@@ -18,20 +18,8 @@
 
 namespace KalaGraphics::Internal::OpenGL
 {
+    using u8 = uint8_t;
     using u32 = uint32_t;
-
-    enum class VSyncState
-	{
-		VSYNC_ON, //Framerate is capped to monitor refresh rate.
-		VSYNC_OFF //Framerate is uncapped, runs as fast as render loop allows, introduces tearing.
-	};
-
-    struct LIB_API OpenGL_Context
-    {
-        u32 windowID{};
-        VSyncState state{};
-        uintptr_t context{};
-    };
 
     struct LIB_API OpenGL_Core_Functions
     {
@@ -179,8 +167,6 @@ namespace KalaGraphics::Internal::OpenGL
     class LIB_API OpenGL_Core
     {
     public:
-        static void AddWindow(const OpenGL_Context& ctxt);
-
         static void SetCoreFunctions(const OpenGL_Core_Functions& coreFunc);
         static const OpenGL_Core_Functions& GetCoreFunctions();
 #ifdef _WIN32
@@ -192,28 +178,24 @@ namespace KalaGraphics::Internal::OpenGL
 #endif
 
 		//Make the GL context correct for the current window
-		static void MakeContextCurrent(
-		    u32 windowID,
-			uintptr_t context,
-			uintptr_t handle);
+		static void MakeContextCurrent(u32 contextID);
 
 		//Confirms that the GL context is the same as the stored context for this window
-		static bool IsContextValid(uintptr_t context);
+		static bool IsContextValid(u32 contextID);
 
         //Main draw call
-        static void Update(u32 windowID);
+        static void Update(u32 contextID);
         //Actions that occur only when the window size changes
-        static void ResizeUpdate(u32 windowID);
+        static void ResizeUpdate(u32 contextID);
     
-        static void SetVSyncState(
-            u32 windowID,
-            VSyncState newValue);
-        static VSyncState GetVSyncState(u32 windowID);
+        static bool SetVSyncState(
+            u32 contextID,
+            u8 newValue);
 
         //Called at the end of each frame
-		static void SwapOpenGLBuffers(u32 windowID);
+		static void SwapOpenGLBuffers(u32 contextID);
 
         //Clean all resources
-        static void Shutdown(u32 windowID);
+        static void Shutdown(u32 contextID);
     };
 }

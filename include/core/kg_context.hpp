@@ -13,6 +13,7 @@
 #include "math_utils.hpp"
 
 #include "core/kg_registry.hpp"
+#include "_internal/opengl/_kg_opengl.hpp"
 
 struct VkInstance_T;
 using VkInstance = VkInstance_T*;
@@ -110,12 +111,25 @@ namespace KalaGraphics::Core
         FB_5120_1440 = 18u
     };
 
+    enum class VSyncState : u8
+	{
+        VSYNC_INVALID = 0u,
+
+        //Framerate is capped to monitor refresh rate
+		VSYNC_ON = 1u,
+
+        //Framerate is uncapped, runs as fast as render loop allows, introduces tearing
+		VSYNC_OFF = 2u
+	};
+
     struct LIB_API WindowContextData
     {
         u32 windowID{};
 
         bool isFramebufferDynamic = true;
         FramebufferSize fbSize = FramebufferSize::FB_1920_1080;
+
+        VSyncState state = VSyncState::VSYNC_OFF;
 
 #ifdef _WIN32
         uintptr_t context_window{};
@@ -130,6 +144,7 @@ namespace KalaGraphics::Core
 
     class LIB_API WindowContext
     {
+    friend class Internal::OpenGL::OpenGL_Core;
     public:
         static KalaGraphicsRegistry<WindowContext>& GetRegistry();
 
@@ -154,6 +169,9 @@ namespace KalaGraphics::Core
         bool IsInitialized() const;
 
         u32 GetID() const;
+
+        void SetVSyncState(VSyncState newValue);
+        VSyncState GetVSyncState() const;
 
         //Regular update - single draw call
         void Update();

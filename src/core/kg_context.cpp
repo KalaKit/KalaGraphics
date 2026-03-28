@@ -626,6 +626,22 @@ namespace KalaGraphics::Core
 
     u32 WindowContext::GetID() const { return ID; }
 
+    void WindowContext::SetVSyncState(VSyncState newState)
+    {
+        bool success{};
+        if (context.context_gl)
+        {
+            success = OpenGL_Core::SetVSyncState(ID, scast<u8>(newState));
+        }
+        if (context.context_vk_surface)
+        {
+            //TODO: set up for vk
+        }
+
+        if (success) context.state = newState;
+    }
+    VSyncState WindowContext::GetVSyncState() const { return context.state; }
+
     void WindowContext::Update()
     {
         for (const auto& c : registry.runtimeContent)
@@ -635,17 +651,17 @@ namespace KalaGraphics::Core
                 default:
                 case RenderTarget::RT_SOFTWARE:
                 {
-                    Software_Core::Update(c->context.windowID);
+                    Software_Core::Update(c->ID);
                     break;
                 }
                 case RenderTarget::RT_OPENGL:
                 {
-                    OpenGL_Core::Update(c->context.windowID);
+                    OpenGL_Core::Update(c->ID);
                     break;
                 }
                 case RenderTarget::RT_VULKAN:
                 {
-                    Vulkan_Core::Update(c->context.windowID);
+                    Vulkan_Core::Update(c->ID);
                     break;
                 }
             }   
