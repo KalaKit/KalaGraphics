@@ -721,7 +721,7 @@ namespace KalaGraphics::Core
 
     RenderTarget WindowContext::GetRenderTarget() const { return renderTarget; }
 
-    const WindowContextData& WindowContext::GetWindowContextData() const { return context; }
+    WindowContextData& WindowContext::GetWindowContextData() { return context; }
 
     void WindowContext::Shutdown()
     {

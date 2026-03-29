@@ -190,7 +190,7 @@ namespace KalaGraphics::Core
         //Returns the render target chosen during initialization
         RenderTarget GetRenderTarget()const;
 
-        const WindowContextData& GetWindowContextData() const;
+        WindowContextData& GetWindowContextData();
 
         //Shuts down this window context cleanly and frees all its resources
         void Shutdown();
