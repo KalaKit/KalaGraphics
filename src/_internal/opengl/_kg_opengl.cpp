@@ -94,7 +94,8 @@ namespace KalaGraphics::Internal::OpenGL
 			ToVar<HDC>(handle),
 			storedContext);
 #else
-		uintptr_t displayPtr = WindowContext::GetRegistry().createdContent[contextID]->GetWindowContextData().context_display;
+		WindowContextData& ctx = WindowContext::GetRegistry().createdContent[contextID]->GetWindowContextData();
+		uintptr_t displayPtr = ctx.context_display;
 
 		if (!displayPtr)
 		{
@@ -108,9 +109,10 @@ namespace KalaGraphics::Internal::OpenGL
 		}
 
 		Display* display = ToVar<Display*>(displayPtr);
+		Window window = ToVar<Window>(ctx.context_window);
 
 		GLXContext stored = ToVar<GLXContext>(context);
-		GLXDrawable drawable = scast<GLXDrawable>(context);
+		GLXDrawable drawable = scast<GLXDrawable>(window);
 
 		if (glXGetCurrentContext() != stored
 			&& !glXMakeCurrent(display, drawable, stored))
