@@ -74,7 +74,7 @@ namespace KalaGraphics::Internal::OpenGL
 
     void OpenGL_Core::MakeContextCurrent(u32 contextID)
     {
-        if (!WindowContext::GetRegistry().createdContent.contains(contextID))
+        if (!WindowContext::GetRegistry().GetContent(contextID))
 		{
 			Log::Print(
 				"Cannot check OpenGL context current because the passed context ID '" + to_string(contextID) + "' was not found!",
@@ -125,10 +125,11 @@ namespace KalaGraphics::Internal::OpenGL
     }
     bool OpenGL_Core::IsContextValid(u32 contextID)
     {
-        if (!WindowContext::GetRegistry().createdContent.contains(contextID))
+        auto* ctx = WindowContext::GetRegistry().GetContent(contextID);
+		if (!ctx)
 		{
 			Log::Print(
-				"Cannot check OpenGL context validity because the passed context ID '" + to_string(contextID) + "' was not found!",
+				"Failed to get OpenGL context state because the context ID was not found!",
 				"GL_INTERNAL",
 				LogType::LOG_ERROR,
 				2);
@@ -136,7 +137,7 @@ namespace KalaGraphics::Internal::OpenGL
 			return false;
 		}
 
-		uintptr_t context = *WindowContext::GetRegistry().createdContent[contextID]->GetWindowContextData().context_gl;
+		uintptr_t context = *ctx->GetWindowContextData().context_gl;
 
 #ifdef _WIN32
 		HGLRC storedContext = ToVar<HGLRC>(context);
@@ -209,18 +210,17 @@ namespace KalaGraphics::Internal::OpenGL
 		u32 contextID,
 		u8 newValue)
 	{		
-		if (!WindowContext::GetRegistry().createdContent.contains(contextID))
+		auto* ctx = WindowContext::GetRegistry().GetContent(contextID);
+		if (!ctx)
 		{
 			Log::Print(
-				"Cannot set VSync state because the passed context ID '" + to_string(contextID) + "' was not found!",
+				"Failed to set OpenGL vsync state because the context ID was not found!",
 				"GL_INTERNAL",
 				LogType::LOG_ERROR,
 				2);
 				
 			return false;
 		}
-
-		auto& ctx = WindowContext::GetRegistry().createdContent[contextID];
 
 		if (newValue != scast<u8>(VSyncState::VSYNC_ON)
 			&& newValue != scast<u8>(VSyncState::VSYNC_OFF))

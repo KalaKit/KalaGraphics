@@ -13,6 +13,7 @@
 #include "objects/models/kg_model.hpp"
 #include "core/kg_core.hpp"
 #include "core/kg_context.hpp"
+#include "_internal/opengl/_kg_opengl_model.hpp"
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
@@ -32,6 +33,7 @@ using KalaGraphics::Object::SphereDetails;
 using KalaGraphics::Object::TorusDetails;
 using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Core::WindowContext;
+using KalaGraphics::Internal::OpenGL::OpenGL_Model;
 
 using std::string;
 using std::string_view;
@@ -295,48 +297,11 @@ namespace KalaGraphics::Object
         const vec3& size,
         PyramidDetails pDet)
     {
-        if (!ContextExists(contextID))
-        {
-            Log::Print(
-                "Failed to create primitive of type 'pyramid' because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "MODEL_PRIMITIVE",
-                LogType::LOG_ERROR,
-                2);
+        KalaGraphicsCore::ForceClose(
+            "Not implemented",
+            "Feature \"Create pyramid primitive\" is not yet implemented!");
 
-            return nullptr;
-        }
-
-        if (!VerifyPrimitive(
-            pos,
-            rot,
-            size,
-            PrimitiveType::PT_PYRAMID,
-            {},
-            pDet,
-            {},
-            {}))
-        {
-            return nullptr;
-        }
-
-        unique_ptr<Model_Primitive> newModel = make_unique<Model_Primitive>();
-        Model_Primitive* modelPtr = newModel.get();
-
-        MeshData md = CreatePyramid(pos, size, pDet);
-
-        modelPtr->vertices = std::move(md.vertices);
-        modelPtr->indices = std::move(md.indices);
-
-        modelPtr->SetBackend(contextID);
-
-        u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
-        KalaGraphicsCore::SetGlobalID(newID);
-
-        modelPtr->ID = newID;
-
-        Model::GetRegistry().AddContent(newID, std::move(newModel));
-
-        return modelPtr;
+        return nullptr;
     }
 
     //Create a new sphere
@@ -348,50 +313,11 @@ namespace KalaGraphics::Object
         const vec3& size,
         SphereDetails sDet)
     {
-        if (!ContextExists(contextID))
-        {
-            Log::Print(
-                "Failed to create primitive of type 'sphere' because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "MODEL_PRIMITIVE",
-                LogType::LOG_ERROR,
-                2);
+        KalaGraphicsCore::ForceClose(
+            "Not implemented",
+            "Feature \"Create sphere primitive\" is not yet implemented!");
 
-            return nullptr;
-        }
-
-        if (!VerifyPrimitive(
-            pos,
-            rot,
-            size,
-            PrimitiveType::PT_SPHERE,
-            {},
-            {},
-            sDet,
-            {}))
-        {
-            return nullptr;
-        }
-
-        unique_ptr<Model_Primitive> newModel = make_unique<Model_Primitive>();
-        Model_Primitive* modelPtr = newModel.get();
-
-        if (!modelPtr->SetName(modelName)) return nullptr;
-
-        MeshData md = CreateSphere(pos, size, sDet);
-
-        modelPtr->vertices = std::move(md.vertices);
-        modelPtr->indices = std::move(md.indices);
-
-        modelPtr->SetBackend(contextID);
-
-        u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
-        KalaGraphicsCore::SetGlobalID(newID);
-
-        modelPtr->ID = newID;
-
-        Model::GetRegistry().AddContent(newID, std::move(newModel));
-
-        return modelPtr;
+        return nullptr;
     }
 
     //Create a new torus
@@ -403,54 +329,57 @@ namespace KalaGraphics::Object
         const vec3& size,
         TorusDetails tDet)
     {
-        if (!ContextExists(contextID))
-        {
-            Log::Print(
-                "Failed to create primitive of type 'torus' because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "MODEL_PRIMITIVE",
-                LogType::LOG_ERROR,
-                2);
+        KalaGraphicsCore::ForceClose(
+            "Not implemented",
+            "Feature \"Create torus primitive\" is not yet implemented!");
 
-            return nullptr;
-        }
-
-        if (!VerifyPrimitive(
-            pos,
-            rot,
-            size,
-            PrimitiveType::PT_TORUS,
-            {},
-            {},
-            {},
-            tDet))
-        {
-            return nullptr;
-        }
-
-        unique_ptr<Model_Primitive> newModel = make_unique<Model_Primitive>();
-        Model_Primitive* modelPtr = newModel.get();
-
-        if (!modelPtr->SetName(modelName)) return nullptr;
-
-        MeshData md = CreateTorus(pos, size, tDet);
-
-        modelPtr->vertices = std::move(md.vertices);
-        modelPtr->indices = std::move(md.indices);
-
-        modelPtr->SetBackend(contextID);
-
-        u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
-        KalaGraphicsCore::SetGlobalID(newID);
-
-        modelPtr->ID = newID;
-
-        Model::GetRegistry().AddContent(newID, std::move(newModel));
-
-        return modelPtr;
+        return nullptr;
     }
 
     void Model_Primitive::Update()
     {
-        
+        switch (backendType)
+        {
+            default:
+            case BackendType::BT_INVALID:
+            {
+                KalaGraphicsCore::ForceClose(
+                    "Primitive model render error",
+                    "The backend type for a model was invalid!");
+
+                return;
+            }
+            case BackendType::BT_SOFTWARE:
+            {
+                //not yet implemented
+                break;
+            }
+            case BackendType::BT_OPENGL:
+            {
+                auto* backend = OpenGL_Model::GetRegistry().GetContent(backendID);
+                if (!backend)
+                {
+                    KalaGraphicsCore::ForceClose(
+                        "Primitive model render error",
+                        "Failed to update primitive model because its backend ID was not found!");
+
+                    return;
+                }
+
+                backend->Update();
+
+                break;
+            }
+            case BackendType::BT_VULKAN:
+            {
+                //not yet implemented
+                break;
+            }
+        }
+    }
+
+    Model_Primitive::~Model_Primitive()
+    {
+
     }
 }

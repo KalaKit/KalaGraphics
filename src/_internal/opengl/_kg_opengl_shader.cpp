@@ -18,6 +18,7 @@
 #include "_internal/opengl/_kg_opengl_shader.hpp"
 #include "_internal/opengl/_kg_opengl.hpp"
 #include "core/kg_core.hpp"
+#include "core/kg_context.hpp"
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
@@ -28,6 +29,7 @@ using KalaGraphics::Internal::OpenGL::OpenGL_ShaderData;
 using KalaGraphics::Internal::OpenGL::OpenGL_Core;
 using KalaGraphics::Internal::OpenGL::OpenGL_Core_Functions;
 using KalaGraphics::Core::KalaGraphicsCore;
+using KalaGraphics::Core::WindowContext;
 #ifdef _WIN32
 using KalaGraphics::Internal::OpenGL::OpenGL_Windows_Functions;
 #else
@@ -98,10 +100,23 @@ namespace KalaGraphics::Internal::OpenGL
     bool OpenGL_Shader::IsVerboseLoggingEnabled() { return isVerboseLoggingEnabled; }
 
     OpenGL_Shader* OpenGL_Shader::Initialize(
-		uintptr_t glContext,
+		uintptr_t contextID,
         string_view name,
         const array<OpenGL_ShaderData, 3>& shaderData)
     {
+        auto* ctx = WindowContext::GetRegistry().GetContent(contextID);
+        if (!ctx)
+        {
+            KalaGraphicsCore::ForceClose(
+				"OpenGL shader error",
+				"Failed to load shader '" + string(name) + "' because its context ID was not found!");
+
+			return nullptr;
+        }
+
+        const auto& ctxData = ctx->GetWindowContextData();
+        uintptr_t glContext = *ctxData.context_gl;
+
 		if (!OpenGL_Core::IsContextValid(glContext))
 		{
             KalaGraphicsCore::ForceClose(
@@ -466,7 +481,7 @@ namespace KalaGraphics::Internal::OpenGL
         }
 		
         shaderPtr->ID = newID;
-		shaderPtr->glContext = glContext;
+		shaderPtr->contextID = ctx->GetID();
 
         shaderPtr->isInitialized = true;
 
@@ -497,9 +512,8 @@ namespace KalaGraphics::Internal::OpenGL
     }
 
     u32 OpenGL_Shader::GetID() const { return ID; }
+    u32 OpenGL_Shader::GetContextID() const { return contextID; }
     u32 OpenGL_Shader::GetProgramID() const { return programID; }
-
-    uintptr_t OpenGL_Shader::GetGLContext() const { return glContext; }
 
     const string& OpenGL_Shader::GetShaderData(OpenGL_ShaderType targetType) const
     {
@@ -518,9 +532,9 @@ namespace KalaGraphics::Internal::OpenGL
 
         return empty;
     }
-    const string& OpenGL_Shader::GetShaderPath(OpenGL_ShaderType targetType) const
+    const path& OpenGL_Shader::GetShaderPath(OpenGL_ShaderType targetType) const
     {
-        static const string empty{};
+        static const path empty{};
 
         if (programID == 0) return empty;
 
@@ -561,11 +575,12 @@ namespace KalaGraphics::Internal::OpenGL
 
             return false;
         }
-        if (!glContext)
+        auto* ctx = WindowContext::GetRegistry().GetContent(contextID);
+        if (!ctx)
         {
             KalaGraphicsCore::ForceClose(
                 "OpenGL shader error",
-                "Failed to bind shader '" + name + "' because its gl context was invalid!");
+                "Failed to bind shader '" + name + "' because its context ID was not found!");
 
             return false;
         }
@@ -635,14 +650,15 @@ namespace KalaGraphics::Internal::OpenGL
 
     bool OpenGL_Shader::HotReload()
     {
-		if (!OpenGL_Core::IsContextValid(glContext))
-		{
-			KalaGraphicsCore::ForceClose(
-				"OpenGL shader error",
-				"Failed to hot reload shader '" + name + "' because its gl context was invalid!");
+        auto* ctx = WindowContext::GetRegistry().GetContent(contextID);
+        if (!ctx)
+        {
+            KalaGraphicsCore::ForceClose(
+                "OpenGL shader error",
+                "Failed to hot reload shader '" + name + "' because its context ID was not found!");
 
-			return false;
-		}
+            return false;
+        }
 		
         //back up old data
         array<OpenGL_ShaderData, 3> shaders
@@ -669,7 +685,7 @@ namespace KalaGraphics::Internal::OpenGL
         }
 
         auto reloadedShader = OpenGL_Shader::Initialize(
-			glContext,
+			ctx->GetID(),
             name,
             shaders);
 

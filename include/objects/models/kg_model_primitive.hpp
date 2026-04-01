@@ -95,6 +95,8 @@ namespace KalaGraphics::Object
         const TorusDetails& GetTorusDetails() const;
 
         void Update() override;
+
+        ~Model_Primitive();
     private:
         CubeDetails cDet{};
         PyramidDetails pDet{};

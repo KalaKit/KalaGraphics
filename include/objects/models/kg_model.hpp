@@ -17,6 +17,7 @@
 namespace KalaGraphics::Object
 {
     using KalaHeaders::KalaMath::vec3;
+    using KalaHeaders::KalaMath::vec4;
     using KalaHeaders::KalaMath::Transform3D;
 
     using KalaHeaders::KalaModelData::Vertex;
@@ -56,16 +57,22 @@ namespace KalaGraphics::Object
 
         //Hot-swap context and backend at runtime,
         //warning: invalid backend will NOT work and will cause a force-close if abused.
-        //Leave backendID and type unassigned if you want a new backend for this model
+        //Leave shaderID, backendID and type unassigned if you want a new backend for this model
         void SetBackend(
             u32 contextID, 
+            u32 shaderID = 0,
             u32 backendID = 0, 
             BackendType type = BackendType::BT_INVALID);
         u32 GetBackendID() const;
         BackendType GetBackendType() const;
 
+        void SetColor(const vec3& newColor);
+        const vec3& GetColor() const;
+
         //Single draw call
         virtual void Update() = 0;
+
+        ~Model();
     protected:
         bool isInitialized{};
 
@@ -81,5 +88,7 @@ namespace KalaGraphics::Object
 
 		vector<Vertex> vertices{};
 		vector<u32> indices{};
+
+        vec3 color{};
     };
 }

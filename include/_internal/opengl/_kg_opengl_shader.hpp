@@ -7,6 +7,7 @@
 
 #include <string>
 #include <array>
+#include <filesystem>
 
 #include "core_utils.hpp"
 #include "math_utils.hpp"
@@ -18,6 +19,7 @@ namespace KalaGraphics::Internal::OpenGL
 	using std::string;
 	using std::string_view;
 	using std::array;
+	using std::filesystem::path;
 
 	using KalaHeaders::KalaMath::vec2;
 	using KalaHeaders::KalaMath::vec3;
@@ -40,7 +42,7 @@ namespace KalaGraphics::Internal::OpenGL
 	{
 		//either fill shader data or shader path,
 		//it picks data by default if both are filled
-		string shaderPath{};
+		path shaderPath{};
 
 		//either fill shader data or shader path,
 		//it picks data by default if both are filled
@@ -77,16 +79,16 @@ namespace KalaGraphics::Internal::OpenGL
 
 		//Returns the global ID of this shader
 		u32 GetID() const;
+		//Returns the context ID of the context this shader uses
+		u32 GetContextID() const;
+
 		//Returns the OpenGL program ID of this shader
 		u32 GetProgramID() const;
-		
-		//Returns the OpenGL context of this shader
-		uintptr_t GetGLContext() const;
 
 		//Returns shader data assigned to shader type
 		const string& GetShaderData(OpenGL_ShaderType targetType) const;
 		//Returns shader path assigned to shader type
-		const string& GetShaderPath(OpenGL_ShaderType targetType) const;
+		const path& GetShaderPath(OpenGL_ShaderType targetType) const;
 
 		u32 GetShaderID(OpenGL_ShaderType targetType) const;
 
@@ -115,9 +117,9 @@ namespace KalaGraphics::Internal::OpenGL
 		string name{};
 
 		u32 ID{};
+		u32 contextID{};
+
 		u32 programID{};
-		
-		uintptr_t glContext{};
 
 		OpenGL_ShaderData vertData{};
 		OpenGL_ShaderData fragData{};

@@ -14,6 +14,8 @@
 #include <GL/glxext.h>
 #endif
 
+#include "glcorearb.h" //core opengl
+
 #include "core_utils.hpp"
 
 namespace KalaGraphics::Internal::OpenGL
@@ -21,8 +23,109 @@ namespace KalaGraphics::Internal::OpenGL
     using u8 = uint8_t;
     using u32 = uint32_t;
 
+#ifdef __linux__
+	typedef void (*PFNGLDRAWARRAYSPROC)(
+		GLenum mode, 
+		GLint first, 
+		GLsizei count);
+	typedef void (*PFNGLDRAWELEMENTSPROC)(
+		GLenum mode, 
+		GLsizei count, 
+		GLenum type, 
+		const void* indices);
+	typedef void (*PFNGLBINDTEXTUREPROC)(
+		GLenum target, 
+		GLuint texture);
+	typedef void (*PFNGLDELETETEXTURESPROC)(
+		GLsizei n, 
+		const GLuint* textures);
+	typedef void (*PFNGLGENTEXTURESPROC)(
+		GLsizei n, 
+		GLuint* textures);
+	typedef void (*PFNGLTEXSUBIMAGE2DPROC)(
+		GLenum target,
+		GLint level,
+		GLint xoffset,
+		GLint yoffset,
+		GLsizei width,
+		GLsizei height,
+		GLenum format,
+		GLenum type,
+		const void* pixels);
+#endif
+
     struct LIB_API OpenGL_Core_Functions
     {
+		//
+		// GEOMETRY
+		//
+
+		//Maps a range of a buffer object's data store into the client's address space
+		PFNGLMAPBUFFERRANGEPROC glMapBufferRange;
+
+		//Creates an immutable data store for a buffer object (ARB_buffer_storage)
+		PFNGLBUFFERSTORAGEPROC glBufferStorage;
+
+		//Binds a named buffer to a specified buffer binding point
+		PFNGLBINDBUFFERPROC glBindBuffer;
+
+		//Binds a vertex array object
+		PFNGLBINDVERTEXARRAYPROC glBindVertexArray;
+
+		//Creates and initializes a buffer object's data store
+		PFNGLBUFFERDATAPROC glBufferData;
+
+		//Updates existing buffer object's data without reallocating storage
+		PFNGLBUFFERSUBDATAPROC glBufferSubData;
+
+		//Deletes one or more named buffer objects
+		PFNGLDELETEBUFFERSPROC glDeleteBuffers;
+
+		//Deletes one or more named vertex array objects
+		PFNGLDELETEVERTEXARRAYSPROC glDeleteVertexArrays;
+
+		//Draws non-indexed primitives from array data
+		PFNGLDRAWARRAYSPROC glDrawArrays;
+
+		//Draws indexed primitives using array data and element indices
+		PFNGLDRAWELEMENTSPROC glDrawElements;
+
+		//Enables a generic vertex attribute array
+		PFNGLENABLEVERTEXATTRIBARRAYPROC glEnableVertexAttribArray;
+
+		//Generates buffer object names
+		PFNGLGENBUFFERSPROC glGenBuffers;
+
+		//Generates vertex array object names
+		PFNGLGENVERTEXARRAYSPROC glGenVertexArrays;
+
+		//Retrieves parameter values for a vertex attribute array
+		PFNGLGETVERTEXATTRIBIVPROC glGetVertexAttribiv;
+
+		//Retrieves a pointer to a vertex attribute array parameter
+		PFNGLGETVERTEXATTRIBPOINTERVPROC glGetVertexAttribPointerv;
+
+		//Defines an array of generic vertex attribute data
+		PFNGLVERTEXATTRIBPOINTERPROC glVertexAttribPointer;
+
+		//Disables a generic vertex attribute array
+		PFNGLDISABLEVERTEXATTRIBARRAYPROC glDisableVertexAttribArray;
+
+		//Sets a constant integer value for a generic vertex attribute
+		PFNGLVERTEXATTRIBI1IPROC glVertexAttribI1i;
+
+		//Sets a constant integer vec2 value for a generic vertex attribute
+		PFNGLVERTEXATTRIBI2IPROC glVertexAttribI2i;
+
+		//Sets a constant integer vec3 value for a generic vertex attribute
+		PFNGLVERTEXATTRIBI3IPROC glVertexAttribI3i;
+
+		//Sets a constant integer vec4 value for a generic vertex attribute
+		PFNGLVERTEXATTRIBI4IPROC glVertexAttribI4i;
+
+		//Tells OpenGL which faces to not render before fragment shading
+		PFNGLCULLFACEPROC glCullFace;
+
         //
         // SHADERS
         //

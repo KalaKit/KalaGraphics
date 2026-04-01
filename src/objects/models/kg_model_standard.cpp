@@ -11,4 +11,9 @@ namespace KalaGraphics::Object
     {
 
     }
+
+    Model_Standard::~Model_Standard()
+    {
+        
+    }
 }

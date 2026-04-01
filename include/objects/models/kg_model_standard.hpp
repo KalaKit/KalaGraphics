@@ -14,5 +14,7 @@ namespace KalaGraphics::Object
     {
     public:
         void Update() override;
+
+        ~Model_Standard();
     };
 }
