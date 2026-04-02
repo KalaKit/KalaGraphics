@@ -72,11 +72,11 @@ namespace KalaGraphics::Object
         //Single draw call
         virtual void Update() = 0;
 
-        ~Model();
+        virtual ~Model() = default;
     protected:
         bool isInitialized{};
 
-        string modelName{};
+        string name{};
 
         Transform3D transform{};
 

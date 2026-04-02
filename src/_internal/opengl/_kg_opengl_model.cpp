@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "import_kmd.hpp"
+#include "log_utils.hpp"
 
 #include "_internal/opengl/_kg_opengl_model.hpp"
 #include "_internal/opengl/_kg_opengl.hpp"
@@ -14,6 +15,9 @@
 #include "objects/models/kg_model.hpp"
 
 using KalaHeaders::KalaModelData::Vertex;
+
+using KalaHeaders::KalaLog::Log;
+using KalaHeaders::KalaLog::LogType;
 
 using KalaGraphics::Internal::OpenGL::OpenGL_Core;
 using KalaGraphics::Internal::OpenGL::OpenGL_Core_Functions;
@@ -118,6 +122,11 @@ namespace KalaGraphics::Internal::OpenGL
 
         registry.AddContent(newID, std::move(newModel));
 
+        Log::Print(
+            "Created new OpenGL model with ID '" + to_string(newID) + "'!",
+            "KG_GL_MODEL",
+            LogType::LOG_SUCCESS);
+
         return modelPtr;
     }
 
@@ -173,6 +182,11 @@ namespace KalaGraphics::Internal::OpenGL
 
     OpenGL_Model::~OpenGL_Model()
     {
+       Log::Print(
+            "Destroying OpenGL model with ID '" + to_string(ID) + "'.",
+            "KG_GL_MODEL",
+            LogType::LOG_INFO);
+
         const OpenGL_Core_Functions& coreFunc = OpenGL_Core::GetCoreFunctions();
 
         if (VAO) coreFunc.glDeleteVertexArrays(1, &VAO);

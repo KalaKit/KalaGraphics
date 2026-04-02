@@ -215,7 +215,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL depth test state because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -229,7 +229,7 @@ namespace KalaGraphics::Internal::OpenGL
 
         Log::Print(
             "Set GL depth test state for context '" + to_string(contextID) + "' to '" + string(BoolValue(state)) + "'.",
-            "GL_FLAGS_INTERNAL",
+            "KG_GL_FLAGS",
             LogType::LOG_SUCCESS);
     }
     void OpenGL_Flags::SetGLDepthFuncState(
@@ -240,7 +240,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL depth func state because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -256,7 +256,7 @@ namespace KalaGraphics::Internal::OpenGL
             {
                 Log::Print(
                     "Failed to set GL depth func state because the passed state value was invalid!",
-                    "GL_FLAGS_INTERNAL",
+                    "KG_GL_FLAGS",
                     LogType::LOG_ERROR,
                     2);
 
@@ -310,7 +310,7 @@ namespace KalaGraphics::Internal::OpenGL
 
         Log::Print(
             "Set GL depth func state for context '" + to_string(contextID) + "' to '" + string(result) + "'.",
-            "GL_FLAGS_INTERNAL",
+            "KG_GL_FLAGS",
             LogType::LOG_SUCCESS);
     }
     void OpenGL_Flags::SetGLDepthWriteMaskState(
@@ -321,7 +321,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL depth write mask state because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -335,7 +335,7 @@ namespace KalaGraphics::Internal::OpenGL
 
         Log::Print(
             "Set GL depth write mask state for context '" + to_string(contextID) + "' to '" + string(BoolValue(state)) + "'.",
-            "GL_FLAGS_INTERNAL",
+            "KG_GL_FLAGS",
             LogType::LOG_SUCCESS);
     }
 
@@ -347,7 +347,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL cull face state because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -361,7 +361,7 @@ namespace KalaGraphics::Internal::OpenGL
 
         Log::Print(
             "Set GL cull face state for context '" + to_string(contextID) + "' to '" + string(BoolValue(state)) + "'.",
-            "GL_FLAGS_INTERNAL",
+            "KG_GL_FLAGS",
             LogType::LOG_SUCCESS);
     }
     void OpenGL_Flags::SetGLCullFaceDirState(
@@ -372,7 +372,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL cull face dir because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -388,7 +388,7 @@ namespace KalaGraphics::Internal::OpenGL
             {
                 Log::Print(
                     "Failed to set GL cull face dir because the passed state value was invalid!",
-                    "GL_FLAGS_INTERNAL",
+                    "KG_GL_FLAGS",
                     LogType::LOG_ERROR,
                     2);
 
@@ -417,7 +417,7 @@ namespace KalaGraphics::Internal::OpenGL
 
         Log::Print(
             "Set GL cull face dir for context '" + to_string(contextID) + "' to '" + string(result) + "'.",
-            "GL_FLAGS_INTERNAL",
+            "KG_GL_FLAGS",
             LogType::LOG_SUCCESS);
     }
     void OpenGL_Flags::SetGLFrontFaceDirState(
@@ -428,7 +428,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL front face dir because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -444,7 +444,7 @@ namespace KalaGraphics::Internal::OpenGL
             {
                 Log::Print(
                     "Failed to set GL front face dir because the passed state value was invalid!",
-                    "GL_FLAGS_INTERNAL",
+                    "KG_GL_FLAGS",
                     LogType::LOG_ERROR,
                     2);
 
@@ -468,7 +468,7 @@ namespace KalaGraphics::Internal::OpenGL
 
         Log::Print(
             "Set GL front face dir for context '" + to_string(contextID) + "' to '" + string(result) + "'.",
-            "GL_FLAGS_INTERNAL",
+            "KG_GL_FLAGS",
             LogType::LOG_SUCCESS);
     }
 
@@ -480,7 +480,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL blend state because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -494,7 +494,7 @@ namespace KalaGraphics::Internal::OpenGL
 
         Log::Print(
             "Set GL blend state for context '" + to_string(contextID) + "' to '" + string(BoolValue(state)) + "'.",
-            "GL_FLAGS_INTERNAL",
+            "KG_GL_FLAGS",
             LogType::LOG_SUCCESS);
     }
     void OpenGL_Flags::SetGLBlendFuncState(
@@ -506,7 +506,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL blend func state because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -525,7 +525,7 @@ namespace KalaGraphics::Internal::OpenGL
             {
                 Log::Print(
                     "Failed to set GL blend func state because the passed source value was invalid!",
-                    "GL_FLAGS_INTERNAL",
+                    "KG_GL_FLAGS",
                     LogType::LOG_ERROR,
                     2);
 
@@ -617,7 +617,7 @@ namespace KalaGraphics::Internal::OpenGL
             {
                 Log::Print(
                     "Failed to set GL blend func state because the passed destination value was invalid!",
-                    "GL_FLAGS_INTERNAL",
+                    "KG_GL_FLAGS",
                     LogType::LOG_ERROR,
                     2);
 
@@ -709,7 +709,7 @@ namespace KalaGraphics::Internal::OpenGL
             + to_string(contextID) + "' to '" 
             + string(srcResult) + "' and '" 
             + string(dstResult) + "'.",
-            "GL_FLAGS_INTERNAL",
+            "KG_GL_FLAGS",
             LogType::LOG_SUCCESS);
     }
     void OpenGL_Flags::SetGLBlendEquationState(
@@ -720,7 +720,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL blend equation state because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -736,7 +736,7 @@ namespace KalaGraphics::Internal::OpenGL
             {
                 Log::Print(
                     "Failed to set GL blend equation state because the passed state value was invalid!",
-                    "GL_FLAGS_INTERNAL",
+                    "KG_GL_FLAGS",
                     LogType::LOG_ERROR,
                     2);
 
@@ -775,7 +775,7 @@ namespace KalaGraphics::Internal::OpenGL
 
         Log::Print(
             "Set GL blend func equation for context '" + to_string(contextID) + "' to '" + string(result) + "'.",
-            "GL_FLAGS_INTERNAL",
+            "KG_GL_FLAGS",
             LogType::LOG_SUCCESS);
     }
 
@@ -787,7 +787,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL stencil test state because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -801,7 +801,7 @@ namespace KalaGraphics::Internal::OpenGL
 
         Log::Print(
             "Set GL stencil test state for context '" + to_string(contextID) + "' to '" + string(BoolValue(state)) + "'.",
-            "GL_FLAGS_INTERNAL",
+            "KG_GL_FLAGS",
             LogType::LOG_SUCCESS);
     }
     void OpenGL_Flags::SetGLStencilFuncState(
@@ -814,7 +814,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL stencil func state because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -830,7 +830,7 @@ namespace KalaGraphics::Internal::OpenGL
             {
                 Log::Print(
                     "Failed to set GL stencil func state because the passed state value was invalid!",
-                    "GL_FLAGS_INTERNAL",
+                    "KG_GL_FLAGS",
                     LogType::LOG_ERROR,
                     2);
 
@@ -887,7 +887,7 @@ namespace KalaGraphics::Internal::OpenGL
             + string(result) + "', '" 
             + to_string(ref) + "' and '" 
             + to_string(mask) + "'.",
-            "GL_FLAGS_INTERNAL",
+            "KG_GL_FLAGS",
             LogType::LOG_SUCCESS);
     }
     void OpenGL_Flags::SetGLStencilOpState(
@@ -900,7 +900,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL stencil op state because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -918,7 +918,7 @@ namespace KalaGraphics::Internal::OpenGL
                     {
                         Log::Print(
                             "Failed to set GL stencil op state for context '" + to_string(contextID) + "' because the passed " + string(targetType) + " value was invalid!",
-                            "GL_FLAGS_INTERNAL",
+                            "KG_GL_FLAGS",
                             LogType::LOG_ERROR,
                             2);
 
@@ -960,7 +960,7 @@ namespace KalaGraphics::Internal::OpenGL
                 + string(sFailStr) + "', '" 
                 + string(dpFailStr) + "' and '"
                 + string(dpPassStr) + "'.",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_SUCCESS);
         }
     }
@@ -976,7 +976,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL color write mask state because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -997,7 +997,7 @@ namespace KalaGraphics::Internal::OpenGL
             + string(BoolValue(g)) + "', '" 
             + string(BoolValue(b)) + "' and '"
             + string(BoolValue(a)) + "'.",
-            "GL_FLAGS_INTERNAL",
+            "KG_GL_FLAGS",
             LogType::LOG_SUCCESS);
     }
 
@@ -1009,7 +1009,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL polygon mode state because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -1025,7 +1025,7 @@ namespace KalaGraphics::Internal::OpenGL
             {
                 Log::Print(
                     "Failed to set GL polygon mode state because the passed state value was invalid!",
-                    "GL_FLAGS_INTERNAL",
+                    "KG_GL_FLAGS",
                     LogType::LOG_ERROR,
                     2);
 
@@ -1055,7 +1055,7 @@ namespace KalaGraphics::Internal::OpenGL
         Log::Print(
             "Set GL polygon mode state for context '" + to_string(contextID) + "' to '" 
             + string(result) + "'.",
-            "GL_FLAGS_INTERNAL",
+            "KG_GL_FLAGS",
             LogType::LOG_SUCCESS);
     }
 
@@ -1068,7 +1068,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL polygon offset state because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -1084,7 +1084,7 @@ namespace KalaGraphics::Internal::OpenGL
             {
                 Log::Print(
                     "Failed to set GL polygon offset state because the passed state value was invalid!",
-                    "GL_FLAGS_INTERNAL",
+                    "KG_GL_FLAGS",
                     LogType::LOG_ERROR,
                     2);
 
@@ -1118,7 +1118,7 @@ namespace KalaGraphics::Internal::OpenGL
             "Set GL polygon offset state for context '" + to_string(contextID) + "' to '" 
             + string(BoolValue(state)) + "' and '" 
             + string(result) + "'.",
-            "GL_FLAGS_INTERNAL",
+            "KG_GL_FLAGS",
             LogType::LOG_SUCCESS);
     }
     void OpenGL_Flags::SetGLPolygonOffsetValues(
@@ -1130,7 +1130,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL polygon offset values because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -1145,7 +1145,7 @@ namespace KalaGraphics::Internal::OpenGL
             "Set GL polygon offset values for context '" + to_string(contextID) + "' to '" 
             + to_string(factor) + "' and '" 
             + to_string(units) + "'.",
-            "GL_FLAGS_INTERNAL",
+            "KG_GL_FLAGS",
             LogType::LOG_SUCCESS);
     }
 
@@ -1157,7 +1157,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL scissor test state because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -1172,7 +1172,7 @@ namespace KalaGraphics::Internal::OpenGL
         Log::Print(
             "Set GL scissor test state for context '" + to_string(contextID) + "' to '" 
             + string(BoolValue(state)) + "'.",
-            "GL_FLAGS_INTERNAL",
+            "KG_GL_FLAGS",
             LogType::LOG_SUCCESS);
     }
     void OpenGL_Flags::SetGLScissorRectState(
@@ -1186,7 +1186,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL scissor rect state because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -1203,7 +1203,7 @@ namespace KalaGraphics::Internal::OpenGL
             + to_string(y) + "', '"
             + to_string(width) + "' and '"
             + to_string(height) + "'.",
-            "GL_FLAGS_INTERNAL",
+            "KG_GL_FLAGS",
             LogType::LOG_SUCCESS);
     }
 
@@ -1215,7 +1215,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL line width because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -1228,7 +1228,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL line width because the passed width was too small! It must be 1.0 or higher.",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -1240,7 +1240,7 @@ namespace KalaGraphics::Internal::OpenGL
         Log::Print(
             "Set GL line width for context '" + to_string(contextID) + "' to '" 
             + to_string(width) + "'.",
-            "GL_FLAGS_INTERNAL",
+            "KG_GL_FLAGS",
             LogType::LOG_SUCCESS);
     }
     void OpenGL_Flags::SetGLPointSize(
@@ -1251,7 +1251,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL point size because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -1264,7 +1264,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL point size because the passed size was too small! It must be 1.0 or higher.",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -1276,7 +1276,7 @@ namespace KalaGraphics::Internal::OpenGL
         Log::Print(
             "Set GL point size for context '" + to_string(contextID) + "' to '" 
             + to_string(size) + "'.",
-            "GL_FLAGS_INTERNAL",
+            "KG_GL_FLAGS",
             LogType::LOG_SUCCESS);
     }
 
@@ -1291,7 +1291,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL clear color because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -1306,7 +1306,7 @@ namespace KalaGraphics::Internal::OpenGL
                 {
                     Log::Print(
                         "Failed to set GL clear color for context '" + to_string(contextID) + "' because the '" + string(target) + "' value was below 0.0!",
-                        "GL_FLAGS_INTERNAL",
+                        "KG_GL_FLAGS",
                         LogType::LOG_ERROR,
                         2);
 
@@ -1316,7 +1316,7 @@ namespace KalaGraphics::Internal::OpenGL
                 {
                     Log::Print(
                         "Failed to set GL clear color for context '" + to_string(contextID) + "' because the '" + string(target) + "' value was above 1.0!",
-                        "GL_FLAGS_INTERNAL",
+                        "KG_GL_FLAGS",
                         LogType::LOG_ERROR,
                         2);
 
@@ -1343,7 +1343,7 @@ namespace KalaGraphics::Internal::OpenGL
             + to_string(g) + "', '"
             + to_string(b) + "' and '"
             + to_string(a) + "'.",
-            "GL_FLAGS_INTERNAL",
+            "KG_GL_FLAGS",
             LogType::LOG_SUCCESS);
         */
     }
@@ -1355,7 +1355,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL clear depth because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -1368,7 +1368,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL clear depth for context '" + to_string(contextID) + "' because the value was below 0.0!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -1378,7 +1378,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL clear depth for context '" + to_string(contextID) + "' because the value was above 1.0!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -1391,7 +1391,7 @@ namespace KalaGraphics::Internal::OpenGL
         Log::Print(
             "Set GL clear depth for context '" + to_string(contextID) + "' to '" 
             + to_string(value) + "'.",
-            "GL_FLAGS_INTERNAL",
+            "KG_GL_FLAGS",
             LogType::LOG_SUCCESS);
         */
     }
@@ -1403,7 +1403,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL clear stencil because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -1418,7 +1418,7 @@ namespace KalaGraphics::Internal::OpenGL
         Log::Print(
             "Set GL clear stencil for context '" + to_string(contextID) + "' to '" 
             + to_string(value) + "'.",
-            "GL_FLAGS_INTERNAL",
+            "KG_GL_FLAGS",
             LogType::LOG_SUCCESS);
         */
     }
@@ -1432,7 +1432,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "Failed to set GL clear buffers because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_ERROR,
                 2);
 
@@ -1447,7 +1447,7 @@ namespace KalaGraphics::Internal::OpenGL
         {
             Log::Print(
                 "GL clear buffers was called for context ID '" + to_string(contextID) + "' with color, depth and stencil turned off!",
-                "GL_FLAGS_INTERNAL",
+                "KG_GL_FLAGS",
                 LogType::LOG_WARNING);
 
             return;
@@ -1465,7 +1465,7 @@ namespace KalaGraphics::Internal::OpenGL
             + string(BoolValue(color)) + "', '" 
             + string(BoolValue(depth)) + "' and '"
             + string(BoolValue(stencil)) + "'.",
-            "GL_FLAGS_INTERNAL",
+            "KG_GL_FLAGS",
             LogType::LOG_SUCCESS);
         */
     }

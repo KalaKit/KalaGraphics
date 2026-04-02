@@ -176,7 +176,7 @@ static bool VerifyPrimitive(
     {
         Log::Print(
             "Failed to create primitive of type '" + string(PrimitiveToString(type)) + "' because it had an invalid position!",
-            "MODEL_PRIMITIVE",
+            "KG_MODEL_PRIMITIVE",
             LogType::LOG_ERROR,
             2);
         
@@ -186,7 +186,7 @@ static bool VerifyPrimitive(
     {
         Log::Print(
             "Failed to create primitive of type '" + string(PrimitiveToString(type)) + "' because it had an invalid size!",
-            "MODEL_PRIMITIVE",
+            "KG_MODEL_PRIMITIVE",
             LogType::LOG_ERROR,
             2);
         
@@ -200,7 +200,7 @@ static bool VerifyPrimitive(
     {
         Log::Print(
             "Failed to create primitive of type '" + string(PrimitiveToString(type)) + "' because its edge count was too low!",
-            "MODEL_PRIMITIVE",
+            "KG_MODEL_PRIMITIVE",
             LogType::LOG_ERROR,
             2);
         
@@ -211,7 +211,7 @@ static bool VerifyPrimitive(
     {
         Log::Print(
             "Failed to create primitive of type '" + string(PrimitiveToString(type)) + "' because its detail level was too low!",
-            "MODEL_PRIMITIVE",
+            "KG_MODEL_PRIMITIVE",
             LogType::LOG_ERROR,
             2);
         
@@ -222,7 +222,7 @@ static bool VerifyPrimitive(
     {
         Log::Print(
             "Failed to create primitive of type '" + string(PrimitiveToString(type)) + "' because its inner radius was bigger than its outer radius!",
-            "MODEL_PRIMITIVE",
+            "KG_MODEL_PRIMITIVE",
             LogType::LOG_ERROR,
             2);
         
@@ -246,7 +246,7 @@ namespace KalaGraphics::Object
         {
             Log::Print(
                 "Failed to create primitive of type 'cube' because the passed context ID '" + to_string(contextID) + "' was not found!",
-                "MODEL_PRIMITIVE",
+                "KG_MODEL_PRIMITIVE",
                 LogType::LOG_ERROR,
                 2);
 
@@ -284,6 +284,11 @@ namespace KalaGraphics::Object
         modelPtr->ID = newID;
 
         Model::GetRegistry().AddContent(newID, std::move(newModel));
+
+        Log::Print(
+            "Created new model '" + string(modelName) + "' with ID '" + to_string(newID) + "'!",
+            "KG_MODEL_PRIMITIVE",
+            LogType::LOG_SUCCESS);
 
         return modelPtr;
     }
@@ -380,6 +385,9 @@ namespace KalaGraphics::Object
 
     Model_Primitive::~Model_Primitive()
     {
-
+        Log::Print(
+            "Destroying model '" + name + "' with ID '" + to_string(ID) + "'.",
+            "KG_MODEL_PRIMITIVE",
+            LogType::LOG_INFO);
     }
 }

@@ -37,13 +37,11 @@ namespace KalaGraphics::Object
 
     bool Model::SetName(string_view newName)
     {
-        string name = string(newName);
-
         if (newName.empty())
         {
             Log::Print(
                 "Failed to set new model name because it was empty!",
-                "MODEL",
+                "KG_MODEL",
                 LogType::LOG_ERROR,
                 2);
 
@@ -53,18 +51,18 @@ namespace KalaGraphics::Object
         {
             Log::Print(
                 "Failed to set new model name because it was too long!",
-                "MODEL",
+                "KG_MODEL",
                 LogType::LOG_ERROR,
                 2);
 
             return false;
         }
 
-        modelName = name;
+        name = newName;
 
         return true;
     }
-    const string& Model::GetName() const { return modelName; }
+    const string& Model::GetName() const { return name; }
 
     vector<Vertex>& Model::GetVertices() { return vertices; }
     vector<u32>& Model::GetIndices() { return indices; }
@@ -82,7 +80,7 @@ namespace KalaGraphics::Object
         {
             KalaGraphicsCore::ForceClose(
                 "Model backend error",
-                "Failed to set backend for model '" + modelName + "' because the passed context ID '" + to_string(contextID) + "' was not found!");
+                "Failed to set backend for model '" + name + "' because the passed context ID '" + to_string(contextID) + "' was not found!");
 
             return;
         }
@@ -158,7 +156,7 @@ namespace KalaGraphics::Object
         {
             Log::Print(
                 "Failed to set new model color because one of its values was too low! It must be 0.0f to 1.0f.",
-                "MODEL",
+                "KG_MODEL",
                 LogType::LOG_ERROR,
                 2);
 
@@ -170,7 +168,7 @@ namespace KalaGraphics::Object
         {
             Log::Print(
                 "Failed to set new model color because one of its values was too high! It must be 0.0f to 1.0f.",
-                "MODEL",
+                "KG_MODEL",
                 LogType::LOG_ERROR,
                 2);
 
@@ -180,9 +178,4 @@ namespace KalaGraphics::Object
         color = newColor;
     }
     const vec3& Model::GetColor() const { return color; }
-
-    Model::~Model()
-    {
-        
-    }
 }

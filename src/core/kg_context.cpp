@@ -160,7 +160,7 @@ namespace KalaGraphics::Core
         {
             Log::Print(
                 "Cannot set instance to an empty one!", 
-                "KALAGRAPHICS_CONTEXT",
+                "KG_CONTEXT",
                 LogType::LOG_ERROR,
                 2);
         }
@@ -173,7 +173,7 @@ namespace KalaGraphics::Core
         {
             Log::Print(
                 "Cannot get VK instance because it is not assigned!", 
-                "KALAGRAPHICS_CONTEXT",
+                "KG_CONTEXT",
                 LogType::LOG_ERROR,
                 2);
 
@@ -202,7 +202,7 @@ namespace KalaGraphics::Core
         {
             Log::Print(
                 "Failed to get framebuffer name because the passed enum was invalid!", 
-                "KALAGRAPHICS_CONTEXT",
+                "KG_CONTEXT",
                 LogType::LOG_ERROR,
                 2);
 
@@ -218,7 +218,7 @@ namespace KalaGraphics::Core
         {
             Log::Print(
                 "Failed to get framebuffer value because the passed enum was invalid!", 
-                "KALAGRAPHICS_CONTEXT",
+                "KG_CONTEXT",
                 LogType::LOG_ERROR,
                 2);
 
@@ -588,7 +588,7 @@ namespace KalaGraphics::Core
                 {
                     Log::Print(
                         "Using Vulkan because no valid OpenGL contexts were passed.", 
-                        "KALAGRAPHICS_CONTEXT",
+                        "KG_CONTEXT",
                         LogType::LOG_WARNING);
 
                     cont->renderTarget = RenderTarget::RT_VULKAN;
@@ -597,7 +597,7 @@ namespace KalaGraphics::Core
                 {
                     Log::Print(
                         "Fell back to software rendering for window context '" + idStr + "' because no valid OpenGL or Vulkan contexts were passed.", 
-                        "KALAGRAPHICS_CONTEXT",
+                        "KG_CONTEXT",
                         LogType::LOG_WARNING);
 
                     cont->renderTarget = RenderTarget::RT_SOFTWARE;
@@ -612,12 +612,9 @@ namespace KalaGraphics::Core
         string renderTarget = string(GetRenderTargetName(cont->renderTarget));
 
         Log::Print(
-            "Initialized valid context '" + idStr + "'!\n"
-            "    Render target: " + renderTarget + "\n"
-            "    Framebuffer is dynamic: " + isFBDynamic + "\n"
-            "    Framebuffer size: " + fbVal,
-            "KALAGRAPHICS_CONTEXT",
-            LogType::LOG_INFO);
+            "Created new context with ID '" + idStr + "'!",
+            "KG_CONTEXT",
+            LogType::LOG_SUCCESS);
 
         return cont;
     }
@@ -700,7 +697,7 @@ namespace KalaGraphics::Core
 
         Log::Print(
             "Set dynamic framebuffer state to " + string(BoolValue(newValue)) + " for window '" + to_string(context.windowID) + "'!", 
-            "KALAGRAPHICS_CONTEXT",
+            "KG_CONTEXT",
             LogType::LOG_INFO);
     }
     bool WindowContext::IsDynamicFramebuffer() const { return context.isFramebufferDynamic; }
@@ -711,7 +708,7 @@ namespace KalaGraphics::Core
 
         Log::Print(
             "Set static framebuffer size to " + string(GetFramebufferName(fbSize)) + " for window '" + to_string(context.windowID) + "'.", 
-            "KALAGRAPHICS_CONTEXT",
+            "KG_CONTEXT",
             LogType::LOG_INFO);
     }
     vec2 WindowContext::GetStaticFramebufferSize() const

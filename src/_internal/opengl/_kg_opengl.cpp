@@ -305,7 +305,7 @@ namespace KalaGraphics::Internal::OpenGL
 		{
 			Log::Print(
 				"Cannot swap OpenGL buffers because the passed context ID '" + to_string(contextID) + "' was not found!",
-				"OPENGL_INTERNAL",
+				"KG_OPENGL",
 				LogType::LOG_ERROR,
 				2);
 
@@ -319,7 +319,7 @@ namespace KalaGraphics::Internal::OpenGL
 		{
 			Log::Print(
 				"Failed to get vsync state because passed context ID '" + to_string(contextID) + "' has no attached GL context!",
-				"OPENGL_INTERNAL",
+				"KG_OPENGL",
 				LogType::LOG_ERROR,
 				2);
 
