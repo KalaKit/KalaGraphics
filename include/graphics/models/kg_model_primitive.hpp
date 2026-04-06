@@ -9,9 +9,9 @@
 
 #include "core_utils.hpp"
 
-#include "objects/models/kg_model.hpp"
+#include "graphics/models/kg_model.hpp"
 
-namespace KalaGraphics::Object
+namespace KalaGraphics::Graphics
 {
     using std::string_view;
 

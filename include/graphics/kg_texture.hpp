@@ -3,9 +3,15 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#include "core/kg_texture.hpp"
+#pragma once
 
-namespace KalaGraphics::Core
+#include "core_utils.hpp"
+
+namespace KalaGraphics::Graphics
 {
+    class LIB_API Texture
+    {
+    public:
     
+    };
 }

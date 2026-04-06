@@ -9,8 +9,8 @@
 #include "math_utils.hpp"
 #include "import_kmd.hpp"
 
-#include "objects/models/kg_model_primitive.hpp"
-#include "objects/models/kg_model.hpp"
+#include "graphics/models/kg_model_primitive.hpp"
+#include "graphics/models/kg_model.hpp"
 #include "core/kg_core.hpp"
 #include "core/kg_context.hpp"
 #include "_internal/opengl/_kg_opengl_model.hpp"
@@ -26,11 +26,11 @@ using KalaHeaders::KalaMath::MAX_SIZE3;
 
 using KalaHeaders::KalaModelData::Vertex;
 
-using KalaGraphics::Object::Model;
-using KalaGraphics::Object::CubeDetails;
-using KalaGraphics::Object::PyramidDetails;
-using KalaGraphics::Object::SphereDetails;
-using KalaGraphics::Object::TorusDetails;
+using KalaGraphics::Graphics::Model;
+using KalaGraphics::Graphics::CubeDetails;
+using KalaGraphics::Graphics::PyramidDetails;
+using KalaGraphics::Graphics::SphereDetails;
+using KalaGraphics::Graphics::TorusDetails;
 using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Core::WindowContext;
 using KalaGraphics::Internal::OpenGL::OpenGL_Model;
@@ -232,7 +232,7 @@ static bool VerifyPrimitive(
     return true;
 }
 
-namespace KalaGraphics::Object
+namespace KalaGraphics::Graphics
 {
     Model_Primitive* Model_Primitive::CreatePrimitive(
         string_view modelName,

@@ -12,7 +12,7 @@
 #include "_internal/opengl/_kg_opengl.hpp"
 #include "_internal/opengl/_kg_opengl_shader.hpp"
 #include "core/kg_core.hpp"
-#include "objects/models/kg_model.hpp"
+#include "graphics/models/kg_model.hpp"
 
 using KalaHeaders::KalaModelData::Vertex;
 
@@ -22,7 +22,7 @@ using KalaHeaders::KalaLog::LogType;
 using KalaGraphics::Internal::OpenGL::OpenGL_Core;
 using KalaGraphics::Internal::OpenGL::OpenGL_Core_Functions;
 using KalaGraphics::Core::KalaGraphicsCore;
-using KalaGraphics::Object::Model;
+using KalaGraphics::Graphics::Model;
 
 using std::unique_ptr;
 using std::make_unique;

@@ -3,9 +3,9 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#include "core/kg_font.hpp"
+#include "graphics/kg_texture.hpp"
 
-namespace KalaGraphics::Core
+namespace KalaGraphics::Graphics
 {
     
 }

@@ -3,15 +3,9 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#pragma once
+#include "graphics/kg_font.hpp"
 
-#include "core_utils.hpp"
-
-namespace KalaGraphics::Core
+namespace KalaGraphics::Graphics
 {
-    class LIB_API Shader
-    {
-    public:
     
-    };
 }

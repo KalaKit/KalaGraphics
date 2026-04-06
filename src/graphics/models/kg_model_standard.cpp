@@ -5,14 +5,14 @@
 
 #include "log_utils.hpp"
 
-#include "objects/models/kg_model_standard.hpp"
+#include "graphics/models/kg_model_standard.hpp"
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
 
 using std::to_string;
 
-namespace KalaGraphics::Object
+namespace KalaGraphics::Graphics
 {
     void Model_Standard::Update()
     {

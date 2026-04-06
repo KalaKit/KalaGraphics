@@ -5,12 +5,12 @@
 
 #include "log_utils.hpp"
 
-#include "objects/models/kg_model.hpp"
+#include "graphics/models/kg_model.hpp"
 #include "core/kg_core.hpp"
 #include "core/kg_context.hpp"
 #include "_internal/opengl/_kg_opengl_model.hpp"
 #include "_internal/opengl/_kg_opengl_shader.hpp"
-#include "objects/models/kg_model_primitive.hpp"
+#include "graphics/models/kg_model_primitive.hpp"
 
 using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Core::WindowContext;
@@ -29,7 +29,7 @@ static bool ContextExists(u32 contextID)
     return WindowContext::GetRegistry().createdContent.contains(contextID);
 } 
 
-namespace KalaGraphics::Object
+namespace KalaGraphics::Graphics
 {
     static KalaGraphicsRegistry<Model> registry{};
 

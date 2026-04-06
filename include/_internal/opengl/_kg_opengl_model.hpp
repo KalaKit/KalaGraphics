@@ -10,14 +10,14 @@
 #include "core_utils.hpp"
 
 #include "core/kg_registry.hpp"
-#include "objects/models/kg_model_primitive.hpp"
-#include "objects/models/kg_model_standard.hpp"
+#include "graphics/models/kg_model_primitive.hpp"
+#include "graphics/models/kg_model_standard.hpp"
 
 namespace KalaGraphics::Internal::OpenGL
 {
     using KalaGraphics::Core::KalaGraphicsRegistry;
-    using KalaGraphics::Object::Model_Primitive;
-    using KalaGraphics::Object::Model_Standard;
+    using KalaGraphics::Graphics::Model_Primitive;
+    using KalaGraphics::Graphics::Model_Standard;
 
     using std::string_view;
 

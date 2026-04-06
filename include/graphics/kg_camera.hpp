@@ -4,14 +4,3 @@
 //Read LICENSE.md for more information.
 
 #pragma once
-
-#include "core_utils.hpp"
-
-namespace KalaGraphics::Core
-{
-    class LIB_API Font
-    {
-    public:
-    
-    };
-}

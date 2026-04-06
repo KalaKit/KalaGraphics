@@ -14,7 +14,7 @@
 
 #include "core/kg_registry.hpp"
 
-namespace KalaGraphics::Object
+namespace KalaGraphics::Graphics
 {
     using KalaHeaders::KalaMath::vec3;
     using KalaHeaders::KalaMath::vec4;
