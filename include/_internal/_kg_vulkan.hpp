@@ -5,21 +5,94 @@
 
 #pragma once
 
+#include <vector>
+
 #include "core_utils.hpp"
+
+struct VkPhysicalDevice_T;
+using VkPhysicalDevice = VkPhysicalDevice_T*;
+
+struct VkDevice_T;
+using VkDevice = VkDevice_T*;
+
+struct VkQueue_T;
+using VkQueue = VkQueue_T*;
+
+struct VkCommandPool_T;
+using VkCommandPool = VkCommandPool_T*;
+
+struct VmaAllocator_T;
+using VmaAllocator = VmaAllocator_T*;
+
+struct VkDescriptorPool_T;
+using VkDescriptorPool = VkDescriptorPool_T*;
+
+struct VkSwapchainKHR_T;
+using VkSwapchainKHR = VkSwapchainKHR_T*;
+
+struct VkImage_T;
+using VkImage = VkImage_T*;
+
+struct VkImageView_T;
+using VkImageView = VkImageView_T*;
+
+struct VkRenderPass_T;
+using VkRenderPass = VkRenderPass_T*;
+
+struct VkFramebuffer_T;
+using VkFramebuffer = VkFramebuffer_T*;
+
+struct VkSemaphore_T;
+using VkSemaphore = VkSemaphore_T*;
+
+struct VkFence_T;
+using VkFence = VkFence_T*;
+
+struct VkCommandBuffer_T;
+using VkCommandBuffer = VkCommandBuffer_T*;
 
 namespace KalaGraphics::Internal
 {
+    using std::vector;
+
     using u32 = uint32_t;
 
     class LIB_API Vulkan_Core
     {
     public:
+        //Global Vulkan instance-based initialization
+        static void Initialize();
+
+        //Is the global Vulkan instance content initialized
+        static bool IsInitialized();
+
+        static VkPhysicalDevice GetPhysicalDevice();
+        static VkDevice GetLogicalDevice();
+        static VkQueue GetGraphicsQueue();
+        static VkCommandPool GetCommandPool();
+        static VmaAllocator GetVmaAllocator();
+        static VkDescriptorPool GetDescriptorPool();
+
+        //Per-surface initialization
+        static void InitializeContext(u32 windowContextID);
+
+        static VkSwapchainKHR GetSwapchain(u32 windowContextID);
+        static vector<VkImageView> GetImageViews(u32 windowContextID);
+        static VkRenderPass GetRenderPass(u32 windowContextID);
+        static VkImage GetDepthImage(u32 windowContextID);
+        static VkImageView GetDepthImageView(u32 windowContextID);
+        static vector<VkFramebuffer> GetFramebuffers(u32 windowContextID);
+        static VkSemaphore GetAvailableSemaphore(u32 windowContextID);
+        static VkSemaphore GetRenderFinishedSemaphore(u32 windowContextID);
+        static VkFence GetInFlightFence(u32 windowContextID);
+        static VkCommandBuffer GetCommandBuffer(u32 windowContextID);
+
         //Main draw call
         static void Update(u32 windowID);
         //Actions that occur only when the window size changes
         static void ResizeUpdate(u32 windowID);
 
         //Clean all resources
-        static void Shutdown(u32 windowID);
+        static void Shutdown();
     };
 }

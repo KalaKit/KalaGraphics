@@ -5,25 +5,14 @@
 
 #ifdef _WIN32
 #include <windows.h>
-#include <GL/gl.h>
-#include "glcorearb.h"
 #else
 #include <X11/X.h>
 #include <X11/Xlib.h>
-#include <GL/glx.h>
-#include <GL/glxext.h>
 #endif
 
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-#ifdef _WIN32
-#define VK_USE_PLATFORM_WIN32_KHR
-#else
-#define VK_USE_PLATFORM_XLIB_KHR
-#endif
-#include "vulkan/vulkan_core.h"
 
 #include "log_utils.hpp"
 #include "core_utils.hpp"
@@ -167,7 +156,7 @@ namespace KalaGraphics::Core
         if (!vk_instance)
         {
             Log::Print(
-                "Cannot get VK instance because it is not assigned!", 
+                "Cannot get Vulkan instance because it is not assigned!", 
                 "KG_CONTEXT",
                 LogType::LOG_ERROR,
                 2);
@@ -303,100 +292,12 @@ namespace KalaGraphics::Core
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + idStr + "' because it was aimed for Vulkan but no Vulkan instance was passed!");
+                "Failed to initialize window context '" + idStr + "' because no Vulkan instance was passed!");
 
             return nullptr;
         }
 
-        u32 apiVersion = VK_API_VERSION_1_0;
-        vkEnumerateInstanceVersion(&apiVersion);
-
-        u32 major = VK_API_VERSION_MAJOR(apiVersion);
-        u32 minor = VK_API_VERSION_MINOR(apiVersion);
-
-        if (major < 1
-            || (major == 1
-            && minor < 3))
-        {
-            KalaGraphicsCore::ForceClose(
-                "Window context init error",
-                "Failed to initialize window context '" + idStr + "' because its Vulkan version was lower than minimum required version 1.3!");
-
-            return nullptr;
-        }
-
-        static u32 deviceCount{};
-        static bool checkedInstance{};
-        static vector<VkPhysicalDevice> devices{};
-        
-        if (!checkedInstance)
-        {
-            if (vkEnumeratePhysicalDevices(
-                vk_instance, 
-                &deviceCount, 
-                nullptr) != VK_SUCCESS
-                || deviceCount == 0)
-            {
-                KalaGraphicsCore::ForceClose(
-                "Window context init error",
-                "Failed to initialize window context '" + idStr + "' because its Vulkan instance is invalid!");
-
-                return nullptr;
-            }
-
-            devices.resize(deviceCount);
-
-            vkEnumeratePhysicalDevices(
-                vk_instance, 
-                &deviceCount, 
-                devices.data());
-
-            checkedInstance = true;
-        }
-
-        bool surfaceSupported{};
-
-        for (const auto& device : devices)
-        {
-            u32 queueCount{};
-            vkGetPhysicalDeviceQueueFamilyProperties(
-                device,
-                &queueCount,
-                nullptr);
-
-            vector<VkQueueFamilyProperties> queues(queueCount);
-            vkGetPhysicalDeviceQueueFamilyProperties(
-                device,
-                &queueCount,
-                queues.data());
-
-            for (u32 i = 0; i < queueCount; i++)
-            {
-                VkBool32 supported{};
-
-                if (vkGetPhysicalDeviceSurfaceSupportKHR(
-                    device,
-                    i,
-                    cont->context.context_vk_surface,
-                    &supported) == VK_SUCCESS
-                    && supported)
-                {
-                    surfaceSupported = true;
-                    break;
-                }
-            }
-
-            if (surfaceSupported) break;
-        }
-
-        if (!surfaceSupported)
-        {
-            KalaGraphicsCore::ForceClose(
-                "Window context init error",
-                "Failed to initialize window context '" + idStr + "' because its Vulkan surface is invalid!");
-
-            return nullptr;
-        }
+        if (!Vulkan_Core::IsInitialized()) Vulkan_Core::Initialize();
 
         registry.AddContent(newID, std::move(newCont));
 
@@ -418,6 +319,8 @@ namespace KalaGraphics::Core
     void WindowContext::SetVSyncState(VSyncState newState)
     {
         bool success{};
+
+        
         
         //set vk vsync state
 
@@ -470,10 +373,7 @@ namespace KalaGraphics::Core
 
     void WindowContext::Shutdown()
     {
-        for (const auto& c : registry.runtimeContent)
-        {
-            Vulkan_Core::Shutdown(c->context.windowID);
-        }
+        Vulkan_Core::Shutdown();
 
         registry.RemoveAllContent();
     }
