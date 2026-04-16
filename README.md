@@ -1,8 +1,6 @@
 # KalaGraphics
 
-**KalaGraphics** is a C++20 window library for Windows and Linux, built for software and games with a user-friendly GL and VK agnostic API. 
-
-**KalaGraphics** accepts a GL 1.3 or VK 3.3 context and takes over after that, all further actions are in a single user-friendly API and the backend is determined whether you choose to have VK-specifc features or not, otherwise **KalaGraphics** always defaults to OpenGL for compatibility.
+**KalaGraphics** is a C++20 window library for Windows and Linux, built for software and games with a user-friendly API that abstracts away Vulkan code as much as possible.
 
 This project relies on several [external dependencies](https://github.com/greeenlaser/external-shared), they are not shipped inside this project, please make sure you have that repository cloned into a folder inside the same parent directory as this project folder before compiling this project from source.
 
@@ -24,8 +22,8 @@ This project relies on several [external dependencies](https://github.com/greeen
 
 | Render Pipeline | Status         | Notes                                |
 |-----------------|----------------|--------------------------------------|
-| OpenGL          | Supported      | Internally locked to OpenGL 3.3      |
-| Vulkan          | Planned        | Internally locked to Vulkan 1.3      |
+| Vulkan          | Support        | Internally locked to Vulkan 1.3      |
+| OpenGL          | Not supported  | Has been deprecated and removed      |
 | DirectX         | Not Supported  | No plans for DirectX compatibility   |
 | MoltenVK        | Not Supported  | No plans for MoltenVK compatibility  |
 
