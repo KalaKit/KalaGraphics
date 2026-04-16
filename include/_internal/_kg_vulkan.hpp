@@ -7,7 +7,7 @@
 
 #include "core_utils.hpp"
 
-namespace KalaGraphics::Internal::Vulkan
+namespace KalaGraphics::Internal
 {
     using u32 = uint32_t;
 

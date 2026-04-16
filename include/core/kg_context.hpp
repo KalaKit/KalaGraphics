@@ -7,13 +7,11 @@
 
 #include <string>
 #include <vector>
-#include <optional>
 
 #include "core_utils.hpp"
 #include "math_utils.hpp"
 
 #include "core/kg_registry.hpp"
-#include "_internal/opengl/_kg_opengl.hpp"
 
 struct VkInstance_T;
 using VkInstance = VkInstance_T*;
@@ -28,50 +26,9 @@ namespace KalaGraphics::Core
     using std::string;
     using std::string_view;
     using std::vector;
-    using std::optional;
-    using std::nullopt;
 
     using u8 = uint8_t;
     using u32 = uint32_t;
-
-    enum class RenderTarget : u8
-    {
-        RT_INVALID = 0u,
-
-        //CPU rendering - fallback if no gl or vk context was passed
-        RT_SOFTWARE = 1u,
-
-        //OpenGL 3.3 - default renderer unless overridden by graphics features
-        RT_OPENGL = 2u,
-
-        //Vulkan 1.3 - prioritized when vk-specific graphics features were chosen
-        RT_VULKAN = 3u
-    };
-
-    //Graphics features that trigger KalaMake to use Vulkan over OpenGL
-    enum class GraphicsFeature : u8
-    {
-        GF_INVALID = 0u,
-
-        //enforce software rendering even if gl or vk contexts were passed
-        GF_FORCE_SOFTWARE = 1u,
-
-        //enforce opengl even if vk features were passed
-        GF_FORCE_OPENGL = 2u,
-
-        //enforce vulkan even if capable as opengl
-        GF_FORCE_VULKAN = 3u,
-
-        //vk-only compute shaders that enable gpu-driven particle systems,
-        //gpu physics, gpu culling, gpu-driven procedual generation and more
-        GF_COMPUTE_SHADERS = 4u,
-
-        //vk-only hardware-level raytracing
-        GF_RAY_TRACING = 5u,
-
-        //vk-only hardware-level raytracing and pathtracing
-        GF_PATH_TRACING = 6u
-    };
 
     enum class FramebufferSize : u8
     {
@@ -138,17 +95,15 @@ namespace KalaGraphics::Core
         uintptr_t context_window{};
 #endif
 
-        optional<uintptr_t> context_gl = nullopt;
-        optional<VkSurfaceKHR> context_vk_surface = nullopt;
+        VkSurfaceKHR context_vk_surface{};
     };
 
     class LIB_API WindowContext
     {
-    friend class Internal::OpenGL::OpenGL_Core;
     public:
         static KalaGraphicsRegistry<WindowContext>& GetRegistry();
 
-        //Sets the global vk instance, must be assigned if you want to use Vulkan
+        //Sets the global vk instance
         static void SetVKInstance(VkInstance vk_instance);
         static VkInstance GetVKInstance();
 
@@ -157,14 +112,8 @@ namespace KalaGraphics::Core
         static string_view GetFramebufferName(FramebufferSize fbSize);
         static vec2 GetFramebufferSize(FramebufferSize fbSize);
 
-        static string_view GetRenderTargetName(RenderTarget renderTarget);
-
-        //Initialize a new Context with your desired features.
-        //Framebuffer is dynamic by default.
-        //If no GL or VK context was passed then this Context falls back to software rendering.
-        static WindowContext* Initialize(
-            const WindowContextData& context,
-            const optional<vector<GraphicsFeature>> gfxFeatures = nullopt);
+        //Initialize a new window context
+        static WindowContext* Initialize(const WindowContextData& context);
 
         bool IsInitialized() const;
 
@@ -187,9 +136,6 @@ namespace KalaGraphics::Core
         void SetStaticFramebufferSize(FramebufferSize fbSize);
         vec2 GetStaticFramebufferSize() const;
 
-        //Returns the render target chosen during initialization
-        RenderTarget GetRenderTarget()const;
-
         WindowContextData& GetWindowContextData();
 
         //Shuts down this window context cleanly and frees all its resources
@@ -199,9 +145,6 @@ namespace KalaGraphics::Core
 
         u32 ID{};
 
-        vector<GraphicsFeature> graphicsFeatures{};
-
         WindowContextData context{};
-        RenderTarget renderTarget{};
     };
 }

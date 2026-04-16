@@ -30,21 +30,10 @@ namespace KalaGraphics::Graphics
 
     using u32 = uint32_t;
 
-    enum class BackendType : u8
-    {
-        BT_INVALID = 0u,
-
-        BT_SOFTWARE = 1u,
-        BT_OPENGL = 2u,
-        BT_VULKAN = 3u
-    };
-
     class LIB_API Model
     {
     public:
         static KalaGraphicsRegistry<Model>& GetRegistry();
-
-        bool IsInitialized() const;
 
         bool SetName(string_view newName);
         const string& GetName() const;
@@ -55,16 +44,13 @@ namespace KalaGraphics::Graphics
         u32 GetID() const;
         u32 GetContextID() const;
 
-        //Hot-swap context and backend at runtime,
-        //warning: invalid backend will NOT work and will cause a force-close if abused.
-        //Leave shaderID, backendID and type unassigned if you want a new backend for this model
+        //Hot-swap context at runtime,
+        //Leave shaderID and backendID if you want a new backend for this model
         void SetBackend(
             u32 contextID, 
             u32 shaderID = 0,
-            u32 backendID = 0, 
-            BackendType type = BackendType::BT_INVALID);
+            u32 backendID = 0);
         u32 GetBackendID() const;
-        BackendType GetBackendType() const;
 
         void SetColor(const vec3& newColor);
         const vec3& GetColor() const;
@@ -74,8 +60,6 @@ namespace KalaGraphics::Graphics
 
         virtual ~Model() = default;
     protected:
-        bool isInitialized{};
-
         string name{};
 
         Transform3D transform{};
@@ -84,7 +68,6 @@ namespace KalaGraphics::Graphics
 
         u32 contextID{};
         u32 backendID{};
-        BackendType backendType{};
 
 		vector<Vertex> vertices{};
 		vector<u32> indices{};

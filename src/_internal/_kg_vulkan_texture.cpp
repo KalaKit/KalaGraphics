@@ -3,15 +3,9 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#pragma once
+#include "_internal/_kg_vulkan_texture.hpp"
 
-#include "core_utils.hpp"
-
-namespace KalaGraphics::Internal::Vulkan
+namespace KalaGraphics::Internal
 {
-    class LIB_API Vulkan_FrameBuffer
-    {
-    public:
-        
-    };
+
 }

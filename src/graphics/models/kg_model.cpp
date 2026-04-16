@@ -8,16 +8,11 @@
 #include "graphics/models/kg_model.hpp"
 #include "core/kg_core.hpp"
 #include "core/kg_context.hpp"
-#include "_internal/opengl/_kg_opengl_model.hpp"
-#include "_internal/opengl/_kg_opengl_shader.hpp"
 #include "graphics/models/kg_model_primitive.hpp"
 
 using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Core::WindowContext;
 using KalaGraphics::Core::WindowContextData;
-using KalaGraphics::Internal::OpenGL::OpenGL_Model;
-using KalaGraphics::Internal::OpenGL::OpenGL_Shader;
-using KalaGraphics::Internal::OpenGL::shader_name;
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
@@ -73,8 +68,7 @@ namespace KalaGraphics::Graphics
     void Model::SetBackend(
         u32 contextID,
         u32 shaderID,
-        u32 backendID,
-        BackendType type)
+        u32 backendID)
     {
         if (!ContextExists(contextID))
         {
@@ -87,66 +81,9 @@ namespace KalaGraphics::Graphics
 
         WindowContextData& ctx = WindowContext::GetRegistry().GetContent(contextID)->GetWindowContextData();
 
-        if (backendID == 0
-            && backendType == BackendType::BT_INVALID)
-        {
-            if (ctx.context_gl)
-            {
-                if (shaderID == 0)
-                {
-                    for (const auto& s : OpenGL_Shader::GetRegistry().runtimeContent)
-                    {
-                        if (s->GetName() == shader_name)
-                        {
-                            shaderID = s->GetID();
-                            break;
-                        }
-                    }
-
-                    if (shaderID == 0)
-                    {
-                        KalaGraphicsCore::ForceClose(
-                            "Model backend error",
-                            "Tried to assign default primitive shader by name because no shader ID was passed but the shader was not found!!");
-
-                        return;
-                    }
-                }
-
-                OpenGL_Model* model = OpenGL_Model::InitializeModel(
-                    scast<Model_Primitive*>(this),
-                    shaderID);
-                backendID = model->GetID();
-                backendType = BackendType::BT_OPENGL;
-            }
-            else if (ctx.context_vk_surface)
-            {
-                KalaGraphicsCore::ForceClose(
-                    "Not implemented",
-                    "Feature \"Create vulkan model\" is not yet implemented!");
-
-                return;
-            }
-            else
-            {
-                KalaGraphicsCore::ForceClose(
-                    "Not implemented",
-                    "Feature \"Create software model\" is not yet implemented!");
-
-                return;
-            }
-        }
-        else
-        {
-                KalaGraphicsCore::ForceClose(
-                    "Not implemented",
-                    "Feature \"Hot-swap model\" is not yet implemented!");
-
-                return;
-        }
+        //set vulkan backend here
     }
     u32 Model::GetBackendID() const { return backendID; }
-    BackendType Model::GetBackendType() const { return backendType; }
 
     void Model::SetColor(const vec3& newColor)
     {

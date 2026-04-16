@@ -33,9 +33,7 @@
 #include "core/kg_context.hpp"
 #include "core/kg_core.hpp"
 #include "core/kg_registry.hpp"
-#include "_internal/software/_kg_software.hpp"
-#include "_internal/opengl/_kg_opengl.hpp"
-#include "_internal/vulkan/_kg_vulkan.hpp"
+#include "_internal/_kg_vulkan.hpp"
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
@@ -50,10 +48,7 @@ using KalaHeaders::KalaString::BoolValue;
 using KalaHeaders::KalaMath::vec2;
 
 using KalaGraphics::Core::FramebufferSize;
-using KalaGraphics::Core::GraphicsFeature;
-using KalaGraphics::Internal::Software::Software_Core;
-using KalaGraphics::Internal::OpenGL::OpenGL_Core;
-using KalaGraphics::Internal::Vulkan::Vulkan_Core;
+using KalaGraphics::Internal::Vulkan_Core;
 
 using std::string;
 using std::string_view;
@@ -228,18 +223,7 @@ namespace KalaGraphics::Core
 		return it->second;
     }
 
-    string_view WindowContext::GetRenderTargetName(RenderTarget renderTarget)
-    {
-        return renderTarget == RenderTarget::RT_SOFTWARE
-            ? "Software"
-            : renderTarget == RenderTarget::RT_OPENGL
-                ? "OpenGL"
-                : "Vulkan";
-    }
-
-    WindowContext* WindowContext::Initialize(
-        const WindowContextData& in_context,
-        const optional<vector<GraphicsFeature>> in_gfxFeatures)
+    WindowContext* WindowContext::Initialize(const WindowContextData& in_context)
     {
         unique_ptr<WindowContext> newCont = make_unique<WindowContext>();
         WindowContext* cont = newCont.get();
@@ -250,7 +234,6 @@ namespace KalaGraphics::Core
         cont->ID = newID;
 
         cont->context = in_context;
-        cont->graphicsFeatures = in_gfxFeatures.value_or({});
 
         if (cont->context.windowID == 0)
         {
@@ -316,300 +299,109 @@ namespace KalaGraphics::Core
         }
 #endif
 
-        if (cont->context.context_gl
-            && cont->context.context_vk_surface)
+        if (!vk_instance)
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + idStr + "' because it contained both an OpenGL and Vulkan context!");
+                "Failed to initialize window context '" + idStr + "' because it was aimed for Vulkan but no Vulkan instance was passed!");
 
             return nullptr;
         }
 
-        bool conflictsWithSW = cont->graphicsFeatures.size() > 1
-            && ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_FORCE_SOFTWARE);
+        u32 apiVersion = VK_API_VERSION_1_0;
+        vkEnumerateInstanceVersion(&apiVersion);
 
-        bool conflictsWithGL = cont->graphicsFeatures.size() > 1
-            && ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_FORCE_OPENGL);
+        u32 major = VK_API_VERSION_MAJOR(apiVersion);
+        u32 minor = VK_API_VERSION_MINOR(apiVersion);
 
-        bool conflictsWithVK = cont->graphicsFeatures.size() > 1
-            && (ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_FORCE_VULKAN)
-            || ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_COMPUTE_SHADERS)
-            || ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_RAY_TRACING)
-            || ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_PATH_TRACING))
-            && (ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_FORCE_SOFTWARE)
-            || ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_FORCE_OPENGL));
-
-        if (conflictsWithSW)
+        if (major < 1
+            || (major == 1
+            && minor < 3))
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + idStr + "' because conflicting Software Renderer graphics features were passed!");
-
-            return nullptr;
-        }
-        if (conflictsWithGL)
-        {
-            KalaGraphicsCore::ForceClose(
-                "Window context init error",
-                "Failed to initialize window context '" + idStr + "' because conflicting OpenGL graphics features were passed!");
-
-            return nullptr;
-        }
-        if (conflictsWithVK)
-        {
-            KalaGraphicsCore::ForceClose(
-                "Window context init error",
-                "Failed to initialize window context '" + idStr + "' because conflicting Vulkan graphics features were passed!");
+                "Failed to initialize window context '" + idStr + "' because its Vulkan version was lower than minimum required version 1.3!");
 
             return nullptr;
         }
 
-        if (cont->context.context_gl)
+        static u32 deviceCount{};
+        static bool checkedInstance{};
+        static vector<VkPhysicalDevice> devices{};
+        
+        if (!checkedInstance)
         {
-#ifdef _WIN32
-            HGLRC thisContext = ToVar<HGLRC>(cont->context.context_gl.value());
-            HDC thisDC = GetDC(hwnd);
-
-            HGLRC oldContext = wglGetCurrentContext();
-            HDC oldDC = wglGetCurrentDC();
-
-            if (!wglMakeCurrent(thisDC, thisContext))
+            if (vkEnumeratePhysicalDevices(
+                vk_instance, 
+                &deviceCount, 
+                nullptr) != VK_SUCCESS
+                || deviceCount == 0)
             {
-                ReleaseDC(hwnd, thisDC);
-
                 KalaGraphicsCore::ForceClose(
-                    "Window context init error",
-                    "Failed to initialize window context '" + idStr + "' because it contained a broken OpenGL context!");
+                "Window context init error",
+                "Failed to initialize window context '" + idStr + "' because its Vulkan instance is invalid!");
 
                 return nullptr;
             }
 
-            int major{};
-            int minor{};
+            devices.resize(deviceCount);
 
-            glGetIntegerv(GL_MAJOR_VERSION, &major);
-            glGetIntegerv(GL_MINOR_VERSION, &minor);
+            vkEnumeratePhysicalDevices(
+                vk_instance, 
+                &deviceCount, 
+                devices.data());
 
-            wglMakeCurrent(oldDC, oldContext);
-            ReleaseDC(hwnd, thisDC);
-#else
-            GLXContext thisContext = ToVar<GLXContext>(cont->context.context_gl.value());
-
-            GLXContext oldContext = glXGetCurrentContext();
-            GLXDrawable oldDrawable = glXGetCurrentDrawable();
-
-            if (!glXMakeCurrent(display, window, thisContext))
-            {
-                KalaGraphicsCore::ForceClose(
-                    "Window context init error",
-                    "Failed to initialize window ontext '" + idStr + "' because its OpenGL context is invalid!");
-
-                return nullptr;
-            }
-
-            int major{};
-            int minor{};
-
-            glGetIntegerv(GL_MAJOR_VERSION, &major);
-            glGetIntegerv(GL_MINOR_VERSION, &minor);
-
-            glXMakeCurrent(display, oldDrawable, oldContext);
-#endif
-
-            if (major < 3
-                || (major == 3
-                && minor < 3))
-            {
-                KalaGraphicsCore::ForceClose(
-                    "Window context init error",
-                    "Failed to initialize window context '" + idStr + "' because its OpenGL version was lower than minimum required version 3.3!");
-
-                return nullptr;
-            }
+            checkedInstance = true;
         }
-        else if (cont->context.context_vk_surface)
+
+        bool surfaceSupported{};
+
+        for (const auto& device : devices)
         {
-            if (!vk_instance)
+            u32 queueCount{};
+            vkGetPhysicalDeviceQueueFamilyProperties(
+                device,
+                &queueCount,
+                nullptr);
+
+            vector<VkQueueFamilyProperties> queues(queueCount);
+            vkGetPhysicalDeviceQueueFamilyProperties(
+                device,
+                &queueCount,
+                queues.data());
+
+            for (u32 i = 0; i < queueCount; i++)
             {
-                KalaGraphicsCore::ForceClose(
-                    "Window context init error",
-                    "Failed to initialize window context '" + idStr + "' because it was aimed for Vulkan but no Vulkan instance was passed!");
+                VkBool32 supported{};
 
-                return nullptr;
-            }
-
-            u32 apiVersion = VK_API_VERSION_1_0;
-            vkEnumerateInstanceVersion(&apiVersion);
-
-            u32 major = VK_API_VERSION_MAJOR(apiVersion);
-            u32 minor = VK_API_VERSION_MINOR(apiVersion);
-
-            if (major < 1
-                || (major == 1
-                && minor < 3))
-            {
-                KalaGraphicsCore::ForceClose(
-                    "Window context init error",
-                    "Failed to initialize window context '" + idStr + "' because its Vulkan version was lower than minimum required version 1.3!");
-
-                return nullptr;
-            }
-
-            static u32 deviceCount{};
-            static bool checkedInstance{};
-            static vector<VkPhysicalDevice> devices{};
-            
-            if (!checkedInstance)
-            {
-                if (vkEnumeratePhysicalDevices(
-                    vk_instance, 
-                    &deviceCount, 
-                    nullptr) != VK_SUCCESS
-                    || deviceCount == 0)
-                {
-                    KalaGraphicsCore::ForceClose(
-                    "Window context init error",
-                    "Failed to initialize window context '" + idStr + "' because its Vulkan instance is invalid!");
-
-                    return nullptr;
-                }
-
-                devices.resize(deviceCount);
-
-                vkEnumeratePhysicalDevices(
-                    vk_instance, 
-                    &deviceCount, 
-                    devices.data());
-
-                checkedInstance = true;
-            }
-
-            bool surfaceSupported{};
-
-            for (const auto& device : devices)
-            {
-                u32 queueCount{};
-                vkGetPhysicalDeviceQueueFamilyProperties(
+                if (vkGetPhysicalDeviceSurfaceSupportKHR(
                     device,
-                    &queueCount,
-                    nullptr);
-
-                vector<VkQueueFamilyProperties> queues(queueCount);
-                vkGetPhysicalDeviceQueueFamilyProperties(
-                    device,
-                    &queueCount,
-                    queues.data());
-
-                for (u32 i = 0; i < queueCount; i++)
+                    i,
+                    cont->context.context_vk_surface,
+                    &supported) == VK_SUCCESS
+                    && supported)
                 {
-                    VkBool32 supported{};
-
-                    if (vkGetPhysicalDeviceSurfaceSupportKHR(
-                        device,
-                        i,
-                        cont->context.context_vk_surface.value(),
-                        &supported) == VK_SUCCESS
-                        && supported)
-                    {
-                        surfaceSupported = true;
-                        break;
-                    }
+                    surfaceSupported = true;
+                    break;
                 }
-
-                if (surfaceSupported) break;
             }
 
-            if (!surfaceSupported)
-            {
-                KalaGraphicsCore::ForceClose(
-                    "Window context init error",
-                    "Failed to initialize window context '" + idStr + "' because its Vulkan surface is invalid!");
-
-                return nullptr;
-            }
+            if (surfaceSupported) break;
         }
 
-        bool forceSoftware = ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_FORCE_SOFTWARE);
-        bool forceOpenGL = ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_FORCE_OPENGL);
-        bool forceVulkan = ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_FORCE_VULKAN);
-
-        if (forceSoftware) cont->renderTarget = RenderTarget::RT_SOFTWARE;
-        else if (forceOpenGL)
+        if (!surfaceSupported)
         {
-            if (!cont->context.context_gl)
-            {
-                KalaGraphicsCore::ForceClose(
-                    "Window context init error",
-                    "Failed to force OpenGL for window context '" + idStr + "' because no OpenGL context was passed or no OpenGL contexts camne with a valid window!");
+            KalaGraphicsCore::ForceClose(
+                "Window context init error",
+                "Failed to initialize window context '" + idStr + "' because its Vulkan surface is invalid!");
 
-                return nullptr;
-            }
-            else cont->renderTarget = RenderTarget::RT_OPENGL;
-        }
-        else if (forceVulkan)
-        {
-            if (!cont->context.context_vk_surface)
-            {
-                KalaGraphicsCore::ForceClose(
-                    "Window context init error",
-                    "Failed to force Vulkan for window context '" + idStr + "' because no Vulkan context was passed or no Vulkan contexts camne with a valid window!");
-
-                return nullptr;
-            }
-            else cont->renderTarget = RenderTarget::RT_VULKAN;
-        }
-
-        //default path - user did not force any specific render pipeline
-        else
-        {
-            bool wantsToUseVulkan =
-                ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_COMPUTE_SHADERS)
-                || ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_RAY_TRACING)
-                || ContainsValue(cont->graphicsFeatures, GraphicsFeature::GF_PATH_TRACING);
-
-            if (wantsToUseVulkan)
-            {
-                if (!cont->context.context_vk_surface)
-                {
-                    KalaGraphicsCore::ForceClose(
-                        "Window context init error",
-                        "Failed to use Vulkan for window context '" + idStr + "' through Vulkan-only Graphics features because no Vulkan context was passed or no Vulkan contexts came with a valid window!");
-                
-                    return nullptr;
-                }
-
-                cont->renderTarget = RenderTarget::RT_VULKAN;
-            }
-            else
-            {
-                if (cont->context.context_gl) cont->renderTarget = RenderTarget::RT_OPENGL;
-                else if (cont->context.context_vk_surface)
-                {
-                    Log::Print(
-                        "Using Vulkan because no valid OpenGL contexts were passed.", 
-                        "KG_CONTEXT",
-                        LogType::LOG_WARNING);
-
-                    cont->renderTarget = RenderTarget::RT_VULKAN;
-                }
-                else
-                {
-                    Log::Print(
-                        "Fell back to software rendering for window context '" + idStr + "' because no valid OpenGL or Vulkan contexts were passed.", 
-                        "KG_CONTEXT",
-                        LogType::LOG_WARNING);
-
-                    cont->renderTarget = RenderTarget::RT_SOFTWARE;
-                }
-            }
+            return nullptr;
         }
 
         registry.AddContent(newID, std::move(newCont));
 
         string isFBDynamic = string(BoolValue(cont->context.isFramebufferDynamic));
         string fbVal = string(GetFramebufferName(cont->context.fbSize));
-        string renderTarget = string(GetRenderTargetName(cont->renderTarget));
 
         Log::Print(
             "Created new context with ID '" + idStr + "'!",
@@ -626,14 +418,8 @@ namespace KalaGraphics::Core
     void WindowContext::SetVSyncState(VSyncState newState)
     {
         bool success{};
-        if (context.context_gl)
-        {
-            success = OpenGL_Core::SetVSyncState(ID, scast<u8>(newState));
-        }
-        if (context.context_vk_surface)
-        {
-            //TODO: set up for vk
-        }
+        
+        //set vk vsync state
 
         if (success) context.state = newState;
     }
@@ -643,25 +429,7 @@ namespace KalaGraphics::Core
     {
         for (const auto& c : registry.runtimeContent)
         {
-            switch (c->renderTarget)
-            {
-                default:
-                case RenderTarget::RT_SOFTWARE:
-                {
-                    Software_Core::Update(c->ID);
-                    break;
-                }
-                case RenderTarget::RT_OPENGL:
-                {
-                    OpenGL_Core::Update(c->ID);
-                    break;
-                }
-                case RenderTarget::RT_VULKAN:
-                {
-                    Vulkan_Core::Update(c->ID);
-                    break;
-                }
-            }   
+            Vulkan_Core::Update(c->ID);
         }
     }
 
@@ -669,25 +437,7 @@ namespace KalaGraphics::Core
     {
         for (const auto& c : registry.runtimeContent)
         {
-            switch (c->renderTarget)
-            {
-                default:
-                case RenderTarget::RT_SOFTWARE:
-                {
-                    Software_Core::ResizeUpdate(c->context.windowID);
-                    break;
-                }
-                case RenderTarget::RT_OPENGL:
-                {
-                    OpenGL_Core::ResizeUpdate(c->context.windowID);
-                    break;
-                }
-                case RenderTarget::RT_VULKAN:
-                {
-                    Vulkan_Core::ResizeUpdate(c->context.windowID);
-                    break;
-                }
-            }   
+            Vulkan_Core::ResizeUpdate(c->context.windowID);
         }
     }
 
@@ -716,33 +466,13 @@ namespace KalaGraphics::Core
         return GetFramebufferSize(context.fbSize);
     }
 
-    RenderTarget WindowContext::GetRenderTarget() const { return renderTarget; }
-
     WindowContextData& WindowContext::GetWindowContextData() { return context; }
 
     void WindowContext::Shutdown()
     {
         for (const auto& c : registry.runtimeContent)
         {
-            switch (c->renderTarget)
-            {
-                default:
-                case RenderTarget::RT_SOFTWARE:
-                {
-                    Software_Core::Shutdown(c->context.windowID);
-                    break;
-                }
-                case RenderTarget::RT_OPENGL:
-                {
-                    OpenGL_Core::Shutdown(c->context.windowID);
-                    break;
-                }
-                case RenderTarget::RT_VULKAN:
-                {
-                    Vulkan_Core::Shutdown(c->context.windowID);
-                    break;
-                }
-            }   
+            Vulkan_Core::Shutdown(c->context.windowID);
         }
 
         registry.RemoveAllContent();

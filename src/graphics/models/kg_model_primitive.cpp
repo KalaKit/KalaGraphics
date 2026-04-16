@@ -13,7 +13,6 @@
 #include "graphics/models/kg_model.hpp"
 #include "core/kg_core.hpp"
 #include "core/kg_context.hpp"
-#include "_internal/opengl/_kg_opengl_model.hpp"
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
@@ -33,7 +32,6 @@ using KalaGraphics::Graphics::SphereDetails;
 using KalaGraphics::Graphics::TorusDetails;
 using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Core::WindowContext;
-using KalaGraphics::Internal::OpenGL::OpenGL_Model;
 
 using std::string;
 using std::string_view;
@@ -343,44 +341,7 @@ namespace KalaGraphics::Graphics
 
     void Model_Primitive::Update()
     {
-        switch (backendType)
-        {
-            default:
-            case BackendType::BT_INVALID:
-            {
-                KalaGraphicsCore::ForceClose(
-                    "Primitive model render error",
-                    "The backend type for a model was invalid!");
-
-                return;
-            }
-            case BackendType::BT_SOFTWARE:
-            {
-                //not yet implemented
-                break;
-            }
-            case BackendType::BT_OPENGL:
-            {
-                auto* backend = OpenGL_Model::GetRegistry().GetContent(backendID);
-                if (!backend)
-                {
-                    KalaGraphicsCore::ForceClose(
-                        "Primitive model render error",
-                        "Failed to update primitive model because its backend ID was not found!");
-
-                    return;
-                }
-
-                backend->Update();
-
-                break;
-            }
-            case BackendType::BT_VULKAN:
-            {
-                //not yet implemented
-                break;
-            }
-        }
+        //update vulkan model here
     }
 
     Model_Primitive::~Model_Primitive()

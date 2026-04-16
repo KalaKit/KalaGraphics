@@ -3,15 +3,22 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#pragma once
+#include "_internal/_kg_vulkan.hpp"
 
-#include "core_utils.hpp"
-
-namespace KalaGraphics::Internal::Vulkan
+namespace KalaGraphics::Internal
 {
-    class LIB_API Vulkan_Shader
+    void Vulkan_Core::Update(u32 windowID)
     {
-    public:
+
+    }
+
+    void Vulkan_Core::ResizeUpdate(u32 windowID)
+    {
+
+    }
+
+    void Vulkan_Core::Shutdown(u32 windowID)
+    {
         
-    };
+    }
 }

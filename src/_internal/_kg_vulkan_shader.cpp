@@ -3,15 +3,9 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#pragma once
+#include "_internal/_kg_vulkan_shader.hpp"
 
-#include "core_utils.hpp"
-
-namespace KalaGraphics::Internal::OpenGL
+namespace KalaGraphics::Internal
 {
-    class LIB_API OpenGL_Framebuffer
-    {
-    public:
-        
-    };
+    
 }

@@ -4,3 +4,14 @@
 //Read LICENSE.md for more information.
 
 #pragma once
+
+#include "core_utils.hpp"
+
+namespace KalaGraphics::Internal
+{
+    class LIB_API Vulkan_Shader
+    {
+    public:
+        
+    };
+}
