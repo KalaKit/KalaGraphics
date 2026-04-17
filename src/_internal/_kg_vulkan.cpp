@@ -826,7 +826,7 @@ namespace KalaGraphics::Internal
         depthViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
         depthViewInfo.format = VK_FORMAT_D32_SFLOAT;
         depthViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-        depthViewInfo.subresourceRange.baseMipLevel = 1;
+        depthViewInfo.subresourceRange.baseMipLevel = 0;
         depthViewInfo.subresourceRange.levelCount = 1;
         depthViewInfo.subresourceRange.baseArrayLayer = 0;
         depthViewInfo.subresourceRange.layerCount = 1;
@@ -955,6 +955,8 @@ namespace KalaGraphics::Internal
                 "Vulkan backend init error",
                 "Failed to initialize Vulkan surface for window context '" + to_string(context->GetID()) + "' because command buffer allocation failed!");
         }
+
+        commandBuffers[ID] = commandBuffer
 
         Log::Print(
             "Initialized Vulkan context!",
