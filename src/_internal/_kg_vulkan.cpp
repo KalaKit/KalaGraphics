@@ -956,7 +956,7 @@ namespace KalaGraphics::Internal
                 "Failed to initialize Vulkan surface for window context '" + to_string(context->GetID()) + "' because command buffer allocation failed!");
         }
 
-        commandBuffers[ID] = commandBuffer
+        commandBuffers[ID] = commandBuffer;
 
         Log::Print(
             "Initialized Vulkan context!",
