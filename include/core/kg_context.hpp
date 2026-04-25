@@ -72,11 +72,15 @@ namespace KalaGraphics::Core
 	{
         VSYNC_INVALID = 0u,
 
-        //Framerate is capped to monitor refresh rate
-		VSYNC_ON = 1u,
+        //Lowest latency, no tearing (mailbox, fifo_relaxed/fifo as fallback)
+        VSYNC_ON_TRIPLE_BUFFERED = 1u,
 
-        //Framerate is uncapped, runs as fast as render loop allows, introduces tearing
-		VSYNC_OFF = 2u
+        //Frames synced to display refresh rate to prevent stuttering,
+        //can cause tearing (fifo_relaxed, fifo as fallback)
+        VSYNC_ON_ADAPTIVE = 2u,
+
+        //Uncapped framerates, no waiting, causes tearing (immediate)
+        VSYNC_OFF = 3u
 	};
 
     struct LIB_API WindowContextData
@@ -86,7 +90,7 @@ namespace KalaGraphics::Core
         bool isFramebufferDynamic = true;
         FramebufferSize fbSize = FramebufferSize::FB_1920_1080;
 
-        VSyncState state = VSyncState::VSYNC_OFF;
+        VSyncState vsyncState = VSyncState::VSYNC_ON_TRIPLE_BUFFERED;
 
 #ifdef _WIN32
         uintptr_t context_window{};
@@ -136,6 +140,12 @@ namespace KalaGraphics::Core
         void SetStaticFramebufferSize(FramebufferSize fbSize);
         vec2 GetStaticFramebufferSize() const;
 
+        //Set the internal value of window size that vulkan and framebuffer require,
+        //does not actually update window size, KalaGraphics doesnt control it,
+        //should always be called after the actual window is resized
+        void SetWindowSize(vec2 newSize);
+        vec2 GetWindowSize() const;
+    
         WindowContextData& GetWindowContextData();
 
         //Shuts down this window context cleanly and frees all its resources
@@ -144,6 +154,8 @@ namespace KalaGraphics::Core
         bool isInitialized{};
 
         u32 ID{};
+
+        vec2 windowSize{};
 
         WindowContextData context{};
     };

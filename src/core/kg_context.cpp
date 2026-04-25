@@ -318,15 +318,36 @@ namespace KalaGraphics::Core
 
     void WindowContext::SetVSyncState(VSyncState newState)
     {
-        bool success{};
+        if (newState == VSyncState::VSYNC_INVALID)
+        {
+            Log::Print(
+                "Cannot set vsync state to VSYNC_INVALID!",
+                "KG_CONTEXT",
+                LogType::LOG_ERROR,
+                2);
 
-        
-        
-        //set vk vsync state
+            return;
+        }
+        if (newState == context.vsyncState)
+        {
+            Log::Print(
+                "Cannot set vsync state to same value!",
+                "KG_CONTEXT",
+                LogType::LOG_ERROR,
+                2);
 
-        if (success) context.state = newState;
+            return;
+        }
+
+        VSyncState old = context.vsyncState;
+        context.vsyncState = newState;
+
+        if (!Vulkan_Core::SetVSyncState(ID))
+        {
+            context.vsyncState = old;
+        }
     }
-    VSyncState WindowContext::GetVSyncState() const { return context.state; }
+    VSyncState WindowContext::GetVSyncState() const { return context.vsyncState; }
 
     void WindowContext::Update()
     {
@@ -340,7 +361,7 @@ namespace KalaGraphics::Core
     {
         for (const auto& c : registry.runtimeContent)
         {
-            Vulkan_Core::ResizeUpdate(c->context.windowID);
+            Vulkan_Core::ResizeUpdate(c->ID);
         }
     }
 
@@ -368,6 +389,36 @@ namespace KalaGraphics::Core
     {
         return GetFramebufferSize(context.fbSize);
     }
+
+    void WindowContext::SetWindowSize(vec2 newSize)
+    {
+        if (newSize.x < 1.0f
+            || newSize.y < 1.0f)
+        {
+            Log::Print(
+                "Window width and height cannot be below 1!", 
+                "KG_CONTEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (newSize.x > 10000.0f
+            || newSize.y > 10000.0f)
+        {
+            Log::Print(
+                "Window width and height cannot be above 10000!", 
+                "KG_CONTEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        windowSize = newSize;
+    }
+    vec2 WindowContext::GetWindowSize() const { return windowSize; }
 
     WindowContextData& WindowContext::GetWindowContextData() { return context; }
 

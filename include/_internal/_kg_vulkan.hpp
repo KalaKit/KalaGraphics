@@ -9,6 +9,8 @@
 
 #include "core_utils.hpp"
 
+#include "core/kg_context.hpp"
+
 struct VkPhysicalDevice_T;
 using VkPhysicalDevice = VkPhysicalDevice_T*;
 
@@ -57,6 +59,8 @@ namespace KalaGraphics::Internal
 
     using u32 = uint32_t;
 
+    using KalaGraphics::Core::VSyncState;
+
     class LIB_API Vulkan_Core
     {
     public:
@@ -65,6 +69,9 @@ namespace KalaGraphics::Internal
 
         //Is the global Vulkan instance content initialized
         static bool IsInitialized();
+
+        static void SetVerboseLoggingState(bool state);
+        static bool IsVerboseLoggingEnabled();
 
         static VkPhysicalDevice GetPhysicalDevice();
         static VkDevice GetLogicalDevice();
@@ -87,12 +94,14 @@ namespace KalaGraphics::Internal
         static VkFence GetInFlightFence(u32 windowContextID);
         static VkCommandBuffer GetCommandBuffer(u32 windowContextID);
 
+        static bool SetVSyncState(u32 windowContextID);
+
         //Main draw call
         static void Update(u32 windowID);
         //Actions that occur only when the window size changes
         static void ResizeUpdate(u32 windowID);
 
         //Clean all resources
-        static void Shutdown();
+        static void Shutdown(u32 windowID = UINT32_MAX);
     };
 }
