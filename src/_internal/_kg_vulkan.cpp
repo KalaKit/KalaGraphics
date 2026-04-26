@@ -1310,13 +1310,9 @@ namespace KalaGraphics::Internal
             &inFlightFences[windowID],
             VK_TRUE,
             UINT64_MAX);
-        vkResetFences(
-            logicalDevice,
-            1,
-            &inFlightFences[windowID]);
 
         u32 imageIndex{};
-        vkAcquireNextImageKHR(
+        VkResult result = vkAcquireNextImageKHR(
             logicalDevice,
             swapchains[windowID],
             UINT64_MAX,
@@ -1324,6 +1320,16 @@ namespace KalaGraphics::Internal
             VK_NULL_HANDLE,
             &imageIndex);
 
+        if (result == VK_ERROR_OUT_OF_DATE_KHR)
+        {
+            RecreateSwapchain(windowID);
+            return;
+        }
+
+        vkResetFences(
+            logicalDevice,
+            1,
+            &inFlightFences[windowID]);
         vkResetCommandBuffer(
             commandBuffers[windowID],
             0);
@@ -1380,9 +1386,15 @@ namespace KalaGraphics::Internal
         presentInfo.pSwapchains = &swapchains[windowID];
         presentInfo.pImageIndices = &imageIndex;
 
-        vkQueuePresentKHR(
+        result = vkQueuePresentKHR(
             graphicsQueue,
             &presentInfo);
+
+        if (result == VK_ERROR_OUT_OF_DATE_KHR
+            || result == VK_SUBOPTIMAL_KHR)
+        {
+            RecreateSwapchain(windowID);
+        }
     }
 
     void Vulkan_Core::ResizeUpdate(u32 windowContextID) { RecreateSwapchain(windowContextID); }
@@ -1600,6 +1612,19 @@ bool RecreateSwapchain(u32 windowContextID)
     //drain the gpu before freeing its context resources
     vkDeviceWaitIdle(logicalDevice);
 
+    VkSurfaceCapabilitiesKHR caps{};
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+        physicalDevice,
+        surface,
+        &caps);
+
+    //skip minimized window
+    if (caps.currentExtent.width == 0
+        || caps.currentExtent.height == 0)
+    {
+        return true;
+    }
+
     //
     // DESTROY
     //
@@ -1610,8 +1635,13 @@ bool RecreateSwapchain(u32 windowContextID)
                 logicalDevice,
                 availableSemaphores[windowContextID],
                 nullptr);
+            vkDestroySemaphore(
+                logicalDevice,
+                renderFinishedSemaphores[windowContextID],
+                nullptr);
 
             availableSemaphores.erase(windowContextID);
+            renderFinishedSemaphores.erase(windowContextID);
         };
     auto destroy_framebuffers = [&windowContextID]() -> void
         {
@@ -2006,15 +2036,27 @@ bool RecreateSwapchain(u32 windowContextID)
     {
         KalaGraphicsCore::ForceClose(
             "Vulkan swapchain error",
-            "Failed to recreate Vulkan swapchain for window context '" + to_string(context->GetID()) + "' because semaphore creation failed!");
+            "Failed to recreate Vulkan swapchain for window context '" + to_string(context->GetID()) + "' because available semaphore creation failed!");
+    }
+    VkSemaphore renderFinishedSemaphore{};
+    if (vkCreateSemaphore(
+        logicalDevice,
+        &semaphoreInfo,
+        nullptr,
+        &renderFinishedSemaphore) != VK_SUCCESS)
+    {
+        KalaGraphicsCore::ForceClose(
+            "Vulkan swapchain error",
+            "Failed to recreate Vulkan swapchain for window context '" + to_string(context->GetID()) + "' because render finished semaphore creation failed!");
     }
 
     availableSemaphores[windowContextID] = availableSemaphore;
+    renderFinishedSemaphores[windowContextID] = renderFinishedSemaphore;
 
     if (isVerboseLoggingEnabled)
     {
         Log::Print(
-            "Initialized Vulkan context!",
+            "Recreated Vulkan swapchain after resize!",
             "KG_VULKAN",
             LogType::LOG_VERBOSE);
     }
