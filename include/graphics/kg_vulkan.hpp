@@ -6,6 +6,7 @@
 #pragma once
 
 #include <vector>
+#include <string>
 
 #include "core_utils.hpp"
 
@@ -53,13 +54,24 @@ using VkFence = VkFence_T*;
 struct VkCommandBuffer_T;
 using VkCommandBuffer = VkCommandBuffer_T*;
 
-namespace KalaGraphics::Internal
+namespace KalaGraphics::Graphics
 {
     using std::vector;
+    using std::string;
+    using std::string_view;
 
     using u32 = uint32_t;
 
     using KalaGraphics::Core::VSyncState;
+
+    enum class Severity : u8
+    {
+        S_INVALID = 0u,
+
+        S_INFO = 1u,
+        S_WARNING = 2u,
+        S_FATAL = 3u
+    };
 
     class LIB_API Vulkan_Core
     {
@@ -72,6 +84,14 @@ namespace KalaGraphics::Internal
 
         static void SetVerboseLoggingState(bool state);
         static bool IsVerboseLoggingEnabled();
+
+        static string GetVkResultMessage(int result);
+        static Severity GetVkResultSeverity(int result);
+
+        static void CloseOnError(
+            string_view title,
+            string_view reason,
+            int result);
 
         static VkPhysicalDevice GetPhysicalDevice();
         static VkDevice GetLogicalDevice();

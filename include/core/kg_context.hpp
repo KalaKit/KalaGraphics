@@ -148,7 +148,7 @@ namespace KalaGraphics::Core
     
         WindowContextData& GetWindowContextData();
 
-        //Shuts down this window context cleanly and frees all its resources
+        //Shuts down all resources for this context
         void Shutdown();
     private:
         bool isInitialized{};

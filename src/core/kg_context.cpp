@@ -22,12 +22,11 @@
 #include "core/kg_context.hpp"
 #include "core/kg_core.hpp"
 #include "core/kg_registry.hpp"
-#include "_internal/_kg_vulkan.hpp"
+#include "graphics/kg_vulkan.hpp"
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
 
-using KalaHeaders::KalaCore::ContainsValue;
 using KalaHeaders::KalaCore::ToVar;
 using KalaHeaders::KalaCore::EnumHash;
 using KalaHeaders::KalaCore::EnumToString;
@@ -37,13 +36,12 @@ using KalaHeaders::KalaString::BoolValue;
 using KalaHeaders::KalaMath::vec2;
 
 using KalaGraphics::Core::FramebufferSize;
-using KalaGraphics::Internal::Vulkan_Core;
+using KalaGraphics::Graphics::Vulkan_Core;
 
 using std::string;
 using std::string_view;
 using std::to_string;
 using std::unordered_map;
-using std::vector;
 
 //4:3
 
@@ -424,8 +422,13 @@ namespace KalaGraphics::Core
 
     void WindowContext::Shutdown()
     {
-        Vulkan_Core::Shutdown();
+		Log::Print(
+			"Destroying context '" + to_string(ID) + "'.",
+			"KG_CONTEXT",
+			LogType::LOG_INFO);
 
-        registry.RemoveAllContent();
+        if (registry.runtimeContent.size() == 1) Vulkan_Core::Shutdown();
+
+        registry.RemoveContent(ID);
     }
 }

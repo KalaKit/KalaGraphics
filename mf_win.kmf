@@ -26,6 +26,11 @@ origin: docs
 target: ..@external-shared@KalaGraphics@docs
 action: forcecopy
 
+//copy files
+origin: files
+target: ..@external-shared@KalaGraphics@files
+action: forcecopy
+
 //
 // BINARIES
 //
