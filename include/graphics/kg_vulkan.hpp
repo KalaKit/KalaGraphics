@@ -88,6 +88,8 @@ namespace KalaGraphics::Graphics
         static string GetVkResultMessage(int result);
         static Severity GetVkResultSeverity(int result);
 
+        //Close the program, this close function is useful for
+        //printing the VkResult error type that occured so it can be logged
         static void CloseOnError(
             string_view title,
             string_view reason,
