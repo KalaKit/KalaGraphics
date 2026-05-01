@@ -245,17 +245,17 @@ namespace KalaGraphics::Graphics
         // STORE DEVICE COUNT
         //
 
-        VkResult result = vkEnumeratePhysicalDevices(
+        VkResult vkResult = vkEnumeratePhysicalDevices(
             instance, 
             &deviceCount, 
             nullptr);
 
-        if (result != VK_SUCCESS)
+        if (vkResult != VK_SUCCESS)
         {
             CloseOnError(
                 "Vulkan instance init error",
                 "The instance is invalid!",
-                result);
+                vkResult);
         }
 
         if (deviceCount == 0)
@@ -263,7 +263,7 @@ namespace KalaGraphics::Graphics
             CloseOnError(
                 "Vulkan instance init error",
                 "No valid devices were found!",
-                result);
+                vkResult);
         }
 
         devices.resize(deviceCount);
@@ -424,16 +424,18 @@ namespace KalaGraphics::Graphics
         // CREATE LOGICAL DEVICE
         //
 
-        if (vkCreateDevice(
+        vkResult = vkCreateDevice(
             physicalDevice,
             &deviceInfo,
             nullptr,
-            &logicalDevice) != VK_SUCCESS)
+            &logicalDevice);
+
+        if (vkResult != VK_SUCCESS)
         {
             CloseOnError(
                 "Vulkan instance init error",
                 "Failed to initialize Vulkan instance because logical device creation failed!",
-                0);
+                vkResult);
         }
 
         //
@@ -455,16 +457,18 @@ namespace KalaGraphics::Graphics
         poolInfo.queueFamilyIndex = graphicsFamily;
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-        if (vkCreateCommandPool(
+        vkResult = vkCreateCommandPool(
             logicalDevice,
             &poolInfo,
             nullptr,
-            &commandPool) != VK_SUCCESS)
+            &commandPool);
+
+        if (vkResult != VK_SUCCESS)
         {
             CloseOnError(
                 "Vulkan instance init error",
                 "Failed to initialize Vulkan instance because command pool creation failed!",
-                0);
+                vkResult);
         }
 
         //
@@ -477,14 +481,16 @@ namespace KalaGraphics::Graphics
         allocatorInfo.instance = instance;
         allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_3;
 
-        if (vmaCreateAllocator(
+        vkResult = vmaCreateAllocator(
             &allocatorInfo, 
-            &vmaAllocator) != VK_SUCCESS)
+            &vmaAllocator);
+
+        if (vkResult != VK_SUCCESS)
         {
             CloseOnError(
                 "Vulkan instance init error",
                 "Failed to initialize Vulkan instance because VMA allocator creation failed!",
-                0);
+                vkResult);
         }
 
         //
@@ -509,16 +515,18 @@ namespace KalaGraphics::Graphics
         descPoolInfo.poolSizeCount = scast<u32>(poolSizes.size());
         descPoolInfo.pPoolSizes = poolSizes.data();
 
-        if (vkCreateDescriptorPool(
+        vkResult = vkCreateDescriptorPool(
             logicalDevice,
             &descPoolInfo,
             nullptr,
-            &descriptorPool) != VK_SUCCESS)
+            &descriptorPool);
+
+        if (vkResult != VK_SUCCESS)
         {
             CloseOnError(
                 "Vulkan instance init error",
                 "Failed to initialize Vulkan instance because descriptor pool creation failed!",
-                0);
+                vkResult);
         }
 
         //
@@ -863,15 +871,18 @@ namespace KalaGraphics::Graphics
         swapchainInfo.oldSwapchain = VK_NULL_HANDLE;
 
         VkSwapchainKHR swapchain{};
-        VkResult swapchainResult = vkCreateSwapchainKHR(
+        VkResult vkResult = vkCreateSwapchainKHR(
             logicalDevice,
             &swapchainInfo,
             nullptr,
             &swapchain);
 
-        if (swapchainResult != VK_SUCCESS)
+        if (vkResult != VK_SUCCESS)
         {
-            
+            CloseOnError(
+                "Vulkan surface init error",
+                "Failed to initialize Vulkan surface for window context '" + to_string(context->GetID()) + "' because swapchain creation failed!",
+                vkResult);
         }
 
         swapchains[windowContextID] = swapchain;
@@ -929,7 +940,7 @@ namespace KalaGraphics::Graphics
                 CloseOnError(
                     "Vulkan surface init error",
                     "Failed to initialize Vulkan surface for window context '" + to_string(context->GetID()) + "' because image view creation failed!",
-                    0);
+                    vkResult);
             }
         }
 
@@ -1003,7 +1014,7 @@ namespace KalaGraphics::Graphics
         renderPassInfo.pDependencies = &dependency;
 
         VkRenderPass renderPass{};
-        VkResult vkResult = vkCreateRenderPass(
+        vkResult = vkCreateRenderPass(
             logicalDevice,
             &renderPassInfo,
             nullptr,
@@ -1014,7 +1025,7 @@ namespace KalaGraphics::Graphics
             CloseOnError(
                 "Vulkan surface init error",
                 "Failed to initialize Vulkan surface for window context '" + to_string(context->GetID()) + "' because render pass creation failed!",
-                0);
+                vkResult);
         }
 
         renderPasses[windowContextID] = renderPass;
@@ -1429,10 +1440,48 @@ namespace KalaGraphics::Graphics
             VK_NULL_HANDLE,
             &imageIndex);
 
-        if (result == VK_ERROR_OUT_OF_DATE_KHR)
+        if (result != VK_SUCCESS)
         {
-            RecreateSwapchain(windowID);
-            return;
+            if (result == VK_ERROR_OUT_OF_DATE_KHR
+                || result == VK_SUBOPTIMAL_KHR)
+            {
+                if (isVerboseLoggingEnabled)
+                {
+                    Log::Print(
+                        "Recreating swapchain because image aquire returned out of date or suboptimal.",
+                        "KG_VULKAN",
+                        LogType::LOG_VERBOSE);
+                }
+
+                RecreateSwapchain(windowID);
+                return;
+            }
+
+            if (GetVkResultSeverity(result) == Severity::S_FATAL)
+            {
+                CloseOnError(
+                    "Vulkan runtime error", 
+                    "Encountered a fatal image aquire error!",
+                    result);
+            }
+            else if (GetVkResultSeverity(result) == Severity::S_WARNING)
+            {
+                Log::Print(
+                    "Image aquire returned a warning: " + GetVkResultMessage(result),
+                    "KG_VULKAN",
+                    LogType::LOG_WARNING);
+            }
+            else
+            {
+                if (isVerboseLoggingEnabled
+                    && result != VK_SUCCESS)
+                {
+                    Log::Print(
+                        "Image aquire returned a message: " + GetVkResultMessage(result),
+                        "KG_VULKAN",
+                        LogType::LOG_VERBOSE);
+                }
+            }
         }
 
         vkResetFences(
@@ -1499,9 +1548,43 @@ namespace KalaGraphics::Graphics
             graphicsQueue,
             &presentInfo);
 
+        if (GetVkResultSeverity(result) == Severity::S_FATAL)
+        {
+            CloseOnError(
+                "Vulkan runtime error", 
+                "Encountered a fatal queue present error!",
+                result);
+        }
+        else if (GetVkResultSeverity(result) == Severity::S_WARNING)
+        {
+            Log::Print(
+                "Queue present returned a warning: " + GetVkResultMessage(result),
+                "KG_VULKAN",
+                LogType::LOG_WARNING);
+        }
+        else
+        {
+            if (isVerboseLoggingEnabled
+                && result != VK_SUCCESS)
+            {
+                Log::Print(
+                    "Queue present returned a message: " + GetVkResultMessage(result),
+                    "KG_VULKAN",
+                    LogType::LOG_VERBOSE);
+            }
+        }
+
         if (result == VK_ERROR_OUT_OF_DATE_KHR
             || result == VK_SUBOPTIMAL_KHR)
         {
+            if (isVerboseLoggingEnabled)
+            {
+                Log::Print(
+                    "Recreating swapchain because image aquire returned out of date or suboptimal.",
+                    "KG_VULKAN",
+                    LogType::LOG_VERBOSE);
+            }
+
             RecreateSwapchain(windowID);
         }
     }
@@ -1950,7 +2033,8 @@ bool RecreateSwapchain(u32 windowContextID)
     {
         Vulkan_Core::CloseOnError(
             "Vulkan swapchain error",
-            "Failed to recreate Vulkan swapchain for window context '" + to_string(context->GetID()) + "' because swapchain creation failed!",
+            "Failed to recreate Vulkan swapchain for window context '" 
+            + to_string(context->GetID()) + "' because swapchain creation failed!",
             vkResult);
     }
 
@@ -2008,7 +2092,8 @@ bool RecreateSwapchain(u32 windowContextID)
         {
             Vulkan_Core::CloseOnError(
                 "Vulkan swapchain error",
-                "Failed to recreate Vulkan swapchain for window context '" + to_string(context->GetID()) + "' because image view creation failed!",
+                "Failed to recreate Vulkan swapchain for window context '" 
+                + to_string(context->GetID()) + "' because image view creation failed!",
                 vkResult);
         }
     }
@@ -2051,7 +2136,8 @@ bool RecreateSwapchain(u32 windowContextID)
     {
         Vulkan_Core::CloseOnError(
             "Vulkan swapchain error",
-            "Failed to recreate Vulkan swapchain for window context '" + to_string(context->GetID()) + "' because depth image creation failed!",
+            "Failed to recreate Vulkan swapchain for window context '" 
+            + to_string(context->GetID()) + "' because depth image creation failed!",
             vkResult);
     }
 
@@ -2081,7 +2167,8 @@ bool RecreateSwapchain(u32 windowContextID)
     {
         Vulkan_Core::CloseOnError(
             "Vulkan swapchain error",
-            "Failed to recreate Vulkan swapchain for window context '" + to_string(context->GetID()) + "' because depth image view creation failed!",
+            "Failed to recreate Vulkan swapchain for window context '" 
+            + to_string(context->GetID()) + "' because depth image view creation failed!",
             vkResult);
     }
 
@@ -2121,7 +2208,8 @@ bool RecreateSwapchain(u32 windowContextID)
         {
             Vulkan_Core::CloseOnError(
                 "Vulkan swapchain error",
-                "Failed to recreate Vulkan swapchain for window context '" + to_string(context->GetID()) + "' because framebuffer creation failed for image " + to_string(i) + "!",
+                "Failed to recreate Vulkan swapchain for window context '" 
+                + to_string(context->GetID()) + "' because framebuffer creation failed for image " + to_string(i) + "!",
                 vkResult);
         }
     }
@@ -2146,7 +2234,8 @@ bool RecreateSwapchain(u32 windowContextID)
     {
         Vulkan_Core::CloseOnError(
             "Vulkan swapchain error",
-            "Failed to recreate Vulkan swapchain for window context '" + to_string(context->GetID()) + "' because available semaphore creation failed!",
+            "Failed to recreate Vulkan swapchain for window context '" 
+            + to_string(context->GetID()) + "' because available semaphore creation failed!",
             vkResult);
     }
     VkSemaphore renderFinishedSemaphore{};
@@ -2160,7 +2249,8 @@ bool RecreateSwapchain(u32 windowContextID)
     {
         Vulkan_Core::CloseOnError(
             "Vulkan swapchain error",
-            "Failed to recreate Vulkan swapchain for window context '" + to_string(context->GetID()) + "' because render finished semaphore creation failed!",
+            "Failed to recreate Vulkan swapchain for window context '" 
+            + to_string(context->GetID()) + "' because render finished semaphore creation failed!",
             vkResult);
     }
 
@@ -2170,7 +2260,7 @@ bool RecreateSwapchain(u32 windowContextID)
     if (isVerboseLoggingEnabled)
     {
         Log::Print(
-            "Recreated Vulkan swapchain after resize!",
+            "Finished recreating Vulkan swapchain.",
             "KG_VULKAN",
             LogType::LOG_VERBOSE);
     }
