@@ -40,6 +40,7 @@ using KalaGraphics::Graphics::VulkanContext;
 using KalaGraphics::Graphics::Severity;
 using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Core::GraphicsContext;
+using KalaGraphics::Core::ViewportData;
 using KalaGraphics::Core::VSyncState;
 
 using std::vector;
@@ -761,7 +762,7 @@ namespace KalaGraphics::Graphics
             presentModes.data());
 
         VkExtent2D extent{};
-        vec2 staticFramebufferSize = context->GetStaticFramebufferSize();
+        vec2 staticFramebufferSize = context->GetStaticViewportSize();
 
         if (capabilities.currentExtent.width != UINT32_MAX)
         {
@@ -1253,6 +1254,15 @@ namespace KalaGraphics::Graphics
 
     void VulkanContext::Update()
     {
+        GraphicsContext* ctx = GraphicsContext::GetRegistry().GetContent(graphicsContextID);
+        if (!ctx)
+        {
+            CloseOnError(
+                "Vulkan update error",
+                "Failed to run Vulkan update loop because the Vulkan context '" + to_string(ID) + "' lost its graphics context!",
+                0);
+        }
+
         vkWaitForFences(
             logicalDevice,
             1,
@@ -1344,6 +1354,43 @@ namespace KalaGraphics::Graphics
             commandBuffer,
             &renderPassInfo,
             VK_SUBPASS_CONTENTS_INLINE);
+
+        //
+        // BEGIN DRAW
+        //
+
+        vec2 depth = ctx->GetDepth();
+        vec2 vpOffset = ctx->GetViewportOffset();
+        vec2 scissorSize = ctx->GetScissorSize();
+
+        VkViewport viewport{};
+        viewport.x = vpOffset.x;
+        viewport.y = vpOffset.y;
+        viewport.width = scast<f32>(extent.width);
+        viewport.height = scast<f32>(extent.height);
+        viewport.minDepth = depth.x;
+        viewport.maxDepth = depth.y;
+
+        VkRect2D scissor{};
+        scissor.offset = { scast<int>(scissorSize.x), scast<int>(scissorSize.y) };
+        scissor.extent = extent;
+
+        vkCmdSetViewport(
+            commandBuffer,
+            0,
+            1,
+            &viewport);
+            
+        vkCmdSetScissor(
+            commandBuffer,
+            0,
+            1,
+            &scissor);
+
+        //
+        // END DRAW
+        //
+
         vkCmdEndRenderPass(commandBuffer);
         vkEndCommandBuffer(commandBuffer);
 
@@ -1570,7 +1617,7 @@ namespace KalaGraphics::Graphics
             presentModes.data());
 
         VkExtent2D newExtent{};
-        vec2 staticFramebufferSize = context->GetStaticFramebufferSize();
+        vec2 staticFramebufferSize = context->GetStaticViewportSize();
 
         if (capabilities.currentExtent.width != UINT32_MAX)
         {

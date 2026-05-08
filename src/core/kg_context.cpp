@@ -35,7 +35,7 @@ using KalaHeaders::KalaString::BoolValue;
 
 using KalaHeaders::KalaMath::vec2;
 
-using KalaGraphics::Core::FramebufferSize;
+using KalaGraphics::Core::ViewportSize;
 using KalaGraphics::Graphics::VulkanContext;
 
 using std::string;
@@ -45,87 +45,87 @@ using std::unordered_map;
 
 //4:3
 
-constexpr string_view fb_640_480 = "640x480";
-constexpr string_view fb_800_600 = "800x600";
-constexpr string_view fb_1024_768 = "1024x768";
-constexpr string_view fb_1600_1200 = "1600x1200";
+constexpr string_view vp_640_480 = "640x480";
+constexpr string_view vp_800_600 = "800x600";
+constexpr string_view vp_1024_768 = "1024x768";
+constexpr string_view vp_1600_1200 = "1600x1200";
 
 //16:9
 
-constexpr string_view fb_1280_720 = "1280x720";
-constexpr string_view fb_1600_900 = "1600x900";
-constexpr string_view fb_1920_1080 = "1920x1080";
-constexpr string_view fb_2560_1440 = "2560x1440";
-constexpr string_view fb_3840_2160 = "3840x2160";
+constexpr string_view vp_1280_720 = "1280x720";
+constexpr string_view vp_1600_900 = "1600x900";
+constexpr string_view vp_1920_1080 = "1920x1080";
+constexpr string_view vp_2560_1440 = "2560x1440";
+constexpr string_view vp_3840_2160 = "3840x2160";
 
 //16:10
 
-constexpr string_view fb_1280_800 = "640x480";
-constexpr string_view fb_1680_1050 = "640x480";
-constexpr string_view fb_1920_1200 = "640x480";
-constexpr string_view fb_2560_1600 = "2560x1600";
+constexpr string_view vp_1280_800 = "640x480";
+constexpr string_view vp_1680_1050 = "640x480";
+constexpr string_view vp_1920_1200 = "640x480";
+constexpr string_view vp_2560_1600 = "2560x1600";
 
 //21:9
 
-constexpr string_view fb_2560_1080 = "2560x1080";
-constexpr string_view fb_3440_1440 = "3440x1440";
-constexpr string_view fb_5120_2160 = "5120x2160";
+constexpr string_view vp_2560_1080 = "2560x1080";
+constexpr string_view vp_3440_1440 = "3440x1440";
+constexpr string_view vp_5120_2160 = "5120x2160";
 
 //32:9
 
-constexpr string_view fb_3840_1080 = "3840x1080";
-constexpr string_view fb_5120_1440 = "5120x1440";
+constexpr string_view vp_3840_1080 = "3840x1080";
+constexpr string_view vp_5120_1440 = "5120x1440";
 
-static const unordered_map<FramebufferSize, string_view, EnumHash<FramebufferSize>> framebufferNames =
+static unordered_map<ViewportSize, string_view, EnumHash<ViewportSize>> vpNames =
 {
-    { FramebufferSize::FB_640_480,   fb_640_480 },
-    { FramebufferSize::FB_800_600,   fb_800_600 },
-    { FramebufferSize::FB_1024_768,  fb_1024_768 },
-    { FramebufferSize::FB_1600_1200, fb_1600_1200 },
+    { ViewportSize::VP_640_480,   vp_640_480 },
+    { ViewportSize::VP_800_600,   vp_800_600 },
+    { ViewportSize::VP_1024_768,  vp_1024_768 },
+    { ViewportSize::VP_1600_1200, vp_1600_1200 },
 
-    { FramebufferSize::FB_1280_720,  fb_1280_720 },
-    { FramebufferSize::FB_1600_900,  fb_1600_900 },
-    { FramebufferSize::FB_1920_1080, fb_1920_1080 },
-    { FramebufferSize::FB_2560_1440, fb_2560_1440 },
-    { FramebufferSize::FB_3840_2160, fb_3840_2160 },
+    { ViewportSize::VP_1280_720,  vp_1280_720 },
+    { ViewportSize::VP_1600_900,  vp_1600_900 },
+    { ViewportSize::VP_1920_1080, vp_1920_1080 },
+    { ViewportSize::VP_2560_1440, vp_2560_1440 },
+    { ViewportSize::VP_3840_2160, vp_3840_2160 },
 
-    { FramebufferSize::FB_1280_800,  fb_1280_800 },
-    { FramebufferSize::FB_1680_1050, fb_1680_1050 },
-    { FramebufferSize::FB_1920_1200, fb_1920_1200 },
-    { FramebufferSize::FB_2560_1600, fb_2560_1600 },
+    { ViewportSize::VP_1280_800,  vp_1280_800 },
+    { ViewportSize::VP_1680_1050, vp_1680_1050 },
+    { ViewportSize::VP_1920_1200, vp_1920_1200 },
+    { ViewportSize::VP_2560_1600, vp_2560_1600 },
 
-    { FramebufferSize::FB_2560_1080, fb_2560_1080 },
-    { FramebufferSize::FB_3440_1440, fb_3440_1440 },
-    { FramebufferSize::FB_5120_2160, fb_5120_2160 },
+    { ViewportSize::VP_2560_1080, vp_2560_1080 },
+    { ViewportSize::VP_3440_1440, vp_3440_1440 },
+    { ViewportSize::VP_5120_2160, vp_5120_2160 },
 
-    { FramebufferSize::FB_3840_1080, fb_3840_1080 },
-    { FramebufferSize::FB_5120_1440, fb_5120_1440 }
+    { ViewportSize::VP_3840_1080, vp_3840_1080 },
+    { ViewportSize::VP_5120_1440, vp_5120_1440 }
 };
 
-static const unordered_map<FramebufferSize, vec2, EnumHash<FramebufferSize>> framebufferSizes =
+static unordered_map<ViewportSize, vec2, EnumHash<ViewportSize>> vpSizes =
 {
-    { FramebufferSize::FB_640_480,   vec2(640, 480) },
-    { FramebufferSize::FB_800_600,   vec2(800, 600) },
-    { FramebufferSize::FB_1024_768,  vec2(1024, 768) },
-    { FramebufferSize::FB_1600_1200, vec2(1600, 1200) },
+    { ViewportSize::VP_640_480,   vec2(640, 480) },
+    { ViewportSize::VP_800_600,   vec2(800, 600) },
+    { ViewportSize::VP_1024_768,  vec2(1024, 768) },
+    { ViewportSize::VP_1600_1200, vec2(1600, 1200) },
 
-    { FramebufferSize::FB_1280_720,  vec2(1280, 720) },
-    { FramebufferSize::FB_1600_900,  vec2(1600, 900) },
-    { FramebufferSize::FB_1920_1080, vec2(1920, 1080) },
-    { FramebufferSize::FB_2560_1440, vec2(2560, 1440) },
-    { FramebufferSize::FB_3840_2160, vec2(3840, 2160) },
+    { ViewportSize::VP_1280_720,  vec2(1280, 720) },
+    { ViewportSize::VP_1600_900,  vec2(1600, 900) },
+    { ViewportSize::VP_1920_1080, vec2(1920, 1080) },
+    { ViewportSize::VP_2560_1440, vec2(2560, 1440) },
+    { ViewportSize::VP_3840_2160, vec2(3840, 2160) },
 
-    { FramebufferSize::FB_1280_800,  vec2(1280, 800) },
-    { FramebufferSize::FB_1680_1050, vec2(1680, 1050) },
-    { FramebufferSize::FB_1920_1200, vec2(1920, 1200) },
-    { FramebufferSize::FB_2560_1600, vec2(2560, 1600) },
+    { ViewportSize::VP_1280_800,  vec2(1280, 800) },
+    { ViewportSize::VP_1680_1050, vec2(1680, 1050) },
+    { ViewportSize::VP_1920_1200, vec2(1920, 1200) },
+    { ViewportSize::VP_2560_1600, vec2(2560, 1600) },
 
-    { FramebufferSize::FB_2560_1080, vec2(2560, 1080) },
-    { FramebufferSize::FB_3440_1440, vec2(3440, 1440) },
-    { FramebufferSize::FB_5120_2160, vec2(5120, 2160) },
+    { ViewportSize::VP_2560_1080, vec2(2560, 1080) },
+    { ViewportSize::VP_3440_1440, vec2(3440, 1440) },
+    { ViewportSize::VP_5120_2160, vec2(5120, 2160) },
 
-    { FramebufferSize::FB_3840_1080, vec2(3840, 1080) },
-    { FramebufferSize::FB_5120_1440, vec2(5120, 1440) }
+    { ViewportSize::VP_3840_1080, vec2(3840, 1080) },
+    { ViewportSize::VP_5120_1440, vec2(5120, 1440) }
 };
 
 namespace KalaGraphics::Core
@@ -165,25 +165,13 @@ namespace KalaGraphics::Core
         return vk_instance;
     }
 
-    bool GraphicsContext::IsValidWindowID(u32 windowID)
-    {
-        if (registry.runtimeContent.empty()) return false;
-
-        for (const auto& c : registry.runtimeContent)
-        {
-            if (c->context.windowID == windowID) return true;
-        }
-
-        return false;
-    }
-
-    string_view GraphicsContext::GetFramebufferName(FramebufferSize fbSize)
+    string_view GraphicsContext::GetStaticViewportName(ViewportSize vpSize)
     {   
         string_view out{};
-        if (!EnumToString(fbSize, framebufferNames, out))
+        if (!EnumToString(vpSize, vpNames, out))
         {
             Log::Print(
-                "Failed to get framebuffer name because the passed enum was invalid!", 
+                "Failed to get viewport name because the passed enum was invalid!", 
                 "KG_CONTEXT",
                 LogType::LOG_ERROR,
                 2);
@@ -193,13 +181,13 @@ namespace KalaGraphics::Core
 
         return out;
     }
-    vec2 GraphicsContext::GetFramebufferSize(FramebufferSize fbSize)
+    vec2 GraphicsContext::GetStaticViewportSizeValue(ViewportSize vpSize)
     {
-		auto it = framebufferSizes.find(fbSize);
-		if (it == framebufferSizes.end())
+		auto it = vpSizes.find(vpSize);
+		if (it == vpSizes.end())
         {
             Log::Print(
-                "Failed to get framebuffer value because the passed enum was invalid!", 
+                "Failed to get viewport value because the passed enum was invalid!", 
                 "KG_CONTEXT",
                 LogType::LOG_ERROR,
                 2);
@@ -220,9 +208,9 @@ namespace KalaGraphics::Core
 
         contextPtr->ID = newID;
 
-        contextPtr->context = in_context;
+        contextPtr->contextData = in_context;
 
-        if (contextPtr->context.windowID == 0)
+        if (contextPtr->contextData.windowID == 0)
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
@@ -234,7 +222,7 @@ namespace KalaGraphics::Core
 
         string idStr = to_string(newID);
 
-        if (registry.createdContent.contains(contextPtr->context.windowID))
+        if (registry.createdContent.contains(contextPtr->contextData.windowID))
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
@@ -255,7 +243,7 @@ namespace KalaGraphics::Core
             return nullptr;
         }
 
-        HWND hwnd = ToVar<HWND>(contextPtr->context.context_window);
+        HWND hwnd = ToVar<HWND>(contextPtr->contextData.context_window);
         if (!IsWindow(hwnd))
         {
             KalaGraphicsCore::ForceClose(
@@ -266,8 +254,8 @@ namespace KalaGraphics::Core
             return nullptr;
         }
 #else
-        if (!contextPtr->context.context_display
-            || !contextPtr->context.context_window)
+        if (!contextPtr->contextData.context_display
+            || !contextPtr->contextData.context_window)
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
@@ -277,8 +265,8 @@ namespace KalaGraphics::Core
             return nullptr;
         }
 
-        Display* display = ToVar<Display*>(contextPtr->context.context_display);
-        Window window = ToVar<Window>(contextPtr->context.context_window);
+        Display* display = ToVar<Display*>(contextPtr->contextData.context_display);
+        Window window = ToVar<Window>(contextPtr->contextData.context_window);
 
         XWindowAttributes attr{};
         if (!XGetWindowAttributes(display, window, &attr))
@@ -304,8 +292,8 @@ namespace KalaGraphics::Core
 
         registry.AddContent(newID, std::move(newContext));
 
-        string isFBDynamic = string(BoolValue(contextPtr->context.isFramebufferDynamic));
-        string fbVal = string(GetFramebufferName(contextPtr->context.fbSize));
+        string isFBDynamic = string(BoolValue(contextPtr->vpData.isDynamicViewport));
+        string fbVal = string(GetStaticViewportName(contextPtr->vpData.vpSize));
 
         Log::Print(
             "Created new context with ID '" + idStr + "'!",
@@ -322,7 +310,7 @@ namespace KalaGraphics::Core
     u32 GraphicsContext::GetID() const { return ID; }
     u32 GraphicsContext::GetVulkanContextID() const { return vulkanContextID; }
 
-    VSyncState GraphicsContext::GetVSyncState() const { return context.vsyncState; }
+    VSyncState GraphicsContext::GetVSyncState() const { return vsyncState; }
     void GraphicsContext::SetVSyncState(VSyncState newState)
     {
         if (newState == VSyncState::VSYNC_INVALID)
@@ -335,7 +323,7 @@ namespace KalaGraphics::Core
 
             return;
         }
-        if (newState == context.vsyncState)
+        if (newState == vsyncState)
         {
             Log::Print(
                 "Cannot set vsync state to same value!",
@@ -346,72 +334,48 @@ namespace KalaGraphics::Core
             return;
         }
 
-        VSyncState old = context.vsyncState;
-        context.vsyncState = newState;
+        VSyncState old = vsyncState;
+        vsyncState = newState;
 
         VulkanContext* ctx = VulkanContext::GetRegistry().GetContent(vulkanContextID);
-        if (!ctx->SetVSyncState())
-        {
-            context.vsyncState = old;
-        }
+        if (!ctx->SetVSyncState()) vsyncState = old;
     }
 
-    bool GraphicsContext::IsDynamicFramebuffer() const { return context.isFramebufferDynamic; }
-    void GraphicsContext::SetDynamicFramebufferState(bool newValue)
+    vec2 GraphicsContext::GetStaticViewportSize() const
     {
-        context.isFramebufferDynamic = newValue;
+        return vpSizes[vpData.vpSize];
+    }
+    void GraphicsContext::SetStaticViewportSize(ViewportSize vpSize)
+    {
+        vpData.vpSize = vpSize;
 
         Log::Print(
-            "Set dynamic framebuffer state to " + string(BoolValue(newValue)) + " for window '" + to_string(context.windowID) + "'!", 
+            "Set static viewport size to " + string(GetStaticViewportName(vpSize)) + " for window '" + to_string(contextData.windowID) + "'.", 
             "KG_CONTEXT",
             LogType::LOG_INFO);
     }
 
-    vec2 GraphicsContext::GetStaticFramebufferSize() const
+    bool GraphicsContext::IsDynamicViewport() const { return vpData.isDynamicViewport; }
+    void GraphicsContext::SetDynamicViewportState(bool newValue)
     {
-        return GetFramebufferSize(context.fbSize);
-    }
-    void GraphicsContext::SetStaticFramebufferSize(FramebufferSize fbSize)
-    {
-        context.fbSize = fbSize;
+        vpData.isDynamicViewport = newValue;
 
         Log::Print(
-            "Set static framebuffer size to " + string(GetFramebufferName(fbSize)) + " for window '" + to_string(context.windowID) + "'.", 
+            "Set dynamic viewport state to " + string(BoolValue(newValue)) + " for window '" + to_string(contextData.windowID) + "'!", 
             "KG_CONTEXT",
             LogType::LOG_INFO);
     }
 
-    vec2 GraphicsContext::GetWindowSize() const { return windowSize; }
-    void GraphicsContext::SetWindowSize(vec2 newSize)
-    {
-        if (newSize.x < 1.0f
-            || newSize.y < 1.0f)
-        {
-            Log::Print(
-                "Window width and height cannot be below 1!", 
-                "KG_CONTEXT",
-                LogType::LOG_ERROR,
-                2);
+    vec2 GraphicsContext::GetDepth() const { return vpData.depth; }
+    void GraphicsContext::SetDepth(vec2 newValue) { vpData.depth = newValue; }
 
-            return;
-        }
+    vec2 GraphicsContext::GetViewportOffset() const { return vpData.viewportOffset; }
+    void GraphicsContext::SetViewportOffset(vec2 newValue) { vpData.viewportOffset = newValue; }
 
-        if (newSize.x > 10000.0f
-            || newSize.y > 10000.0f)
-        {
-            Log::Print(
-                "Window width and height cannot be above 10000!", 
-                "KG_CONTEXT",
-                LogType::LOG_ERROR,
-                2);
+    vec2 GraphicsContext::GetScissorSize() const { return vpData.scissorSize; }
+    void GraphicsContext::SetScissorSize(vec2 newValue) { vpData.scissorSize = newValue; }
 
-            return;
-        }
-
-        windowSize = newSize;
-    }
-
-    GraphicsContextData& GraphicsContext::GetGraphicsContextData() { return context; }
+    const GraphicsContextData& GraphicsContext::GetGraphicsContextData() const { return contextData; }
 
     void GraphicsContext::Update()
     {

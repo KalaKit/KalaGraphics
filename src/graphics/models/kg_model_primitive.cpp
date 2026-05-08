@@ -274,8 +274,6 @@ namespace KalaGraphics::Graphics
         modelPtr->vertices = std::move(md.vertices);
         modelPtr->indices = std::move(md.indices);
 
-        modelPtr->SetBackend(contextID);
-
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
 

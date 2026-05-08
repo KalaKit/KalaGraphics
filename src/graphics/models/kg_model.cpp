@@ -62,28 +62,9 @@ namespace KalaGraphics::Graphics
     vector<u32>& Model::GetIndices() { return indices; }
 
     u32 Model::GetID() const { return ID; }
-    u32 Model::GetContextID() const { return contextID; }
-
-    void Model::SetBackend(
-        u32 contextID,
-        u32 shaderID,
-        u32 backendID)
-    {
-        if (!ContextExists(contextID))
-        {
-            KalaGraphicsCore::ForceClose(
-                "Model backend error",
-                "Failed to set backend for model '" + name + "' because the passed context ID '" + to_string(contextID) + "' was not found!",
-                true);
-
-            return;
-        }
-
-        GraphicsContextData& ctx = GraphicsContext::GetRegistry().GetContent(contextID)->GetGraphicsContextData();
-
-        //set vulkan backend here
-    }
-    u32 Model::GetBackendID() const { return backendID; }
+    u32 Model::GetGraphicsContextID() const { return contextID; }
+    u32 Model::GetVulkanContextID() const { return vulkanID; }
+    u32 Model::GetShaderID() const { return shaderID; }
 
     void Model::SetColor(const vec3& newColor)
     {
