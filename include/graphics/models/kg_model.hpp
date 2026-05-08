@@ -35,7 +35,7 @@ namespace KalaGraphics::Graphics
     public:
         static KalaGraphicsRegistry<Model>& GetRegistry();
 
-        bool SetName(string_view newName);
+        void SetName(string_view newName);
         const string& GetName() const;
 
         vector<Vertex>& GetVertices();

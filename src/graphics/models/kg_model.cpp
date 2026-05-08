@@ -11,8 +11,9 @@
 #include "graphics/models/kg_model_primitive.hpp"
 
 using KalaGraphics::Core::KalaGraphicsCore;
-using KalaGraphics::Core::WindowContext;
-using KalaGraphics::Core::WindowContextData;
+using KalaGraphics::Core::GraphicsContext;
+using KalaGraphics::Core::GraphicsContextData;
+using KalaGraphics::Core::MAX_NAME_LENGTH;
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
@@ -21,7 +22,7 @@ using std::to_string;
 
 static bool ContextExists(u32 contextID)
 {
-    return WindowContext::GetRegistry().createdContent.contains(contextID);
+    return GraphicsContext::GetRegistry().createdContent.contains(contextID);
 } 
 
 namespace KalaGraphics::Graphics
@@ -30,7 +31,7 @@ namespace KalaGraphics::Graphics
 
     KalaGraphicsRegistry<Model>& Model::GetRegistry() { return registry; }
 
-    bool Model::SetName(string_view newName)
+    void Model::SetName(string_view newName)
     {
         if (newName.empty())
         {
@@ -40,9 +41,9 @@ namespace KalaGraphics::Graphics
                 LogType::LOG_ERROR,
                 2);
 
-            return false;
+            return;
         }
-        if (newName.size() > 50)
+        if (newName.size() > MAX_NAME_LENGTH)
         {
             Log::Print(
                 "Failed to set new model name because it was too long!",
@@ -50,12 +51,10 @@ namespace KalaGraphics::Graphics
                 LogType::LOG_ERROR,
                 2);
 
-            return false;
+            return;
         }
 
         name = newName;
-
-        return true;
     }
     const string& Model::GetName() const { return name; }
 
@@ -74,12 +73,13 @@ namespace KalaGraphics::Graphics
         {
             KalaGraphicsCore::ForceClose(
                 "Model backend error",
-                "Failed to set backend for model '" + name + "' because the passed context ID '" + to_string(contextID) + "' was not found!");
+                "Failed to set backend for model '" + name + "' because the passed context ID '" + to_string(contextID) + "' was not found!",
+                true);
 
             return;
         }
 
-        WindowContextData& ctx = WindowContext::GetRegistry().GetContent(contextID)->GetWindowContextData();
+        GraphicsContextData& ctx = GraphicsContext::GetRegistry().GetContent(contextID)->GetGraphicsContextData();
 
         //set vulkan backend here
     }

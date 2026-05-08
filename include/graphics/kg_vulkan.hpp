@@ -8,61 +8,24 @@
 #include <vector>
 #include <string>
 
+#include "vulkan/vulkan_core.h"
+#include "vma/vk_mem_alloc.h"
+
 #include "core_utils.hpp"
 
 #include "core/kg_context.hpp"
-
-struct VkPhysicalDevice_T;
-using VkPhysicalDevice = VkPhysicalDevice_T*;
-
-struct VkDevice_T;
-using VkDevice = VkDevice_T*;
-
-struct VkQueue_T;
-using VkQueue = VkQueue_T*;
-
-struct VkCommandPool_T;
-using VkCommandPool = VkCommandPool_T*;
-
-struct VmaAllocator_T;
-using VmaAllocator = VmaAllocator_T*;
-
-struct VkDescriptorPool_T;
-using VkDescriptorPool = VkDescriptorPool_T*;
-
-struct VkSwapchainKHR_T;
-using VkSwapchainKHR = VkSwapchainKHR_T*;
-
-struct VkImage_T;
-using VkImage = VkImage_T*;
-
-struct VkImageView_T;
-using VkImageView = VkImageView_T*;
-
-struct VkRenderPass_T;
-using VkRenderPass = VkRenderPass_T*;
-
-struct VkFramebuffer_T;
-using VkFramebuffer = VkFramebuffer_T*;
-
-struct VkSemaphore_T;
-using VkSemaphore = VkSemaphore_T*;
-
-struct VkFence_T;
-using VkFence = VkFence_T*;
-
-struct VkCommandBuffer_T;
-using VkCommandBuffer = VkCommandBuffer_T*;
+#include "core/kg_registry.hpp"
 
 namespace KalaGraphics::Graphics
 {
+    using KalaGraphics::Core::KalaGraphicsRegistry;
+    using KalaGraphics::Core::VSyncState;
+
     using std::vector;
     using std::string;
     using std::string_view;
 
     using u32 = uint32_t;
-
-    using KalaGraphics::Core::VSyncState;
 
     enum class Severity : u8
     {
@@ -73,17 +36,19 @@ namespace KalaGraphics::Graphics
         S_FATAL = 3u
     };
 
-    class LIB_API Vulkan_Core
+    class LIB_API VulkanContext
     {
     public:
+        static KalaGraphicsRegistry<VulkanContext>& GetRegistry();
+
         //Global Vulkan instance-based initialization
         static void Initialize();
 
         //Is the global Vulkan instance content initialized
         static bool IsInitialized();
 
-        static void SetVerboseLoggingState(bool state);
         static bool IsVerboseLoggingEnabled();
+        static void SetVerboseLoggingState(bool state);
 
         static string GetVkResultMessage(int result);
         static Severity GetVkResultSeverity(int result);
@@ -103,27 +68,50 @@ namespace KalaGraphics::Graphics
         static VkDescriptorPool GetDescriptorPool();
 
         //Per-surface initialization
-        static void InitializeContext(u32 windowContextID);
+        static VulkanContext* InitializeContext(u32 graphicsContextID);
 
-        static VkSwapchainKHR GetSwapchain(u32 windowContextID);
-        static vector<VkImageView> GetImageViews(u32 windowContextID);
-        static VkRenderPass GetRenderPass(u32 windowContextID);
-        static VkImage GetDepthImage(u32 windowContextID);
-        static VkImageView GetDepthImageView(u32 windowContextID);
-        static vector<VkFramebuffer> GetFramebuffers(u32 windowContextID);
-        static VkSemaphore GetAvailableSemaphore(u32 windowContextID);
-        static VkSemaphore GetRenderFinishedSemaphore(u32 windowContextID);
-        static VkFence GetInFlightFence(u32 windowContextID);
-        static VkCommandBuffer GetCommandBuffer(u32 windowContextID);
+        u32 GetID() const;
+        u32 GetGraphicsContextID() const;
 
-        static bool SetVSyncState(u32 windowContextID);
+        VkSwapchainKHR GetSwapchain();
+        vector<VkImageView> GetImageViews();
+        VkRenderPass GetRenderPass();
+        VkImage GetDepthImage();
+        VkImageView GetDepthImageView();
+        vector<VkFramebuffer> GetFramebuffers();
+        VkSemaphore GetAvailableSemaphore();
+        VkSemaphore GetRenderFinishedSemaphore();
+        VkFence GetInFlightFence();
+        VkCommandBuffer GetCommandBuffer();
+
+        bool SetVSyncState();
 
         //Main draw call
-        static void Update(u32 windowID);
+        void Update();
         //Actions that occur only when the window size changes
-        static void ResizeUpdate(u32 windowID);
+        void ResizeUpdate();
 
-        //Clean all resources
-        static void Shutdown(u32 windowID = UINT32_MAX);
+        void Destroy();
+
+        ~VulkanContext();
+    private:
+        bool RecreateSwapchain();
+
+        u32 ID{};
+        u32 graphicsContextID{};
+
+        VkExtent2D extent{};
+        VkSwapchainKHR swapchain{};
+        VkFormat swapchainFormat{};
+        vector<VkImageView> imageViews{};
+        VkRenderPass renderPass{};
+        VkImage depthImage{};
+        VmaAllocation depthAllocation{};
+        VkImageView depthImageView{};
+        vector<VkFramebuffer> framebuffers{};
+        VkSemaphore availableSemaphore{};
+        VkSemaphore renderFinishedSemaphore{};
+        VkFence inFlightFence{};
+        VkCommandBuffer commandBuffer{};
     };
 }

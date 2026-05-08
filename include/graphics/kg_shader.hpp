@@ -8,21 +8,11 @@
 #include <filesystem>
 #include <string>
 
+#include "vulkan/vulkan_core.h"
+
 #include "core_utils.hpp"
 
 #include "core/kg_registry.hpp"
-
-struct VkPipelineLayout_T;
-using VkPipelineLayout = VkPipelineLayout_T*;
-
-struct VkPipeline_T;
-using VkPipeline = VkPipeline_T*;
-
-struct VkDescriptorSetLayout_T;
-using VkDescriptorSetLayout = VkDescriptorSetLayout_T*;
-
-struct VkShaderModule_T;
-using VkShaderModule = VkShaderModule_T*;
 
 namespace KalaGraphics::Graphics
 {
@@ -86,12 +76,13 @@ namespace KalaGraphics::Graphics
         static KalaGraphicsRegistry<Shader>& GetRegistry();
 
         static Shader* Initialize(
-            u32 windowContextID,
+            u32 graphicsContextID,
             string_view shaderName,
             const ShaderData& shaderData);
 
         u32 GetID() const;
-        u32 GetSlot() const;
+        u32 GetGraphicsContextID() const;
+        u32 GetVulkanContextID() const;
 
         string_view GetName() const;
 
@@ -105,12 +96,15 @@ namespace KalaGraphics::Graphics
         //Bind the shader with the given data before this function is called
         bool Bind();
 
-        //Destroy this shader
-        void Shutdown();
+        void Destroy();
+
+        ~Shader();
     private:
         string name;
 
         u32 ID{};
+        u32 graphicsContextID{};
+        u32 vulkanContextID{};
 
         ShaderData shaderData{};
         ShaderModuleData shaderModuleData{};

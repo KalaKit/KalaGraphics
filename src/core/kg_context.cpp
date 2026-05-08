@@ -36,7 +36,7 @@ using KalaHeaders::KalaString::BoolValue;
 using KalaHeaders::KalaMath::vec2;
 
 using KalaGraphics::Core::FramebufferSize;
-using KalaGraphics::Graphics::Vulkan_Core;
+using KalaGraphics::Graphics::VulkanContext;
 
 using std::string;
 using std::string_view;
@@ -132,11 +132,11 @@ namespace KalaGraphics::Core
 {
     static VkInstance vk_instance{};
 
-    static KalaGraphicsRegistry<WindowContext> registry{};
+    static KalaGraphicsRegistry<GraphicsContext> registry{};
 
-    KalaGraphicsRegistry<WindowContext>& WindowContext::GetRegistry() { return registry; }
+    KalaGraphicsRegistry<GraphicsContext>& GraphicsContext::GetRegistry() { return registry; }
 
-    void WindowContext::SetVKInstance(VkInstance in_vk_instance)
+    void GraphicsContext::SetVKInstance(VkInstance in_vk_instance)
     {
         if (!in_vk_instance)
         {
@@ -149,7 +149,7 @@ namespace KalaGraphics::Core
 
         vk_instance = in_vk_instance;
     }
-    VkInstance WindowContext::GetVKInstance()
+    VkInstance GraphicsContext::GetVKInstance()
     {
         if (!vk_instance)
         {
@@ -165,7 +165,7 @@ namespace KalaGraphics::Core
         return vk_instance;
     }
 
-    bool WindowContext::IsValidWindowID(u32 windowID)
+    bool GraphicsContext::IsValidWindowID(u32 windowID)
     {
         if (registry.runtimeContent.empty()) return false;
 
@@ -177,7 +177,7 @@ namespace KalaGraphics::Core
         return false;
     }
 
-    string_view WindowContext::GetFramebufferName(FramebufferSize fbSize)
+    string_view GraphicsContext::GetFramebufferName(FramebufferSize fbSize)
     {   
         string_view out{};
         if (!EnumToString(fbSize, framebufferNames, out))
@@ -193,7 +193,7 @@ namespace KalaGraphics::Core
 
         return out;
     }
-    vec2 WindowContext::GetFramebufferSize(FramebufferSize fbSize)
+    vec2 GraphicsContext::GetFramebufferSize(FramebufferSize fbSize)
     {
 		auto it = framebufferSizes.find(fbSize);
 		if (it == framebufferSizes.end())
@@ -210,77 +210,83 @@ namespace KalaGraphics::Core
 		return it->second;
     }
 
-    WindowContext* WindowContext::Initialize(const WindowContextData& in_context)
+    GraphicsContext* GraphicsContext::Initialize(const GraphicsContextData& in_context)
     {
-        unique_ptr<WindowContext> newCont = make_unique<WindowContext>();
-        WindowContext* cont = newCont.get();
+        unique_ptr<GraphicsContext> newContext = make_unique<GraphicsContext>();
+        GraphicsContext* contextPtr = newContext.get();
 
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
 
-        cont->ID = newID;
+        contextPtr->ID = newID;
 
-        cont->context = in_context;
+        contextPtr->context = in_context;
 
-        if (cont->context.windowID == 0)
+        if (contextPtr->context.windowID == 0)
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context because it had no window ID!");
+                "Failed to initialize window context because it had no window ID!",
+                true);
 
             return nullptr;
         }
 
         string idStr = to_string(newID);
 
-        if (registry.createdContent.contains(cont->context.windowID))
+        if (registry.createdContent.contains(contextPtr->context.windowID))
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + idStr + "' because its ID was added more than once!");
+                "Failed to initialize window context '" + idStr + "' because its ID was added more than once!",
+                true);
 
             return nullptr;
         }
 
 #ifdef _WIN32
-        if (!cont->context.context_window)
+        if (!contextPtr->context.context_window)
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + idStr + "' because it was missing its window!");
+                "Failed to initialize window context '" + idStr + "' because it was missing its window!",
+                true);
 
             return nullptr;
         }
 
-        HWND hwnd = ToVar<HWND>(cont->context.context_window);
+        HWND hwnd = ToVar<HWND>(contextPtr->context.context_window);
         if (!IsWindow(hwnd))
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + idStr + "' because it did not contain a real window!");
+                "Failed to initialize window context '" + idStr + "' because it did not contain a real window!",
+                true);
 
             return nullptr;
         }
 #else
-        if (!cont->context.context_display
-            || !cont->context.context_window)
+        if (!contextPtr->context.context_display
+            || !contextPtr->context.context_window)
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + idStr + "' because it was missing its display or window!");
+                "Failed to initialize window context '" + idStr + "' because it was missing its display or window!",
+                true);
 
             return nullptr;
         }
 
-        Display* display = ToVar<Display*>(cont->context.context_display);
-        Window window = ToVar<Window>(cont->context.context_window);
+        Display* display = ToVar<Display*>(contextPtr->context.context_display);
+        Window window = ToVar<Window>(contextPtr->context.context_window);
 
         XWindowAttributes attr{};
         if (!XGetWindowAttributes(display, window, &attr))
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + idStr + "' because it did not contain a real display or window!");
+                "Failed to initialize window context '" + idStr + "' because it did not contain a real display or window!",
+                true);
 
             return nullptr;
         }
@@ -290,31 +296,34 @@ namespace KalaGraphics::Core
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + idStr + "' because no Vulkan instance was passed!");
+                "Failed to initialize window context '" + idStr + "' because no Vulkan instance was passed!",
+                true);
 
             return nullptr;
         }
 
-        if (!Vulkan_Core::IsInitialized()) Vulkan_Core::Initialize();
+        registry.AddContent(newID, std::move(newContext));
 
-        registry.AddContent(newID, std::move(newCont));
-
-        string isFBDynamic = string(BoolValue(cont->context.isFramebufferDynamic));
-        string fbVal = string(GetFramebufferName(cont->context.fbSize));
+        string isFBDynamic = string(BoolValue(contextPtr->context.isFramebufferDynamic));
+        string fbVal = string(GetFramebufferName(contextPtr->context.fbSize));
 
         Log::Print(
             "Created new context with ID '" + idStr + "'!",
             "KG_CONTEXT",
             LogType::LOG_SUCCESS);
 
-        return cont;
+        if (!VulkanContext::IsInitialized()) VulkanContext::Initialize();
+        VulkanContext* vulkanContextPtr = VulkanContext::InitializeContext(contextPtr->ID);
+        contextPtr->vulkanContextID = vulkanContextPtr->GetID();
+
+        return contextPtr;
     }
 
-    bool WindowContext::IsInitialized() const { return isInitialized; }
+    u32 GraphicsContext::GetID() const { return ID; }
+    u32 GraphicsContext::GetVulkanContextID() const { return vulkanContextID; }
 
-    u32 WindowContext::GetID() const { return ID; }
-
-    void WindowContext::SetVSyncState(VSyncState newState)
+    VSyncState GraphicsContext::GetVSyncState() const { return context.vsyncState; }
+    void GraphicsContext::SetVSyncState(VSyncState newState)
     {
         if (newState == VSyncState::VSYNC_INVALID)
         {
@@ -340,30 +349,15 @@ namespace KalaGraphics::Core
         VSyncState old = context.vsyncState;
         context.vsyncState = newState;
 
-        if (!Vulkan_Core::SetVSyncState(ID))
+        VulkanContext* ctx = VulkanContext::GetRegistry().GetContent(vulkanContextID);
+        if (!ctx->SetVSyncState())
         {
             context.vsyncState = old;
         }
     }
-    VSyncState WindowContext::GetVSyncState() const { return context.vsyncState; }
 
-    void WindowContext::Update()
-    {
-        for (const auto& c : registry.runtimeContent)
-        {
-            Vulkan_Core::Update(c->ID);
-        }
-    }
-
-    void WindowContext::ResizeUpdate()
-    {
-        for (const auto& c : registry.runtimeContent)
-        {
-            Vulkan_Core::ResizeUpdate(c->ID);
-        }
-    }
-
-    void WindowContext::SetDynamicFramebufferState(bool newValue)
+    bool GraphicsContext::IsDynamicFramebuffer() const { return context.isFramebufferDynamic; }
+    void GraphicsContext::SetDynamicFramebufferState(bool newValue)
     {
         context.isFramebufferDynamic = newValue;
 
@@ -372,9 +366,12 @@ namespace KalaGraphics::Core
             "KG_CONTEXT",
             LogType::LOG_INFO);
     }
-    bool WindowContext::IsDynamicFramebuffer() const { return context.isFramebufferDynamic; }
 
-    void WindowContext::SetStaticFramebufferSize(FramebufferSize fbSize)
+    vec2 GraphicsContext::GetStaticFramebufferSize() const
+    {
+        return GetFramebufferSize(context.fbSize);
+    }
+    void GraphicsContext::SetStaticFramebufferSize(FramebufferSize fbSize)
     {
         context.fbSize = fbSize;
 
@@ -383,12 +380,9 @@ namespace KalaGraphics::Core
             "KG_CONTEXT",
             LogType::LOG_INFO);
     }
-    vec2 WindowContext::GetStaticFramebufferSize() const
-    {
-        return GetFramebufferSize(context.fbSize);
-    }
 
-    void WindowContext::SetWindowSize(vec2 newSize)
+    vec2 GraphicsContext::GetWindowSize() const { return windowSize; }
+    void GraphicsContext::SetWindowSize(vec2 newSize)
     {
         if (newSize.x < 1.0f
             || newSize.y < 1.0f)
@@ -416,19 +410,31 @@ namespace KalaGraphics::Core
 
         windowSize = newSize;
     }
-    vec2 WindowContext::GetWindowSize() const { return windowSize; }
 
-    WindowContextData& WindowContext::GetWindowContextData() { return context; }
+    GraphicsContextData& GraphicsContext::GetGraphicsContextData() { return context; }
 
-    void WindowContext::Shutdown()
+    void GraphicsContext::Update()
+    {
+        VulkanContext::GetRegistry().GetContent(vulkanContextID)->Update();
+    }
+
+    void GraphicsContext::ResizeUpdate()
+    {
+        VulkanContext::GetRegistry().GetContent(vulkanContextID)->ResizeUpdate();
+    }
+
+    void GraphicsContext::Destroy()
+    {
+        registry.RemoveContent(ID);
+    }
+
+    GraphicsContext::~GraphicsContext()
     {
 		Log::Print(
 			"Destroying context '" + to_string(ID) + "'.",
 			"KG_CONTEXT",
 			LogType::LOG_INFO);
 
-        if (registry.runtimeContent.size() == 1) Vulkan_Core::Shutdown();
-
-        registry.RemoveContent(ID);
+        if (registry.runtimeContent.size() == 0) VulkanContext::GetRegistry().GetContent(vulkanContextID)->Destroy();
     }
 }

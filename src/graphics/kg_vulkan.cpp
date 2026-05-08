@@ -8,6 +8,7 @@
 #include <cstring>
 #include <string>
 #include <unordered_map>
+#include <memory>
 
 #ifdef _WIN32
 #define VK_USE_PLATFORM_WIN32_KHR
@@ -23,6 +24,7 @@
 #include "math_utils.hpp"
 
 #include "graphics/kg_vulkan.hpp"
+#include "graphics/kg_shader.hpp"
 #include "core/kg_core.hpp"
 #include "core/kg_context.hpp"
 
@@ -34,10 +36,10 @@ using KalaHeaders::KalaLog::LogType;
 
 using KalaHeaders::KalaMath::vec2;
 
-using KalaGraphics::Graphics::Vulkan_Core;
+using KalaGraphics::Graphics::VulkanContext;
 using KalaGraphics::Graphics::Severity;
 using KalaGraphics::Core::KalaGraphicsCore;
-using KalaGraphics::Core::WindowContext;
+using KalaGraphics::Core::GraphicsContext;
 using KalaGraphics::Core::VSyncState;
 
 using std::vector;
@@ -47,6 +49,8 @@ using std::string_view;
 using std::to_string;
 using std::unordered_map;
 using std::clamp;
+using std::unique_ptr;
+using std::make_unique;
 
 constexpr array<const char*, 2> deviceExtensions =
 {
@@ -66,20 +70,6 @@ static VkQueue graphicsQueue{};
 static VkCommandPool commandPool{};
 static VmaAllocator vmaAllocator{};
 static VkDescriptorPool descriptorPool{};
-
-static unordered_map<u32, VkExtent2D> extents{};
-static unordered_map<u32, VkSwapchainKHR> swapchains{};
-static unordered_map<u32, VkFormat> swapchainFormats{};
-static unordered_map<u32, vector<VkImageView>> imageViews{};
-static unordered_map<u32, VkRenderPass> renderPasses{};
-static unordered_map<u32, VkImage> depthImages{};
-static unordered_map<u32, VmaAllocation> depthAllocations{};
-static unordered_map<u32, VkImageView> depthImageViews{};
-static unordered_map<u32, vector<VkFramebuffer>> framebuffers{};
-static unordered_map<u32, VkSemaphore> availableSemaphores{};
-static unordered_map<u32, VkSemaphore> renderFinishedSemaphores{};
-static unordered_map<u32, VkFence> inFlightFences{};
-static unordered_map<u32, VkCommandBuffer> commandBuffers{};
 
 struct VkResultData
 {
@@ -202,8 +192,6 @@ static unordered_map<VkResult, VkResultData, EnumHash<VkResult>> vkResultData
     { VK_ERROR_INCOMPATIBLE_SHADER_BINARY_EXT,     { "Incompatible shader binary (EXT)",             Severity::S_FATAL } }
 };
 
-static bool RecreateSwapchain(u32 windowContextID);
-
 static void PrintError(string_view message)
 {
     Log::Print(
@@ -215,7 +203,11 @@ static void PrintError(string_view message)
 
 namespace KalaGraphics::Graphics
 {
-    void Vulkan_Core::Initialize()
+    static KalaGraphicsRegistry<VulkanContext> registry{};
+
+    KalaGraphicsRegistry<VulkanContext>& VulkanContext::GetRegistry() { return registry; }
+
+    void VulkanContext::Initialize()
     {
         //
         // CHECK VERSION
@@ -237,7 +229,7 @@ namespace KalaGraphics::Graphics
                 0);
         }
 
-        VkInstance instance = WindowContext::GetVKInstance();
+        VkInstance instance = GraphicsContext::GetVKInstance();
 
         if (!instance) exit(1);
 
@@ -541,12 +533,12 @@ namespace KalaGraphics::Graphics
             LogType::LOG_SUCCESS);
     }
 
-    bool Vulkan_Core::IsInitialized() { return isInitialized; }
+    bool VulkanContext::IsInitialized() { return isInitialized; }
 
-    void Vulkan_Core::SetVerboseLoggingState(bool state) { isVerboseLoggingEnabled = state; }
-    bool Vulkan_Core::IsVerboseLoggingEnabled() { return isVerboseLoggingEnabled; }
+    bool VulkanContext::IsVerboseLoggingEnabled() { return isVerboseLoggingEnabled; }
+    void VulkanContext::SetVerboseLoggingState(bool state) { isVerboseLoggingEnabled = state; }
 
-    string Vulkan_Core::GetVkResultMessage(int result)
+    string VulkanContext::GetVkResultMessage(int result)
     {
         if (!vkResultData.contains((VkResult)result))
         {
@@ -556,7 +548,7 @@ namespace KalaGraphics::Graphics
 
         return vkResultData[(VkResult)result].message;
     }
-    Severity Vulkan_Core::GetVkResultSeverity(int result)
+    Severity VulkanContext::GetVkResultSeverity(int result)
     {
         if (!vkResultData.contains((VkResult)result))
         {
@@ -567,7 +559,7 @@ namespace KalaGraphics::Graphics
         return vkResultData[(VkResult)result].severity;
     }
 
-    void Vulkan_Core::CloseOnError(
+    void VulkanContext::CloseOnError(
         string_view title,
         string_view message,
         int result)
@@ -578,24 +570,27 @@ namespace KalaGraphics::Graphics
 
             KalaGraphicsCore::ForceClose(
                 title,
-                string(message));
+                string(message),
+                true);
         }
 
         if (result == VK_SUCCESS)
         {
             KalaGraphicsCore::ForceClose(
                 title,
-                string(message));
+                string(message),
+                true);
         }
         else
         {
             KalaGraphicsCore::ForceClose(
                 title,
-                string(message) + "\nReason: " + GetVkResultMessage(result));
+                string(message) + "\nReason: " + GetVkResultMessage(result),
+                true);
         }
     }
 
-    VkPhysicalDevice Vulkan_Core::GetPhysicalDevice()
+    VkPhysicalDevice VulkanContext::GetPhysicalDevice()
     {
         if (!isInitialized)
         {
@@ -606,7 +601,7 @@ namespace KalaGraphics::Graphics
         
         return physicalDevice;
     }
-    VkDevice Vulkan_Core::GetLogicalDevice()
+    VkDevice VulkanContext::GetLogicalDevice()
     {
         if (!isInitialized)
         {
@@ -617,7 +612,7 @@ namespace KalaGraphics::Graphics
         
         return logicalDevice;
     }
-    VkQueue Vulkan_Core::GetGraphicsQueue()
+    VkQueue VulkanContext::GetGraphicsQueue()
     {
         if (!isInitialized)
         {
@@ -628,7 +623,7 @@ namespace KalaGraphics::Graphics
         
         return graphicsQueue;
     }
-    VkCommandPool Vulkan_Core::GetCommandPool()
+    VkCommandPool VulkanContext::GetCommandPool()
     {
         if (!isInitialized)
         {
@@ -639,7 +634,7 @@ namespace KalaGraphics::Graphics
         
         return commandPool;
     }
-    VmaAllocator Vulkan_Core::GetVmaAllocator()
+    VmaAllocator VulkanContext::GetVmaAllocator()
     {
         if (!isInitialized)
         {
@@ -650,7 +645,7 @@ namespace KalaGraphics::Graphics
         
         return vmaAllocator;
     }
-    VkDescriptorPool Vulkan_Core::GetDescriptorPool()
+    VkDescriptorPool VulkanContext::GetDescriptorPool()
     {
         if (!isInitialized)
         {
@@ -662,25 +657,17 @@ namespace KalaGraphics::Graphics
         return descriptorPool;
     }
 
-    void Vulkan_Core::InitializeContext(u32 windowContextID)
+    VulkanContext* VulkanContext::InitializeContext(u32 graphicsContextID)
     {
-        WindowContext* context = WindowContext::GetRegistry().GetContent(windowContextID);
-
+        GraphicsContext* context = GraphicsContext::GetRegistry().GetContent(graphicsContextID);
         if (!context)
         {
-            PrintError("Failed to initialize Vulkan surface because window context ID '" + to_string(windowContextID) + "' was not found!");
+            PrintError("Failed to initialize Vulkan surface because window context ID '" + to_string(graphicsContextID) + "' was not found!");
 
-            return;
+            return nullptr;
         }
 
-        if (swapchains.contains(windowContextID))
-        {
-            PrintError("Failed to initialize Vulkan surface because window context ID '" + to_string(windowContextID) + "' has already been initialized!");
-
-            return;
-        }
-
-        VkSurfaceKHR surface = context->GetWindowContextData().context_vk_surface;
+        VkSurfaceKHR surface = context->GetGraphicsContextData().context_vk_surface;
 
         //
         // CHECK SURFACE
@@ -803,6 +790,9 @@ namespace KalaGraphics::Graphics
         // CREATE SWAPCHAIN
         //
 
+        unique_ptr<VulkanContext> newContext = make_unique<VulkanContext>();
+        VulkanContext* contextPtr = newContext.get();
+
         bool supportsMailbox = ContainsValue(presentModes, VK_PRESENT_MODE_MAILBOX_KHR);
         bool supportsFifoRelaxed = ContainsValue(presentModes, VK_PRESENT_MODE_FIFO_RELAXED_KHR);
 
@@ -885,9 +875,9 @@ namespace KalaGraphics::Graphics
                 vkResult);
         }
 
-        swapchains[windowContextID] = swapchain;
-        swapchainFormats[windowContextID] = chosenFormat.format;
-        extents[windowContextID] = extent;
+        contextPtr->swapchain = swapchain;
+        contextPtr->swapchainFormat = chosenFormat.format;
+        contextPtr->extent = extent;
 
         //
         // GET SWAPCHAIN IMAGES 
@@ -944,7 +934,7 @@ namespace KalaGraphics::Graphics
             }
         }
 
-        imageViews[windowContextID] = scImageViews;
+        contextPtr->imageViews = scImageViews;
 
         //
         // CREATE RENDER PASS
@@ -1028,7 +1018,7 @@ namespace KalaGraphics::Graphics
                 vkResult);
         }
 
-        renderPasses[windowContextID] = renderPass;
+        contextPtr->renderPass = renderPass;
 
         //
         // CREATE DEPTH IMAGE
@@ -1100,9 +1090,9 @@ namespace KalaGraphics::Graphics
                 vkResult);
         }
 
-        depthImages[windowContextID] = depthImage;
-        depthAllocations[windowContextID] = depthAllocation;
-        depthImageViews[windowContextID] = depthImageView;
+        contextPtr->depthImage = depthImage;
+        contextPtr->depthAllocation = depthAllocation;
+        contextPtr->depthImageView = depthImageView;
 
         //
         // CREATE FRAMEBUFFERS
@@ -1141,7 +1131,7 @@ namespace KalaGraphics::Graphics
             }
         }
 
-        framebuffers[windowContextID] = newFramebuffers;
+        contextPtr->framebuffers = newFramebuffers;
 
         //
         // CREATE SYNC OBJECTS
@@ -1200,9 +1190,9 @@ namespace KalaGraphics::Graphics
                 vkResult);
         }
 
-        availableSemaphores[windowContextID] = availableSemaphore;
-        renderFinishedSemaphores[windowContextID] = renderFinishedSemaphore;
-        inFlightFences[windowContextID] = inFlightFence;
+        contextPtr->availableSemaphore = availableSemaphore;
+        contextPtr->renderFinishedSemaphore = renderFinishedSemaphore;
+        contextPtr->inFlightFence = inFlightFence;
 
         //
         // ALLOCATE COMMAND BUFFER
@@ -1228,215 +1218,54 @@ namespace KalaGraphics::Graphics
                 vkResult);
         }
 
-        commandBuffers[windowContextID] = commandBuffer;
+        contextPtr->commandBuffer = commandBuffer;
+
+        u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
+        KalaGraphicsCore::SetGlobalID(newID);
+        contextPtr->ID = newID;
+        contextPtr->graphicsContextID = graphicsContextID;
+
+        registry.AddContent(newID, std::move(newContext));
 
         Log::Print(
             "Initialized Vulkan context!",
             "KG_VULKAN",
             LogType::LOG_SUCCESS);
+
+        return contextPtr;
     }
 
-    VkSwapchainKHR Vulkan_Core::GetSwapchain(u32 windowContextID)
+    u32 VulkanContext::GetID() const { return ID; }
+    u32 VulkanContext::GetGraphicsContextID() const { return graphicsContextID; }
+
+    VkSwapchainKHR VulkanContext::GetSwapchain() { return swapchain; }
+    vector<VkImageView> VulkanContext::GetImageViews() { return imageViews; }
+    VkRenderPass VulkanContext::GetRenderPass() { return renderPass; } 
+    VkImage VulkanContext::GetDepthImage() { return depthImage; }
+    VkImageView VulkanContext::GetDepthImageView() { return depthImageView; }
+    vector<VkFramebuffer> VulkanContext::GetFramebuffers() { return framebuffers; } 
+    VkSemaphore VulkanContext::GetAvailableSemaphore() { return availableSemaphore; }
+    VkSemaphore VulkanContext::GetRenderFinishedSemaphore() { return renderFinishedSemaphore; }
+    VkFence VulkanContext::GetInFlightFence() { return inFlightFence; }
+    VkCommandBuffer VulkanContext::GetCommandBuffer() { return commandBuffer; }
+
+    bool VulkanContext::SetVSyncState() { return RecreateSwapchain(); }
+
+    void VulkanContext::Update()
     {
-        if (!isInitialized)
-        {
-            PrintError("Failed to get swapchain because Vulkan has not been initialized!");
-
-            return nullptr;
-        }
-        if (!swapchains.contains(windowContextID))
-        {
-            PrintError("Failed to get swapchain because window context '" + to_string(windowContextID) + "' has not been initialized!");
-
-            return nullptr;
-        }
-        
-        return swapchains[windowContextID];
-    }
-    vector<VkImageView> Vulkan_Core::GetImageViews(u32 windowContextID)
-    {
-        if (!isInitialized)
-        {
-            PrintError("Failed to get image views because Vulkan has not been initialized!");
-
-            return {};
-        }
-        if (!imageViews.contains(windowContextID))
-        {
-            PrintError("Failed to get image views because window context '" + to_string(windowContextID) + "' has not been initialized!");
-
-            return {};
-        }
-        
-        return imageViews[windowContextID];
-    }
-    VkRenderPass Vulkan_Core::GetRenderPass(u32 windowContextID)
-    {
-        if (!isInitialized)
-        {
-            PrintError("Failed to get render pass because Vulkan has not been initialized!");
-
-            return nullptr;
-        }
-        if (!imageViews.contains(windowContextID))
-        {
-            PrintError("Failed to get render pass because window context '" + to_string(windowContextID) + "' has not been initialized!");
-
-            return nullptr;
-        }
-        
-        return renderPasses[windowContextID];
-    }
-    VkImage Vulkan_Core::GetDepthImage(u32 windowContextID)
-    {
-        if (!isInitialized)
-        {
-            PrintError("Failed to get depth image because Vulkan has not been initialized!");
-
-            return nullptr;
-        }
-        if (!imageViews.contains(windowContextID))
-        {
-            PrintError("Failed to get depth image because window context '" + to_string(windowContextID) + "' has not been initialized!");
-
-            return nullptr;
-        }
-        
-        return depthImages[windowContextID];
-    }
-    VkImageView Vulkan_Core::GetDepthImageView(u32 windowContextID)
-    {
-        if (!isInitialized)
-        {
-            PrintError("Failed to get depth image view because Vulkan has not been initialized!");
-
-            return nullptr;
-        }
-        if (!imageViews.contains(windowContextID))
-        {
-            PrintError("Failed to get depth image view because window context '" + to_string(windowContextID) + "' has not been initialized!");
-
-            return nullptr;
-        }
-        
-        return depthImageViews[windowContextID];
-    }
-    vector<VkFramebuffer> Vulkan_Core::GetFramebuffers(u32 windowContextID)
-    {
-        if (!isInitialized)
-        {
-            PrintError("Failed to get framebuffers because Vulkan has not been initialized!");
-
-            return {};
-        }
-        if (!imageViews.contains(windowContextID))
-        {
-            PrintError("Failed to get framebuffers because window context '" + to_string(windowContextID) + "' has not been initialized!");
-
-            return {};
-        }
-        
-        return framebuffers[windowContextID];
-    }
-    VkSemaphore Vulkan_Core::GetAvailableSemaphore(u32 windowContextID)
-    {
-        if (!isInitialized)
-        {
-            PrintError("Failed to get available semaphore because Vulkan has not been initialized!");
-
-            return nullptr;
-        }
-        if (!imageViews.contains(windowContextID))
-        {
-            PrintError("Failed to get available semaphore because window context '" + to_string(windowContextID) + "' has not been initialized!");
-
-            return nullptr;
-        }
-        
-        return availableSemaphores[windowContextID];
-    }
-    VkSemaphore Vulkan_Core::GetRenderFinishedSemaphore(u32 windowContextID)
-    {
-        if (!isInitialized)
-        {
-            PrintError("Failed to get render finished semaphore because Vulkan has not been initialized!");
-
-            return nullptr;
-        }
-        if (!imageViews.contains(windowContextID))
-        {
-            PrintError("Failed to get render finished semaphore because window context '" + to_string(windowContextID) + "' has not been initialized!");
-
-            return nullptr;
-        }
-        
-        return renderFinishedSemaphores[windowContextID];
-    }
-    VkFence Vulkan_Core::GetInFlightFence(u32 windowContextID)
-    {
-        if (!isInitialized)
-        {
-            PrintError("Failed to get in flight fence because Vulkan has not been initialized!");
-
-            return nullptr;
-        }
-        if (!imageViews.contains(windowContextID))
-        {
-            PrintError("Failed to get in flight fence because window context '" + to_string(windowContextID) + "' has not been initialized!");
-
-            return nullptr;
-        }
-        
-        return inFlightFences[windowContextID];
-    }
-    VkCommandBuffer Vulkan_Core::GetCommandBuffer(u32 windowContextID)
-    {
-        if (!isInitialized)
-        {
-            PrintError("Failed to get command buffer because Vulkan has not been initialized!");
-
-            return nullptr;
-        }
-        if (!imageViews.contains(windowContextID))
-        {
-            PrintError("Failed to get command buffer because window context '" + to_string(windowContextID) + "' has not been initialized!");
-
-            return nullptr;
-        }
-        
-        return commandBuffers[windowContextID];
-    }
-
-    bool Vulkan_Core::SetVSyncState(u32 windowID) { return RecreateSwapchain(windowID); }
-
-    void Vulkan_Core::Update(u32 windowID)
-    {
-        if (!isInitialized)
-        {
-            PrintError("Failed to run update loop because Vulkan was not initialized!");
-
-            return;
-        }
-        if (!swapchains.contains(windowID))
-        {
-            PrintError("Failed to run update loop because window '" + to_string(windowID) + "' was not found!");
-
-            return;
-        }
-
         vkWaitForFences(
             logicalDevice,
             1,
-            &inFlightFences[windowID],
+            &inFlightFence,
             VK_TRUE,
             UINT64_MAX);
 
         u32 imageIndex{};
         VkResult result = vkAcquireNextImageKHR(
             logicalDevice,
-            swapchains[windowID],
+            swapchain,
             UINT64_MAX,
-            availableSemaphores[windowID],
+            availableSemaphore,
             VK_NULL_HANDLE,
             &imageIndex);
 
@@ -1453,7 +1282,7 @@ namespace KalaGraphics::Graphics
                         LogType::LOG_VERBOSE);
                 }
 
-                RecreateSwapchain(windowID);
+                RecreateSwapchain();
                 return;
             }
 
@@ -1487,15 +1316,15 @@ namespace KalaGraphics::Graphics
         vkResetFences(
             logicalDevice,
             1,
-            &inFlightFences[windowID]);
+            &inFlightFence);
         vkResetCommandBuffer(
-            commandBuffers[windowID],
+            commandBuffer,
             0);
 
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         vkBeginCommandBuffer(
-            commandBuffers[windowID],
+            commandBuffer,
             &beginInfo);
 
         array<VkClearValue, 2> clearValues{};
@@ -1504,44 +1333,44 @@ namespace KalaGraphics::Graphics
 
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = renderPasses[windowID];
-        renderPassInfo.framebuffer = framebuffers[windowID][imageIndex];
+        renderPassInfo.renderPass = renderPass;
+        renderPassInfo.framebuffer = framebuffers[imageIndex];
         renderPassInfo.renderArea.offset = { 0, 0 };
-        renderPassInfo.renderArea.extent = extents[windowID];
+        renderPassInfo.renderArea.extent = extent;
         renderPassInfo.clearValueCount = scast<u32>(clearValues.size());
         renderPassInfo.pClearValues = clearValues.data();
 
         vkCmdBeginRenderPass(
-            commandBuffers[windowID],
+            commandBuffer,
             &renderPassInfo,
             VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdEndRenderPass(commandBuffers[windowID]);
-        vkEndCommandBuffer(commandBuffers[windowID]);
+        vkCmdEndRenderPass(commandBuffer);
+        vkEndCommandBuffer(commandBuffer);
 
         VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = &availableSemaphores[windowID];
+        submitInfo.pWaitSemaphores = &availableSemaphore;
         submitInfo.pWaitDstStageMask = &waitStage;
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffers[windowID];
+        submitInfo.pCommandBuffers = &commandBuffer;
         submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &renderFinishedSemaphores[windowID];
+        submitInfo.pSignalSemaphores = &renderFinishedSemaphore;
 
         vkQueueSubmit(
             graphicsQueue,
             1,
             &submitInfo,
-            inFlightFences[windowID]);
+            inFlightFence);
 
         VkPresentInfoKHR presentInfo{};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
         presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = &renderFinishedSemaphores[windowID];
+        presentInfo.pWaitSemaphores = &renderFinishedSemaphore;
         presentInfo.swapchainCount = 1;
-        presentInfo.pSwapchains = &swapchains[windowID];
+        presentInfo.pSwapchains = &swapchain;
         presentInfo.pImageIndices = &imageIndex;
 
         result = vkQueuePresentKHR(
@@ -1585,38 +1414,66 @@ namespace KalaGraphics::Graphics
                     LogType::LOG_VERBOSE);
             }
 
-            RecreateSwapchain(windowID);
+            RecreateSwapchain();
         }
     }
 
-    void Vulkan_Core::ResizeUpdate(u32 windowContextID) { RecreateSwapchain(windowContextID); }
+    void VulkanContext::ResizeUpdate() { RecreateSwapchain(); }
 
-    void Vulkan_Core::Shutdown(u32 windowID)
+    bool VulkanContext::RecreateSwapchain()
     {
-        auto clean_context = [](u32 windowID) -> void
+        GraphicsContext* context = GraphicsContext::GetRegistry().GetContent(graphicsContextID);
+        if (!context)
+        {
+            KalaGraphicsCore::ForceClose(
+                "Vulkan swapchain error", 
+                "Failed to recreate swapchain because Graphics context '" + to_string(graphicsContextID) + "' was not found!",
+                true);
+        }
+
+        VkSurfaceKHR surface = context->GetGraphicsContextData().context_vk_surface;
+
+        if (!isInitialized)
+        {
+            PrintError("Failed to recreate swapchain because Vulkan was not initialized!");
+
+            return false;
+        }
+
+        //drain the gpu before freeing its context resources
+        vkDeviceWaitIdle(logicalDevice);
+
+        VkSurfaceCapabilitiesKHR caps{};
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+            physicalDevice,
+            surface,
+            &caps);
+
+        //skip minimized window
+        if (caps.currentExtent.width == 0
+            || caps.currentExtent.height == 0)
+        {
+            return true;
+        }
+
+        //
+        // DESTROY
+        //
+
+        auto destroy_semaphores = [&]() -> void
             {
-                vkFreeCommandBuffers(
-                    logicalDevice,
-                    commandPool,
-                    1,
-                    &commandBuffers[windowID]);
-
-                vkDestroyFence(
-                    logicalDevice,
-                    inFlightFences[windowID],
-                    nullptr);
-
                 vkDestroySemaphore(
                     logicalDevice,
-                    renderFinishedSemaphores[windowID],
+                    availableSemaphore,
                     nullptr);
-
                 vkDestroySemaphore(
                     logicalDevice,
-                    availableSemaphores[windowID],
+                    renderFinishedSemaphore,
                     nullptr);
-
-                for (auto& fb : framebuffers[windowID])
+            };
+        auto destroy_framebuffers = [&]() -> void
+            {
+                for (auto& fb : framebuffers)
                 {
                     vkDestroyFramebuffer(
                         logicalDevice,
@@ -1624,22 +1481,22 @@ namespace KalaGraphics::Graphics
                         nullptr);
                 }
 
+                framebuffers.clear();
+            };
+        auto destroy_depth_image_views = [&]() -> void
+            {
                 vkDestroyImageView(
                     logicalDevice,
-                    depthImageViews[windowID],
+                    depthImageView,
                     nullptr);
-
                 vmaDestroyImage(
                     vmaAllocator,
-                    depthImages[windowID],
-                    depthAllocations[windowID]);
-
-                vkDestroyRenderPass(
-                    logicalDevice,
-                    renderPasses[windowID],
-                    nullptr);
-
-                for (auto& view : imageViews[windowID])
+                    depthImage,
+                    depthAllocation);
+            };
+        auto destroy_image_views = [&]() -> void
+            {
+                for (auto& view : imageViews)
                 {
                     vkDestroyImageView(
                         logicalDevice,
@@ -1647,623 +1504,515 @@ namespace KalaGraphics::Graphics
                         nullptr);
                 }
 
+                imageViews.clear();
+            };
+        auto destroy_swapchain = [&]() -> void
+            {
                 vkDestroySwapchainKHR(
                     logicalDevice,
-                    swapchains[windowID],
+                    swapchain,
                     nullptr);
             };
 
-        auto clean_all = [clean_context]() -> void
-            {
-                for (const auto& c : WindowContext::GetRegistry().runtimeContent)
-                {
-                    u32 ID = c->GetID();
-                    if (!swapchains.contains(ID)) continue;
+        destroy_semaphores();
+        destroy_framebuffers();
+        destroy_depth_image_views();
+        destroy_image_views();
+        destroy_swapchain();
 
-                    clean_context(ID);
-                }
+        //
+        // QUERY SURFACE
+        //
 
-                if (descriptorPool)
-                {
-                    vkDestroyDescriptorPool(
-                        logicalDevice,
-                        descriptorPool,
-                        nullptr);
-                }
-                if (vmaAllocator) vmaDestroyAllocator(vmaAllocator);
-                if (commandPool)
-                {
-                    vkDestroyCommandPool(
-                        logicalDevice, 
-                        commandPool,
-                        nullptr);
-                }
-                if (logicalDevice)
-                {
-                    vkDestroyDevice(
-                        logicalDevice,
-                        nullptr);
-                }
+        VkSurfaceCapabilitiesKHR capabilities{};
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+            physicalDevice, 
+            surface,
+            &capabilities);
 
-                commandBuffers.clear();
-                inFlightFences.clear();
-                renderFinishedSemaphores.clear();
-                availableSemaphores.clear();
-                framebuffers.clear();
-                depthImageViews.clear();
-                depthAllocations.clear();
-                depthImages.clear();
-                renderPasses.clear();
-                imageViews.clear();
-                swapchains.clear();
-                swapchainFormats.clear();
-                extents.clear();
-            };
+        u32 formatCount{};
+        vkGetPhysicalDeviceSurfaceFormatsKHR(
+            physicalDevice,
+            surface,
+            &formatCount,
+            nullptr);
 
-        if (windowID == UINT32_MAX)
+        vector<VkSurfaceFormatKHR> formats(formatCount);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(
+            physicalDevice,
+            surface,
+            &formatCount,
+            formats.data());
+
+        VkSurfaceFormatKHR chosenFormat = formats[0];
+        for (const auto& format : formats)
         {
-            Log::Print(
-                "Destroying all Vulkan context because no window ID was passed.",
-                "KG_VULKAN",
-                LogType::LOG_INFO);
+            if (format.format == VK_FORMAT_B8G8R8A8_SRGB
+                && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            {
+                chosenFormat = format;
+                break;
+            }
+        }
 
-            clean_all();
+        u32 presentModeCount{};
+        vkGetPhysicalDeviceSurfacePresentModesKHR(
+            physicalDevice,
+            surface,
+            &presentModeCount,
+            nullptr);
+
+        vector<VkPresentModeKHR> presentModes(presentModeCount);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(
+            physicalDevice,
+            surface,
+            &presentModeCount,
+            presentModes.data());
+
+        VkExtent2D newExtent{};
+        vec2 staticFramebufferSize = context->GetStaticFramebufferSize();
+
+        if (capabilities.currentExtent.width != UINT32_MAX)
+        {
+            newExtent = capabilities.currentExtent;
         }
         else
         {
-            WindowContext* context = WindowContext::GetRegistry().GetContent(windowID);
+            newExtent.width = clamp(
+                scast<u32>(staticFramebufferSize.x),
+                capabilities.minImageExtent.width, 
+                capabilities.maxImageExtent.width);
+            newExtent.height = clamp(
+                scast<u32>(staticFramebufferSize.y),
+                capabilities.minImageExtent.height,
+                capabilities.maxImageExtent.height);
+        }
 
-            if (!context)
-            {
-                PrintError("Failed to shut down Vulkan core for window context ID '" + to_string(windowID) + "' because it was not found!");
+        u32 imageCount = capabilities.minImageCount + 1;
+        if (capabilities.maxImageCount > 0
+            && imageCount > capabilities.maxImageCount)
+        {
+            imageCount = capabilities.maxImageCount;
+        }
 
-                return;
-            }
+        //
+        // CREATE SWAPCHAIN
+        //
 
-            if (WindowContext::GetRegistry().runtimeContent.size() == 1)
+        bool supportsMailbox = ContainsValue(presentModes, VK_PRESENT_MODE_MAILBOX_KHR);
+        bool supportsFifoRelaxed = ContainsValue(presentModes, VK_PRESENT_MODE_FIFO_RELAXED_KHR);
+
+        VkPresentModeKHR chosenPresentMode{};
+        switch (context->GetVSyncState())
+        {
+        case VSyncState::VSYNC_ON_TRIPLE_BUFFERED:
+        {
+            if (supportsMailbox) chosenPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+            else if (supportsFifoRelaxed)
             {
                 Log::Print(
-                    "Destroying all Vulkan context because only one window exists.",
+                    "Tried to use MAILBOX but device does not support it, falling back to FIFO_RELAXED.",
                     "KG_VULKAN",
-                    LogType::LOG_INFO);
+                    LogType::LOG_WARNING);
 
-                clean_all();
-                return;
+                chosenPresentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
             }
-
-            //drain the gpu before freeing its context resources
-            vkDeviceWaitIdle(logicalDevice);
-
-            if (!swapchains.contains(windowID))
+            else
             {
-                PrintError("Failed to shut down Vulkan core for window context ID '" + to_string(windowID) + "' because it was not found!");
+                Log::Print(
+                    "Tried to use MAILBOX and FIFO_RELAXED but device does not support them, falling back to FIFO.",
+                    "KG_VULKAN",
+                    LogType::LOG_WARNING);
 
-                return;
+                chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
             }
-
-            Log::Print(
-                "Destroying Vulkan content for window '" + to_string(windowID) + "'.",
-                "KG_VULKAN",
-                LogType::LOG_INFO);
-
-            clean_context(windowID);
-
-            //also remove content for target window from maps
-
-            commandBuffers.erase(windowID);
-            inFlightFences.erase(windowID);
-            renderFinishedSemaphores.erase(windowID);
-            availableSemaphores.erase(windowID);
-            framebuffers.erase(windowID);
-            depthImageViews.erase(windowID);
-            depthAllocations.erase(windowID);
-            depthImages.erase(windowID);
-            renderPasses.erase(windowID);
-            imageViews.erase(windowID);
-            swapchains.erase(windowID);
-            swapchainFormats.erase(windowID);
-            extents.erase(windowID);
+            break;
         }
-    }
-}
+        case VSyncState::VSYNC_ON_ADAPTIVE:
+        {
+            if (supportsFifoRelaxed) chosenPresentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
+            else
+            {
+                Log::Print(
+                    "Tried to use FIFO_RELAXED but device does not support it, falling back to FIFO.",
+                    "KG_VULKAN",
+                    LogType::LOG_WARNING);
 
-bool RecreateSwapchain(u32 windowContextID)
-{
-    WindowContext* context = WindowContext::GetRegistry().GetContent(windowContextID);
-    VkSurfaceKHR surface = context->GetWindowContextData().context_vk_surface;
+                chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+            }
+            break;
+        }
+        case VSyncState::VSYNC_OFF:
+        {
+            chosenPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+            break;
+        }
+        default: break;
+        }
 
-    if (!isInitialized)
-    {
-        PrintError("Failed to recreate swapchain because Vulkan was not initialized!");
+        VkSwapchainCreateInfoKHR swapchainInfo{};
+        swapchainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        swapchainInfo.surface = context->GetGraphicsContextData().context_vk_surface;
+        swapchainInfo.minImageCount = imageCount;
+        swapchainInfo.imageFormat = chosenFormat.format;
+        swapchainInfo.imageColorSpace = chosenFormat.colorSpace;
+        swapchainInfo.imageExtent = newExtent;
+        swapchainInfo.imageArrayLayers = 1;
+        swapchainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        swapchainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        swapchainInfo.preTransform = capabilities.currentTransform;
+        swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        swapchainInfo.presentMode = chosenPresentMode;
+        swapchainInfo.clipped = VK_TRUE;
+        swapchainInfo.oldSwapchain = VK_NULL_HANDLE;
 
-        return false;
-    }
-    if (!swapchains.contains(windowContextID))
-    {
-        PrintError("Failed to recreate swapchain because window '" + to_string(windowContextID) + "' was not found!");
+        VkSwapchainKHR newSwapchain{};
+        VkResult vkResult = vkCreateSwapchainKHR(
+            logicalDevice,
+            &swapchainInfo,
+            nullptr,
+            &newSwapchain);
 
-        return false;
-    }
+        if (vkResult != VK_SUCCESS)
+        {
+            VulkanContext::CloseOnError(
+                "Vulkan swapchain error",
+                "Failed to recreate Vulkan swapchain for window context '" 
+                + to_string(context->GetID()) + "' because swapchain creation failed!",
+                vkResult);
+        }
 
-    //drain the gpu before freeing its context resources
-    vkDeviceWaitIdle(logicalDevice);
+        swapchain = newSwapchain;
+        swapchainFormat = chosenFormat.format;
+        extent = newExtent;
 
-    VkSurfaceCapabilitiesKHR caps{};
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-        physicalDevice,
-        surface,
-        &caps);
+        //
+        // GET SWAPCHAIN IMAGES 
+        //
 
-    //skip minimized window
-    if (caps.currentExtent.width == 0
-        || caps.currentExtent.height == 0)
-    {
+        u32 swapchainImageCount{};
+        vkGetSwapchainImagesKHR(
+            logicalDevice,
+            swapchain,
+            &swapchainImageCount,
+            nullptr);
+
+        vector<VkImage> swapchainImages(swapchainImageCount);
+        vkGetSwapchainImagesKHR(
+            logicalDevice,
+            swapchain,
+            &swapchainImageCount,
+            swapchainImages.data());
+
+        //
+        // CREATE IMAGE VIEWS
+        //
+
+        vector<VkImageView> newImageViews(swapchainImageCount);
+        for (u32 i = 0; i < swapchainImageCount; i++)
+        {
+            VkImageViewCreateInfo viewInfo{};
+            viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+            viewInfo.image = swapchainImages[i];
+            viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            viewInfo.format = chosenFormat.format;
+            viewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+            viewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+            viewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+            viewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+            viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            viewInfo.subresourceRange.baseMipLevel = 0;
+            viewInfo.subresourceRange.levelCount = 1;
+            viewInfo.subresourceRange.baseArrayLayer = 0;
+            viewInfo.subresourceRange.layerCount = 1;
+
+            vkResult = vkCreateImageView(
+                logicalDevice,
+                &viewInfo,
+                nullptr,
+                &newImageViews[i]);
+
+            if (vkResult != VK_SUCCESS)
+            {
+                VulkanContext::CloseOnError(
+                    "Vulkan swapchain error",
+                    "Failed to recreate Vulkan swapchain for window context '" 
+                    + to_string(context->GetID()) + "' because image view creation failed!",
+                    vkResult);
+            }
+        }
+
+        imageViews = newImageViews;
+
+        //
+        // CREATE DEPTH IMAGE
+        //
+
+        VkImageCreateInfo depthImageInfo{};
+        depthImageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        depthImageInfo.imageType = VK_IMAGE_TYPE_2D;
+        depthImageInfo.format = VK_FORMAT_D32_SFLOAT;
+        depthImageInfo.extent.width = extent.width;
+        depthImageInfo.extent.height = extent.height;
+        depthImageInfo.extent.depth = 1;
+        depthImageInfo.mipLevels = 1;
+        depthImageInfo.arrayLayers = 1;
+        depthImageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        depthImageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+        depthImageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        depthImageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        depthImageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+        VmaAllocationCreateInfo depthAllocInfo{};
+        depthAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+        VkImage newDepthImage{};
+        VmaAllocation newDepthAllocation{};
+        vkResult = vmaCreateImage(
+            vmaAllocator,
+            &depthImageInfo,
+            &depthAllocInfo,
+            &newDepthImage,
+            &newDepthAllocation,
+            nullptr);
+
+        if (vkResult != VK_SUCCESS)
+        {
+            VulkanContext::CloseOnError(
+                "Vulkan swapchain error",
+                "Failed to recreate Vulkan swapchain for window context '" 
+                + to_string(context->GetID()) + "' because depth image creation failed!",
+                vkResult);
+        }
+
+        //
+        // CREATE DEPTH IMAGE VIEW
+        //
+
+        VkImageViewCreateInfo depthViewInfo{};
+        depthViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        depthViewInfo.image = newDepthImage;
+        depthViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        depthViewInfo.format = VK_FORMAT_D32_SFLOAT;
+        depthViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        depthViewInfo.subresourceRange.baseMipLevel = 0;
+        depthViewInfo.subresourceRange.levelCount = 1;
+        depthViewInfo.subresourceRange.baseArrayLayer = 0;
+        depthViewInfo.subresourceRange.layerCount = 1;
+
+        VkImageView newDepthImageView{};
+        vkResult = vkCreateImageView(
+            logicalDevice,
+            &depthViewInfo,
+            nullptr,
+            &newDepthImageView);
+
+        if (vkResult != VK_SUCCESS)
+        {
+            VulkanContext::CloseOnError(
+                "Vulkan swapchain error",
+                "Failed to recreate Vulkan swapchain for window context '" 
+                + to_string(context->GetID()) + "' because depth image view creation failed!",
+                vkResult);
+        }
+
+        depthImage = newDepthImage;
+        depthAllocation = newDepthAllocation;
+        depthImageView = newDepthImageView;
+
+        //
+        // CREATE FRAMEBUFFERS
+        //
+
+        vector<VkFramebuffer> newFramebuffers(swapchainImageCount);
+        for (u32 i = 0; i < swapchainImageCount; i++)
+        {
+            array<VkImageView, 2> attachments = 
+            {
+                imageViews[i],
+                depthImageView
+            };
+
+            VkFramebufferCreateInfo framebufferInfo{};
+            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            framebufferInfo.renderPass = renderPass;
+            framebufferInfo.attachmentCount = scast<u32>(attachments.size());
+            framebufferInfo.pAttachments = attachments.data();
+            framebufferInfo.width = extent.width;
+            framebufferInfo.height = extent.height;
+            framebufferInfo.layers = 1;
+            
+            vkResult = vkCreateFramebuffer(
+                logicalDevice,
+                &framebufferInfo,
+                nullptr,
+                &newFramebuffers[i]);
+
+            if (vkResult != VK_SUCCESS)
+            {
+                VulkanContext::CloseOnError(
+                    "Vulkan swapchain error",
+                    "Failed to recreate Vulkan swapchain for window context '" 
+                    + to_string(context->GetID()) + "' because framebuffer creation failed for image " + to_string(i) + "!",
+                    vkResult);
+            }
+        }
+
+        framebuffers = newFramebuffers;
+
+        //
+        // CREATE SEMAPHORES
+        //
+
+        VkSemaphoreCreateInfo semaphoreInfo{};
+        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+        VkSemaphore newAvailableSemaphore{};
+        vkResult = vkCreateSemaphore(
+            logicalDevice,
+            &semaphoreInfo,
+            nullptr,
+            &newAvailableSemaphore);
+
+        if (vkResult != VK_SUCCESS)
+        {
+            VulkanContext::CloseOnError(
+                "Vulkan swapchain error",
+                "Failed to recreate Vulkan swapchain for window context '" 
+                + to_string(context->GetID()) + "' because available semaphore creation failed!",
+                vkResult);
+        }
+        VkSemaphore newRenderFinishedSemaphore{};
+        vkResult = vkCreateSemaphore(
+            logicalDevice,
+            &semaphoreInfo,
+            nullptr,
+            &newRenderFinishedSemaphore);
+
+        if (vkResult != VK_SUCCESS)
+        {
+            VulkanContext::CloseOnError(
+                "Vulkan swapchain error",
+                "Failed to recreate Vulkan swapchain for window context '" 
+                + to_string(context->GetID()) + "' because render finished semaphore creation failed!",
+                vkResult);
+        }
+
+        availableSemaphore = newAvailableSemaphore;
+        renderFinishedSemaphore = newRenderFinishedSemaphore;
+
+        if (isVerboseLoggingEnabled)
+        {
+            Log::Print(
+                "Finished recreating Vulkan swapchain.",
+                "KG_VULKAN",
+                LogType::LOG_VERBOSE);
+        }
+
         return true;
     }
 
-    //
-    // DESTROY
-    //
+    void VulkanContext::Destroy()
+    {
+        registry.RemoveContent(ID);
+    }
 
-    auto destroy_semaphores = [&windowContextID]() -> void
+    VulkanContext::~VulkanContext()
+    {
+        //drain the gpu before freeing its context resources
+        vkDeviceWaitIdle(logicalDevice);
+
+        Log::Print(
+            "Destroying Vulkan context '" + to_string(ID) + "'.",
+            "KG_VULKAN",
+            LogType::LOG_INFO);
+
+        vkFreeCommandBuffers(
+            logicalDevice,
+            commandPool,
+            1,
+            &commandBuffer);
+
+        vkDestroyFence(
+            logicalDevice,
+            inFlightFence,
+            nullptr);
+
+        vkDestroySemaphore(
+            logicalDevice,
+            renderFinishedSemaphore,
+            nullptr);
+
+        vkDestroySemaphore(
+            logicalDevice,
+            availableSemaphore,
+            nullptr);
+
+        for (auto& fb : framebuffers)
         {
-            vkDestroySemaphore(
+            vkDestroyFramebuffer(
                 logicalDevice,
-                availableSemaphores[windowContextID],
+                fb,
                 nullptr);
-            vkDestroySemaphore(
-                logicalDevice,
-                renderFinishedSemaphores[windowContextID],
-                nullptr);
+        }
 
-            availableSemaphores.erase(windowContextID);
-            renderFinishedSemaphores.erase(windowContextID);
-        };
-    auto destroy_framebuffers = [&windowContextID]() -> void
-        {
-            for (auto& fb : framebuffers[windowContextID])
-            {
-                vkDestroyFramebuffer(
-                    logicalDevice,
-                    fb,
-                    nullptr);
-            }
+        vkDestroyImageView(
+            logicalDevice,
+            depthImageView,
+            nullptr);
 
-            framebuffers.erase(windowContextID);
-        };
-    auto destroy_depth_image_views = [&windowContextID]() -> void
+        vmaDestroyImage(
+            vmaAllocator,
+            depthImage,
+            depthAllocation);
+
+        vkDestroyRenderPass(
+            logicalDevice,
+            renderPass,
+            nullptr);
+
+        for (auto& view : imageViews)
         {
             vkDestroyImageView(
                 logicalDevice,
-                depthImageViews[windowContextID],
+                view,
                 nullptr);
-            vmaDestroyImage(
-                vmaAllocator,
-                depthImages[windowContextID],
-                depthAllocations[windowContextID]);
+        }
 
-            depthImageViews.erase(windowContextID);
-            depthAllocations.erase(windowContextID);
-            depthImages.erase(windowContextID);
-        };
-    auto destroy_image_views = [&windowContextID]() -> void
+        vkDestroySwapchainKHR(
+            logicalDevice,
+            swapchain,
+            nullptr);
+
+        framebuffers.clear();
+        imageViews.clear();
+
+        if (registry.runtimeContent.empty())
         {
-            for (auto& view : imageViews[windowContextID])
+            if (descriptorPool)
             {
-                vkDestroyImageView(
+                vkDestroyDescriptorPool(
                     logicalDevice,
-                    view,
+                    descriptorPool,
+                    nullptr);
+            }
+            if (vmaAllocator) vmaDestroyAllocator(vmaAllocator);
+            if (commandPool)
+            {
+                vkDestroyCommandPool(
+                    logicalDevice, 
+                    commandPool,
+                    nullptr);
+            }
+            if (logicalDevice)
+            {
+                vkDestroyDevice(
+                    logicalDevice,
                     nullptr);
             }
 
-            imageViews.erase(windowContextID);
-        };
-    auto destroy_swapchain = [&windowContextID]() -> void
-        {
-            vkDestroySwapchainKHR(
-                logicalDevice,
-                swapchains[windowContextID],
-                nullptr);
-
-            swapchains.erase(windowContextID);
-            swapchainFormats.erase(windowContextID);
-            extents.erase(windowContextID);
-        };
-
-    destroy_semaphores();
-    destroy_framebuffers();
-    destroy_depth_image_views();
-    destroy_image_views();
-    destroy_swapchain();
-
-    //
-    // QUERY SURFACE
-    //
-
-    VkSurfaceCapabilitiesKHR capabilities{};
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-        physicalDevice, 
-        surface,
-        &capabilities);
-
-    u32 formatCount{};
-    vkGetPhysicalDeviceSurfaceFormatsKHR(
-        physicalDevice,
-        surface,
-        &formatCount,
-        nullptr);
-
-    vector<VkSurfaceFormatKHR> formats(formatCount);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(
-        physicalDevice,
-        surface,
-        &formatCount,
-        formats.data());
-
-    VkSurfaceFormatKHR chosenFormat = formats[0];
-    for (const auto& format : formats)
-    {
-        if (format.format == VK_FORMAT_B8G8R8A8_SRGB
-            && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-        {
-            chosenFormat = format;
-            break;
+            framebuffers.clear();
+            imageViews.clear();
         }
     }
-
-    u32 presentModeCount{};
-    vkGetPhysicalDeviceSurfacePresentModesKHR(
-        physicalDevice,
-        surface,
-        &presentModeCount,
-        nullptr);
-
-    vector<VkPresentModeKHR> presentModes(presentModeCount);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(
-        physicalDevice,
-        surface,
-        &presentModeCount,
-        presentModes.data());
-
-    VkExtent2D extent{};
-    vec2 staticFramebufferSize = context->GetStaticFramebufferSize();
-
-    if (capabilities.currentExtent.width != UINT32_MAX)
-    {
-        extent = capabilities.currentExtent;
-    }
-    else
-    {
-        extent.width = clamp(
-            scast<u32>(staticFramebufferSize.x),
-            capabilities.minImageExtent.width, 
-            capabilities.maxImageExtent.width);
-        extent.height = clamp(
-            scast<u32>(staticFramebufferSize.y),
-            capabilities.minImageExtent.height,
-            capabilities.maxImageExtent.height);
-    }
-
-    u32 imageCount = capabilities.minImageCount + 1;
-    if (capabilities.maxImageCount > 0
-        && imageCount > capabilities.maxImageCount)
-    {
-        imageCount = capabilities.maxImageCount;
-    }
-
-    //
-    // CREATE SWAPCHAIN
-    //
-
-    bool supportsMailbox = ContainsValue(presentModes, VK_PRESENT_MODE_MAILBOX_KHR);
-    bool supportsFifoRelaxed = ContainsValue(presentModes, VK_PRESENT_MODE_FIFO_RELAXED_KHR);
-
-    VkPresentModeKHR chosenPresentMode{};
-    switch (context->GetVSyncState())
-    {
-    case VSyncState::VSYNC_ON_TRIPLE_BUFFERED:
-    {
-        if (supportsMailbox) chosenPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-        else if (supportsFifoRelaxed)
-        {
-            Log::Print(
-                "Tried to use MAILBOX but device does not support it, falling back to FIFO_RELAXED.",
-                "KG_VULKAN",
-                LogType::LOG_WARNING);
-
-            chosenPresentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
-        }
-        else
-        {
-            Log::Print(
-                "Tried to use MAILBOX and FIFO_RELAXED but device does not support them, falling back to FIFO.",
-                "KG_VULKAN",
-                LogType::LOG_WARNING);
-
-            chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
-        }
-        break;
-    }
-    case VSyncState::VSYNC_ON_ADAPTIVE:
-    {
-        if (supportsFifoRelaxed) chosenPresentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
-        else
-        {
-            Log::Print(
-                "Tried to use FIFO_RELAXED but device does not support it, falling back to FIFO.",
-                "KG_VULKAN",
-                LogType::LOG_WARNING);
-
-            chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
-        }
-        break;
-    }
-    case VSyncState::VSYNC_OFF:
-    {
-        chosenPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-        break;
-    }
-    default: break;
-    }
-
-    VkSwapchainCreateInfoKHR swapchainInfo{};
-    swapchainInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    swapchainInfo.surface = context->GetWindowContextData().context_vk_surface;
-    swapchainInfo.minImageCount = imageCount;
-    swapchainInfo.imageFormat = chosenFormat.format;
-    swapchainInfo.imageColorSpace = chosenFormat.colorSpace;
-    swapchainInfo.imageExtent = extent;
-    swapchainInfo.imageArrayLayers = 1;
-    swapchainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    swapchainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    swapchainInfo.preTransform = capabilities.currentTransform;
-    swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    swapchainInfo.presentMode = chosenPresentMode;
-    swapchainInfo.clipped = VK_TRUE;
-    swapchainInfo.oldSwapchain = VK_NULL_HANDLE;
-
-    VkSwapchainKHR swapchain{};
-    VkResult vkResult = vkCreateSwapchainKHR(
-        logicalDevice,
-        &swapchainInfo,
-        nullptr,
-        &swapchain);
-
-    if (vkResult != VK_SUCCESS)
-    {
-        Vulkan_Core::CloseOnError(
-            "Vulkan swapchain error",
-            "Failed to recreate Vulkan swapchain for window context '" 
-            + to_string(context->GetID()) + "' because swapchain creation failed!",
-            vkResult);
-    }
-
-    swapchains[windowContextID] = swapchain;
-    swapchainFormats[windowContextID] = chosenFormat.format;
-    extents[windowContextID] = extent;
-
-    //
-    // GET SWAPCHAIN IMAGES 
-    //
-
-    u32 swapchainImageCount{};
-    vkGetSwapchainImagesKHR(
-        logicalDevice,
-        swapchain,
-        &swapchainImageCount,
-        nullptr);
-
-    vector<VkImage> swapchainImages(swapchainImageCount);
-    vkGetSwapchainImagesKHR(
-        logicalDevice,
-        swapchain,
-        &swapchainImageCount,
-        swapchainImages.data());
-
-    //
-    // CREATE IMAGE VIEWS
-    //
-
-    vector<VkImageView> scImageViews(swapchainImageCount);
-    for (u32 i = 0; i < swapchainImageCount; i++)
-    {
-        VkImageViewCreateInfo viewInfo{};
-        viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        viewInfo.image = swapchainImages[i];
-        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        viewInfo.format = chosenFormat.format;
-        viewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-        viewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-        viewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-        viewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-        viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        viewInfo.subresourceRange.baseMipLevel = 0;
-        viewInfo.subresourceRange.levelCount = 1;
-        viewInfo.subresourceRange.baseArrayLayer = 0;
-        viewInfo.subresourceRange.layerCount = 1;
-
-        vkResult = vkCreateImageView(
-            logicalDevice,
-            &viewInfo,
-            nullptr,
-            &scImageViews[i]);
-
-        if (vkResult != VK_SUCCESS)
-        {
-            Vulkan_Core::CloseOnError(
-                "Vulkan swapchain error",
-                "Failed to recreate Vulkan swapchain for window context '" 
-                + to_string(context->GetID()) + "' because image view creation failed!",
-                vkResult);
-        }
-    }
-
-    imageViews[windowContextID] = scImageViews;
-
-    //
-    // CREATE DEPTH IMAGE
-    //
-
-    VkImageCreateInfo depthImageInfo{};
-    depthImageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    depthImageInfo.imageType = VK_IMAGE_TYPE_2D;
-    depthImageInfo.format = VK_FORMAT_D32_SFLOAT;
-    depthImageInfo.extent.width = extent.width;
-    depthImageInfo.extent.height = extent.height;
-    depthImageInfo.extent.depth = 1;
-    depthImageInfo.mipLevels = 1;
-    depthImageInfo.arrayLayers = 1;
-    depthImageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    depthImageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    depthImageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    depthImageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    depthImageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-    VmaAllocationCreateInfo depthAllocInfo{};
-    depthAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-
-    VkImage depthImage{};
-    VmaAllocation depthAllocation{};
-    vkResult = vmaCreateImage(
-        vmaAllocator,
-        &depthImageInfo,
-        &depthAllocInfo,
-        &depthImage,
-        &depthAllocation,
-        nullptr);
-
-    if (vkResult != VK_SUCCESS)
-    {
-        Vulkan_Core::CloseOnError(
-            "Vulkan swapchain error",
-            "Failed to recreate Vulkan swapchain for window context '" 
-            + to_string(context->GetID()) + "' because depth image creation failed!",
-            vkResult);
-    }
-
-    //
-    // CREATE DEPTH IMAGE VIEW
-    //
-
-    VkImageViewCreateInfo depthViewInfo{};
-    depthViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    depthViewInfo.image = depthImage;
-    depthViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    depthViewInfo.format = VK_FORMAT_D32_SFLOAT;
-    depthViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-    depthViewInfo.subresourceRange.baseMipLevel = 0;
-    depthViewInfo.subresourceRange.levelCount = 1;
-    depthViewInfo.subresourceRange.baseArrayLayer = 0;
-    depthViewInfo.subresourceRange.layerCount = 1;
-
-    VkImageView depthImageView{};
-    vkResult = vkCreateImageView(
-        logicalDevice,
-        &depthViewInfo,
-        nullptr,
-        &depthImageView);
-
-    if (vkResult != VK_SUCCESS)
-    {
-        Vulkan_Core::CloseOnError(
-            "Vulkan swapchain error",
-            "Failed to recreate Vulkan swapchain for window context '" 
-            + to_string(context->GetID()) + "' because depth image view creation failed!",
-            vkResult);
-    }
-
-    depthImages[windowContextID] = depthImage;
-    depthAllocations[windowContextID] = depthAllocation;
-    depthImageViews[windowContextID] = depthImageView;
-
-    //
-    // CREATE FRAMEBUFFERS
-    //
-
-    vector<VkFramebuffer> newFramebuffers(swapchainImageCount);
-    for (u32 i = 0; i < swapchainImageCount; i++)
-    {
-        array<VkImageView, 2> attachments = 
-        {
-            scImageViews[i],
-            depthImageView
-        };
-
-        VkFramebufferCreateInfo framebufferInfo{};
-        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = renderPasses[windowContextID];
-        framebufferInfo.attachmentCount = scast<u32>(attachments.size());
-        framebufferInfo.pAttachments = attachments.data();
-        framebufferInfo.width = extent.width;
-        framebufferInfo.height = extent.height;
-        framebufferInfo.layers = 1;
-        
-        vkResult = vkCreateFramebuffer(
-            logicalDevice,
-            &framebufferInfo,
-            nullptr,
-            &newFramebuffers[i]);
-
-        if (vkResult != VK_SUCCESS)
-        {
-            Vulkan_Core::CloseOnError(
-                "Vulkan swapchain error",
-                "Failed to recreate Vulkan swapchain for window context '" 
-                + to_string(context->GetID()) + "' because framebuffer creation failed for image " + to_string(i) + "!",
-                vkResult);
-        }
-    }
-
-    framebuffers[windowContextID] = newFramebuffers;
-
-    //
-    // CREATE SEMAPHORES
-    //
-
-    VkSemaphoreCreateInfo semaphoreInfo{};
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-    VkSemaphore availableSemaphore{};
-    vkResult = vkCreateSemaphore(
-        logicalDevice,
-        &semaphoreInfo,
-        nullptr,
-        &availableSemaphore);
-
-    if (vkResult != VK_SUCCESS)
-    {
-        Vulkan_Core::CloseOnError(
-            "Vulkan swapchain error",
-            "Failed to recreate Vulkan swapchain for window context '" 
-            + to_string(context->GetID()) + "' because available semaphore creation failed!",
-            vkResult);
-    }
-    VkSemaphore renderFinishedSemaphore{};
-    vkResult = vkCreateSemaphore(
-        logicalDevice,
-        &semaphoreInfo,
-        nullptr,
-        &renderFinishedSemaphore);
-
-    if (vkResult != VK_SUCCESS)
-    {
-        Vulkan_Core::CloseOnError(
-            "Vulkan swapchain error",
-            "Failed to recreate Vulkan swapchain for window context '" 
-            + to_string(context->GetID()) + "' because render finished semaphore creation failed!",
-            vkResult);
-    }
-
-    availableSemaphores[windowContextID] = availableSemaphore;
-    renderFinishedSemaphores[windowContextID] = renderFinishedSemaphore;
-
-    if (isVerboseLoggingEnabled)
-    {
-        Log::Print(
-            "Finished recreating Vulkan swapchain.",
-            "KG_VULKAN",
-            LogType::LOG_VERBOSE);
-    }
-
-    return true;
 }

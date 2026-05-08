@@ -83,7 +83,7 @@ namespace KalaGraphics::Core
         VSYNC_OFF = 3u
 	};
 
-    struct LIB_API WindowContextData
+    struct LIB_API GraphicsContextData
     {
         u32 windowID{};
 
@@ -102,10 +102,10 @@ namespace KalaGraphics::Core
         VkSurfaceKHR context_vk_surface{};
     };
 
-    class LIB_API WindowContext
+    class LIB_API GraphicsContext
     {
     public:
-        static KalaGraphicsRegistry<WindowContext>& GetRegistry();
+        static KalaGraphicsRegistry<GraphicsContext>& GetRegistry();
 
         //Sets the global vk instance
         static void SetVKInstance(VkInstance vk_instance);
@@ -117,14 +117,29 @@ namespace KalaGraphics::Core
         static vec2 GetFramebufferSize(FramebufferSize fbSize);
 
         //Initialize a new window context
-        static WindowContext* Initialize(const WindowContextData& context);
-
-        bool IsInitialized() const;
+        static GraphicsContext* Initialize(const GraphicsContextData& context);
 
         u32 GetID() const;
+        u32 GetVulkanContextID() const;
 
-        void SetVSyncState(VSyncState newValue);
         VSyncState GetVSyncState() const;
+        void SetVSyncState(VSyncState newValue);
+
+        //If true then framebuffer resizes dynamically with the true window size
+        bool IsDynamicFramebuffer() const;
+        void SetDynamicFramebufferState(bool newValue);
+
+        //Sets static framebuffer size, only applied if dynamic framebuffer is disabled
+        vec2 GetStaticFramebufferSize() const;
+        void SetStaticFramebufferSize(FramebufferSize fbSize);
+
+        vec2 GetWindowSize() const;
+        //Set the internal value of window size that vulkan and framebuffer require,
+        //does not actually update window size, KalaGraphics doesnt control it,
+        //should always be called after the actual window is resized
+        void SetWindowSize(vec2 newSize);
+    
+        GraphicsContextData& GetGraphicsContextData();
 
         //Regular update - single draw call
         void Update();
@@ -132,31 +147,15 @@ namespace KalaGraphics::Core
         //Called to trigger resize events - single draw call
         void ResizeUpdate();
 
-        //If true then framebuffer resizes dynamically with the true window size
-        void SetDynamicFramebufferState(bool newValue);
-        bool IsDynamicFramebuffer() const;
+        void Destroy();
 
-        //Sets static framebuffer size, only applied if dynamic framebuffer is disabled
-        void SetStaticFramebufferSize(FramebufferSize fbSize);
-        vec2 GetStaticFramebufferSize() const;
-
-        //Set the internal value of window size that vulkan and framebuffer require,
-        //does not actually update window size, KalaGraphics doesnt control it,
-        //should always be called after the actual window is resized
-        void SetWindowSize(vec2 newSize);
-        vec2 GetWindowSize() const;
-    
-        WindowContextData& GetWindowContextData();
-
-        //Shuts down all resources for this context
-        void Shutdown();
+        ~GraphicsContext();
     private:
-        bool isInitialized{};
-
         u32 ID{};
+        u32 vulkanContextID{};
 
         vec2 windowSize{};
 
-        WindowContextData context{};
+        GraphicsContextData context{};
     };
 }

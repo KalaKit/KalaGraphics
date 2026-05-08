@@ -31,7 +31,7 @@ using KalaGraphics::Graphics::PyramidDetails;
 using KalaGraphics::Graphics::SphereDetails;
 using KalaGraphics::Graphics::TorusDetails;
 using KalaGraphics::Core::KalaGraphicsCore;
-using KalaGraphics::Core::WindowContext;
+using KalaGraphics::Core::GraphicsContext;
 
 using std::string;
 using std::string_view;
@@ -62,7 +62,7 @@ static string_view PrimitiveToString(PrimitiveType type)
 
 static bool ContextExists(u32 contextID)
 {
-    return WindowContext::GetRegistry().createdContent.contains(contextID);
+    return GraphicsContext::GetRegistry().createdContent.contains(contextID);
 } 
 
 static bool IsCorrectPos(const vec3& pos)
@@ -267,7 +267,7 @@ namespace KalaGraphics::Graphics
         unique_ptr<Model_Primitive> newModel = make_unique<Model_Primitive>();
         Model_Primitive* modelPtr = newModel.get();
 
-        if (!modelPtr->SetName(modelName)) return nullptr;
+        modelPtr->SetName(modelName);
 
         MeshData md = CreateCube(pos, size, cDet);
 
@@ -302,7 +302,8 @@ namespace KalaGraphics::Graphics
     {
         KalaGraphicsCore::ForceClose(
             "Not implemented",
-            "Feature \"Create pyramid primitive\" is not yet implemented!");
+            "Feature \"Create pyramid primitive\" is not yet implemented!",
+            true);
 
         return nullptr;
     }
@@ -318,7 +319,8 @@ namespace KalaGraphics::Graphics
     {
         KalaGraphicsCore::ForceClose(
             "Not implemented",
-            "Feature \"Create sphere primitive\" is not yet implemented!");
+            "Feature \"Create sphere primitive\" is not yet implemented!",
+            true);
 
         return nullptr;
     }
@@ -334,7 +336,8 @@ namespace KalaGraphics::Graphics
     {
         KalaGraphicsCore::ForceClose(
             "Not implemented",
-            "Feature \"Create torus primitive\" is not yet implemented!");
+            "Feature \"Create torus primitive\" is not yet implemented!",
+            true);
 
         return nullptr;
     }

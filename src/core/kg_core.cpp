@@ -16,9 +16,13 @@ using KalaHeaders::KalaLog::LogType;
 using KalaHeaders::KalaLog::TimeFormat;
 using KalaHeaders::KalaLog::DateFormat;
 
+using std::function;
+using std::string;
 #ifdef __linux__
 using std::raise;
 #endif
+
+static function<void(string, string)> externalHandler{};
 
 namespace KalaGraphics::Core
 {
@@ -27,29 +31,43 @@ namespace KalaGraphics::Core
     u32 KalaGraphicsCore::GetGlobalID() { return globalID; }
 	void KalaGraphicsCore::SetGlobalID(u32 newID) { globalID = newID; }
 
+	void KalaGraphicsCore::SetExternalHandler(const function<void (string, string)>& newExternalHandler)
+	{ 
+		externalHandler = newExternalHandler;
+	}
+
     void KalaGraphicsCore::ForceClose(
 		string_view target,
-		string_view reason)
+		string_view reason,
+		bool callExternalHandler)
 	{
-		Log::Print(
-			"\n================"
-			"\nFORCE CLOSE"
-			"\n================\n",
-			true);
+		if (callExternalHandler
+			&& externalHandler)
+		{
+			externalHandler(string(target), string(reason));
+		}
+		else
+		{
+			Log::Print(
+				"\n================"
+				"\nFORCE CLOSE"
+				"\n================\n",
+				true);
 
-		Log::Print(
-			reason,
-			target,
-			LogType::LOG_ERROR,
-			2,
-			true,
-			TimeFormat::TIME_NONE,
-			DateFormat::DATE_NONE);
+			Log::Print(
+				reason,
+				target,
+				LogType::LOG_ERROR,
+				2,
+				true,
+				TimeFormat::TIME_NONE,
+				DateFormat::DATE_NONE);
 
 #ifdef _WIN32
-		__debugbreak();
+			__debugbreak();
 #else
-		raise(SIGTRAP);
+			raise(SIGTRAP);
 #endif
+		}
 	}
 }

@@ -22,6 +22,7 @@ using KalaHeaders::KalaLog::LogType;
 using KalaHeaders::KalaFile::ReadBinaryDataFromFile;
 
 using KalaGraphics::Core::KalaGraphicsCore;
+using KalaGraphics::Core::GraphicsContext;
 
 using std::unique_ptr;
 using std::make_unique;
@@ -40,7 +41,7 @@ namespace KalaGraphics::Graphics
     KalaGraphicsRegistry<Shader>& Shader::GetRegistry() { return registry; }
 
     Shader* Shader::Initialize(
-        u32 windowContextID,
+        u32 graphicsContextID,
         string_view shaderName,
         const ShaderData& shaderData)
     {
@@ -54,11 +55,11 @@ namespace KalaGraphics::Graphics
             };
         auto bad_ext = [&shaderName](string_view shaderType) -> void
             {
-            Log::Print(
-                "Cannot initialize shader '" + string(shaderName) + "' because its " + string(shaderType) + " shader had a missing or incorrect extension!", 
-                "KG_SHADER",
-                LogType::LOG_ERROR,
-                2);
+                Log::Print(
+                    "Cannot initialize shader '" + string(shaderName) + "' because its " + string(shaderType) + " shader had a missing or incorrect extension!", 
+                    "KG_SHADER",
+                    LogType::LOG_ERROR,
+                    2);
             };
         auto invalid_path = [&shaderName](
             string_view shaderType,
@@ -148,6 +149,30 @@ namespace KalaGraphics::Graphics
             }
         }
 
+        GraphicsContext* graphicsContextPtr = GraphicsContext::GetRegistry().GetContent(graphicsContextID);
+        if (!graphicsContextPtr)
+        {
+            Log::Print(
+                "Cannot initialize shader '" + string(shaderName) + "' because the graphics context '" + to_string(graphicsContextID) + "' was not found!", 
+                "KG_SHADER",
+                LogType::LOG_ERROR,
+                2);
+
+            return nullptr;
+        }
+
+        VulkanContext* vulkanContextPtr = VulkanContext::GetRegistry().GetContent(graphicsContextPtr->GetVulkanContextID());
+        if (!vulkanContextPtr)
+        {
+            Log::Print(
+                "Cannot initialize shader '" + string(shaderName) + "' because the graphics context '" + to_string(graphicsContextID) + "' did not contain a Vulkan context!", 
+                "KG_SHADER",
+                LogType::LOG_ERROR,
+                2);
+
+            return nullptr;
+        }
+
         unordered_map<string, string> shaderPaths =
         {
             { "vertex",                 shaderData.shader_vert.string() },
@@ -204,7 +229,7 @@ namespace KalaGraphics::Graphics
 
                 VkShaderModule shaderModule{};
                 VkResult vkResult = vkCreateShaderModule(
-                    Vulkan_Core::GetLogicalDevice(),
+                    VulkanContext::GetLogicalDevice(),
                     &createInfo,
                     nullptr,
                     &shaderModule);
@@ -214,13 +239,14 @@ namespace KalaGraphics::Graphics
                     string message =
                         "Failed to initialize shader '" + string(shaderName) 
                         + "' because shader module creation failed! Reason: " 
-                        + Vulkan_Core::GetVkResultMessage(vkResult);
+                        + VulkanContext::GetVkResultMessage(vkResult);
 
-                    if (Vulkan_Core::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
+                    if (VulkanContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
                     {
                         KalaGraphicsCore::ForceClose(
                             "Vulkan shader error",
-                            message);
+                            message,
+                            true);
                     }
                     else
                     {
@@ -242,7 +268,7 @@ namespace KalaGraphics::Graphics
                 for (const auto& m : modules)
                 {
                     vkDestroyShaderModule(
-                        Vulkan_Core::GetLogicalDevice(),
+                        VulkanContext::GetLogicalDevice(),
                         m,
                         nullptr);
                 }
@@ -254,6 +280,9 @@ namespace KalaGraphics::Graphics
 
         unique_ptr<Shader> newShader = make_unique<Shader>();
         Shader* shaderPtr = newShader.get();
+
+        shaderPtr->graphicsContextID = graphicsContextPtr->GetID();
+        shaderPtr->vulkanContextID = vulkanContextPtr->GetID();
 
         ShaderModule module_vert = create_shader_module("vertex", shaderData.shader_vert);
         if (!module_vert.success) return nullptr;
@@ -370,7 +399,7 @@ namespace KalaGraphics::Graphics
 
         VkDescriptorSetLayout descriptorSetLayout{};
         VkResult vkResult = vkCreateDescriptorSetLayout(
-            Vulkan_Core::GetLogicalDevice(),
+            VulkanContext::GetLogicalDevice(),
             &descriptorLayoutInfo,
             nullptr,
             &descriptorSetLayout);
@@ -391,13 +420,14 @@ namespace KalaGraphics::Graphics
 
             string message = 
                 "Failed to create descriptor set layout for shader '" + shaderPtr->name + "'! Reason: " 
-                + Vulkan_Core::GetVkResultMessage(vkResult);
+                + VulkanContext::GetVkResultMessage(vkResult);
 
-            if (Vulkan_Core::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
+            if (VulkanContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
             {
                 KalaGraphicsCore::ForceClose(
                     "Vulkan shader error",
-                    message);
+                    message,
+                    true);
             }
             else
             {
@@ -424,7 +454,7 @@ namespace KalaGraphics::Graphics
 
         VkPipelineLayout pipelineLayout{};
         vkResult = vkCreatePipelineLayout(
-            Vulkan_Core::GetLogicalDevice(),
+            VulkanContext::GetLogicalDevice(),
             &pipelineLayoutInfo,
             nullptr,
             &pipelineLayout);
@@ -444,19 +474,20 @@ namespace KalaGraphics::Graphics
             destroy_shaders(badShaders);
 
             vkDestroyDescriptorSetLayout(
-                Vulkan_Core::GetLogicalDevice(),
+                VulkanContext::GetLogicalDevice(),
                 descriptorSetLayout,
                 nullptr);
 
             string message = 
                 "Failed to create pipeline layout for shader '" + shaderPtr->name + "'! Reason: " 
-                + Vulkan_Core::GetVkResultMessage(vkResult);
+                + VulkanContext::GetVkResultMessage(vkResult);
 
-            if (Vulkan_Core::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
+            if (VulkanContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
             {
                 KalaGraphicsCore::ForceClose(
                     "Vulkan shader error",
-                    message);
+                    message,
+                    true);
             }
             else
             {
@@ -587,12 +618,12 @@ namespace KalaGraphics::Graphics
         pipelineInfo.pColorBlendState    = &colorBlend;
         pipelineInfo.pDynamicState       = &dynamicState;
         pipelineInfo.layout              = pipelineLayout;
-        pipelineInfo.renderPass          = Vulkan_Core::GetRenderPass(windowContextID);
+        pipelineInfo.renderPass          = vulkanContextPtr->GetRenderPass();
         pipelineInfo.subpass             = 0;
 
         VkPipeline pipeline{};
         vkResult = vkCreateGraphicsPipelines(
-            Vulkan_Core::GetLogicalDevice(),
+            VulkanContext::GetLogicalDevice(),
             VK_NULL_HANDLE,
             1,
             &pipelineInfo,
@@ -614,24 +645,25 @@ namespace KalaGraphics::Graphics
             destroy_shaders(badShaders);
 
             vkDestroyDescriptorSetLayout(
-                Vulkan_Core::GetLogicalDevice(),
+                VulkanContext::GetLogicalDevice(),
                 descriptorSetLayout,
                 nullptr);
 
             vkDestroyPipelineLayout(
-                Vulkan_Core::GetLogicalDevice(),
+                VulkanContext::GetLogicalDevice(),
                 pipelineLayout,
                 nullptr);
 
             string message = 
                 "Failed to create graphics pipeline for shader '" + shaderPtr->name + "'! Reason: " 
-                + Vulkan_Core::GetVkResultMessage(vkResult);
+                + VulkanContext::GetVkResultMessage(vkResult);
 
-            if (Vulkan_Core::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
+            if (VulkanContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
             {
                 KalaGraphicsCore::ForceClose(
                     "Vulkan shader error",
-                    message);
+                    message,
+                    true);
             }
             else
             {
@@ -649,6 +681,7 @@ namespace KalaGraphics::Graphics
 
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
+        shaderPtr->ID = newID;
 
         registry.AddContent(newID, std::move(newShader));
 
@@ -661,6 +694,8 @@ namespace KalaGraphics::Graphics
     }
 
     u32 Shader::GetID() const { return ID; }
+    u32 Shader::GetGraphicsContextID() const { return graphicsContextID; }
+    u32 Shader::GetVulkanContextID() const { return vulkanContextID; }
 
     string_view Shader::GetName() const { return name; }
 
@@ -731,58 +766,61 @@ namespace KalaGraphics::Graphics
     VkPipelineLayout Shader::GetPipelineLayout() { return pipelineLayout; }
     VkPipeline Shader::GetPipeline() { return pipeline; }
 
-    void Shader::Shutdown()
+    void Shader::Destroy()
     {
-		Log::Print(
+        registry.RemoveContent(ID);
+    }
+
+    Shader::~Shader()
+    {
+        Log::Print(
 			"Destroying shader '" + name + "' with ID '" + to_string(ID) + "'.",
 			"KG_SHADER",
 			LogType::LOG_INFO);
 
         vkDestroyPipeline(
-            Vulkan_Core::GetLogicalDevice(),
+            VulkanContext::GetLogicalDevice(),
             pipeline,
             nullptr);
         vkDestroyPipelineLayout(
-            Vulkan_Core::GetLogicalDevice(),
+            VulkanContext::GetLogicalDevice(),
             pipelineLayout,
             nullptr);
 
         vkDestroyDescriptorSetLayout(
-            Vulkan_Core::GetLogicalDevice(),
+            VulkanContext::GetLogicalDevice(),
             descriptorSetLayout,
             nullptr);
 
         vkDestroyShaderModule(
-            Vulkan_Core::GetLogicalDevice(),
+            VulkanContext::GetLogicalDevice(),
             shaderModuleData.module_vert,
             nullptr);
         vkDestroyShaderModule(
-            Vulkan_Core::GetLogicalDevice(),
+            VulkanContext::GetLogicalDevice(),
             shaderModuleData.module_frag,
             nullptr);
 
         if (shaderModuleData.usingGeom)
         {
             vkDestroyShaderModule(
-                Vulkan_Core::GetLogicalDevice(),
+                VulkanContext::GetLogicalDevice(),
                 shaderModuleData.module_geom,
                 nullptr);
         }
         if (shaderModuleData.usingTessCont)
         {
             vkDestroyShaderModule(
-                Vulkan_Core::GetLogicalDevice(),
+                VulkanContext::GetLogicalDevice(),
                 shaderModuleData.module_tess_cont,
                 nullptr);
         }
         if (shaderModuleData.usingTessEval)
         {
             vkDestroyShaderModule(
-                Vulkan_Core::GetLogicalDevice(),
+                VulkanContext::GetLogicalDevice(),
                 shaderModuleData.module_tess_eval,
                 nullptr);
         }
-
-        registry.RemoveContent(ID);
     }
 }
