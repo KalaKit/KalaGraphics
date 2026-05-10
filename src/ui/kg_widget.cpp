@@ -21,14 +21,14 @@ using KalaHeaders::KalaMath::MAX_SIZE3;
 using KalaHeaders::KalaMath::PosTarget;
 using KalaHeaders::KalaMath::RotTarget;
 using KalaHeaders::KalaMath::SizeTarget;
-using KalaHeaders::KalaMath::getpos;
-using KalaHeaders::KalaMath::addpos;
-using KalaHeaders::KalaMath::setpos;
+using KalaHeaders::KalaMath::getpos3d;
+using KalaHeaders::KalaMath::addpos3d;
+using KalaHeaders::KalaMath::setpos3d;
 using KalaHeaders::KalaMath::getroteuler;
-using KalaHeaders::KalaMath::addrot;
-using KalaHeaders::KalaMath::getsize;
-using KalaHeaders::KalaMath::addsize;
-using KalaHeaders::KalaMath::setsize;
+using KalaHeaders::KalaMath::addrot3d;
+using KalaHeaders::KalaMath::getsize3d;
+using KalaHeaders::KalaMath::addsize3d;
+using KalaHeaders::KalaMath::setsize3d;
 
 using KalaGraphics::Core::MAX_NAME_LENGTH;
 using KalaGraphics::Core::KalaGraphicsCore;
@@ -165,12 +165,12 @@ namespace KalaGraphics::UI
         widgetPtr->core.isVisible = isVisible;
         widgetPtr->core.isInteractable = isInteractable;
 
-        setpos(
+        setpos3d(
             widgetPtr->transform.transform,
             {},
             PosTarget::POS_WORLD,
             pos);
-        setsize(
+        setsize3d(
             widgetPtr->transform.transform,
             {},
             SizeTarget::SIZE_WORLD,
@@ -256,7 +256,7 @@ namespace KalaGraphics::UI
 
     vec3 Widget_Transform::GetPos(bool local) const
     {
-        return getpos(
+        return getpos3d(
             transform,
             local
                 ? PosTarget::POS_LOCAL
@@ -278,7 +278,7 @@ namespace KalaGraphics::UI
             return;
         }
 
-        addpos(
+        addpos3d(
             transform,
             {},
             local ? PosTarget::POS_LOCAL : PosTarget::POS_COMBINED,
@@ -300,7 +300,7 @@ namespace KalaGraphics::UI
             return;
         }
 
-        setpos(
+        setpos3d(
             transform,
             {},
             local ? PosTarget::POS_LOCAL : PosTarget::POS_COMBINED,
@@ -323,7 +323,7 @@ namespace KalaGraphics::UI
         const vec3& rot,
         bool local)
     {
-        addrot(
+        addrot3d(
             transform,
             {},
             local ? RotTarget::ROT_LOCAL : RotTarget::ROT_COMBINED,
@@ -346,7 +346,7 @@ namespace KalaGraphics::UI
 
     vec3 Widget_Transform::GetSize(bool local) const
     {
-        return getsize(
+        return getsize3d(
             transform,
             local
                 ? SizeTarget::SIZE_LOCAL
@@ -368,7 +368,7 @@ namespace KalaGraphics::UI
             return;
         }
 
-        addsize(
+        addsize3d(
             transform,
             {},
             local ? SizeTarget::SIZE_LOCAL : SizeTarget::SIZE_COMBINED,
@@ -390,7 +390,7 @@ namespace KalaGraphics::UI
             return;
         }
 
-        setsize(
+        setsize3d(
             transform,
             {},
             local ? SizeTarget::SIZE_LOCAL : SizeTarget::SIZE_COMBINED,
