@@ -233,7 +233,7 @@ namespace KalaGraphics::Core
         }
 
 #ifdef _WIN32
-        if (!contextPtr->context.context_window)
+        if (!contextPtr->contextData.context_window)
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
@@ -395,7 +395,7 @@ namespace KalaGraphics::Core
     GraphicsContext::~GraphicsContext()
     {
 		Log::Print(
-			"Destroying context '" + to_string(ID) + "'.",
+			"Destroying graphics context '" + to_string(ID) + "'.",
 			"KG_CONTEXT",
 			LogType::LOG_INFO);
 

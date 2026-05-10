@@ -449,7 +449,8 @@ namespace KalaGraphics::Graphics
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount         = 0;
+        pipelineLayoutInfo.setLayoutCount         = 1;
+        pipelineLayoutInfo.pSetLayouts            = &descriptorSetLayout;
         pipelineLayoutInfo.pushConstantRangeCount = 0;
 
         VkPipelineLayout pipelineLayout{};
@@ -553,8 +554,24 @@ namespace KalaGraphics::Graphics
                 shaderPtr->shaderModuleData.module_tess_eval);
         }
 
+        VkVertexInputBindingDescription bindingDescription{};
+        bindingDescription.binding   = 0;
+        bindingDescription.stride    = sizeof(f32) * 8;
+        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+        VkVertexInputAttributeDescription attributeDescriptions[] =
+        {
+            { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 },
+            { 1, 0, VK_FORMAT_R32G32_SFLOAT, sizeof(f32) * 3 },
+            { 2, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(f32) * 5 }
+        };
+
         VkPipelineVertexInputStateCreateInfo vertexInput{};
-        vertexInput.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        vertexInput.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        vertexInput.vertexBindingDescriptionCount   = 1;
+        vertexInput.pVertexBindingDescriptions      = &bindingDescription;
+        vertexInput.vertexAttributeDescriptionCount = 3;
+        vertexInput.pVertexAttributeDescriptions    = attributeDescriptions;
 
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
         inputAssembly.sType    = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;

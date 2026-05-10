@@ -805,19 +805,25 @@ namespace KalaGraphics::Graphics
             if (supportsMailbox) chosenPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
             else if (supportsFifoRelaxed)
             {
-                Log::Print(
-                    "Tried to use MAILBOX but device does not support it, falling back to FIFO_RELAXED.",
-                    "KG_VULKAN",
-                    LogType::LOG_WARNING);
+                if (isVerboseLoggingEnabled)
+                {
+                    Log::Print(
+                        "Tried to use MAILBOX but device does not support it, falling back to FIFO_RELAXED.",
+                        "KG_VULKAN",
+                        LogType::LOG_VERBOSE);
+                }
 
                 chosenPresentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
             }
             else
             {
-                Log::Print(
-                    "Tried to use MAILBOX and FIFO_RELAXED but device does not support them, falling back to FIFO.",
-                    "KG_VULKAN",
-                    LogType::LOG_WARNING);
+                if (isVerboseLoggingEnabled)
+                {
+                    Log::Print(
+                        "Tried to use MAILBOX and FIFO_RELAXED but device does not support them, falling back to FIFO.",
+                        "KG_VULKAN",
+                        LogType::LOG_VERBOSE);
+                }
 
                 chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
             }
@@ -828,10 +834,13 @@ namespace KalaGraphics::Graphics
             if (supportsFifoRelaxed) chosenPresentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
             else
             {
-                Log::Print(
-                    "Tried to use FIFO_RELAXED but device does not support it, falling back to FIFO.",
-                    "KG_VULKAN",
-                    LogType::LOG_WARNING);
+                if (isVerboseLoggingEnabled)
+                {
+                    Log::Print(
+                        "Tried to use FIFO_RELAXED but device does not support it, falling back to FIFO.",
+                        "KG_VULKAN",
+                        LogType::LOG_VERBOSE);
+                }
 
                 chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
             }
@@ -1305,10 +1314,12 @@ namespace KalaGraphics::Graphics
             }
             else if (GetVkResultSeverity(result) == Severity::S_WARNING)
             {
+#ifdef KDEBUG
                 Log::Print(
                     "Image aquire returned a warning: " + GetVkResultMessage(result),
                     "KG_VULKAN",
                     LogType::LOG_WARNING);
+#endif
             }
             else
             {
@@ -1433,10 +1444,12 @@ namespace KalaGraphics::Graphics
         }
         else if (GetVkResultSeverity(result) == Severity::S_WARNING)
         {
+#ifdef KDEBUG
             Log::Print(
                 "Queue present returned a warning: " + GetVkResultMessage(result),
                 "KG_VULKAN",
                 LogType::LOG_WARNING);
+#endif
         }
         else
         {
@@ -1507,17 +1520,6 @@ namespace KalaGraphics::Graphics
         // DESTROY
         //
 
-        auto destroy_semaphores = [&]() -> void
-            {
-                vkDestroySemaphore(
-                    logicalDevice,
-                    availableSemaphore,
-                    nullptr);
-                vkDestroySemaphore(
-                    logicalDevice,
-                    renderFinishedSemaphore,
-                    nullptr);
-            };
         auto destroy_framebuffers = [&]() -> void
             {
                 for (auto& fb : framebuffers)
@@ -1559,13 +1561,7 @@ namespace KalaGraphics::Graphics
                     logicalDevice,
                     swapchain,
                     nullptr);
-            };
-
-        destroy_semaphores();
-        destroy_framebuffers();
-        destroy_depth_image_views();
-        destroy_image_views();
-        destroy_swapchain();
+            };   
 
         //
         // QUERY SURFACE
@@ -1657,19 +1653,25 @@ namespace KalaGraphics::Graphics
             if (supportsMailbox) chosenPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
             else if (supportsFifoRelaxed)
             {
-                Log::Print(
-                    "Tried to use MAILBOX but device does not support it, falling back to FIFO_RELAXED.",
-                    "KG_VULKAN",
-                    LogType::LOG_WARNING);
+                if (isVerboseLoggingEnabled)
+                {
+                    Log::Print(
+                        "Tried to use MAILBOX but device does not support it, falling back to FIFO_RELAXED.",
+                        "KG_VULKAN",
+                        LogType::LOG_VERBOSE);
+                }
 
                 chosenPresentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
             }
             else
             {
-                Log::Print(
-                    "Tried to use MAILBOX and FIFO_RELAXED but device does not support them, falling back to FIFO.",
-                    "KG_VULKAN",
-                    LogType::LOG_WARNING);
+                if (isVerboseLoggingEnabled)
+                {
+                    Log::Print(
+                        "Tried to use MAILBOX and FIFO_RELAXED but device does not support them, falling back to FIFO.",
+                        "KG_VULKAN",
+                        LogType::LOG_VERBOSE);
+                }
 
                 chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
             }
@@ -1680,10 +1682,13 @@ namespace KalaGraphics::Graphics
             if (supportsFifoRelaxed) chosenPresentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
             else
             {
-                Log::Print(
-                    "Tried to use FIFO_RELAXED but device does not support it, falling back to FIFO.",
-                    "KG_VULKAN",
-                    LogType::LOG_WARNING);
+                if (isVerboseLoggingEnabled)
+                {
+                    Log::Print(
+                        "Tried to use FIFO_RELAXED but device does not support it, falling back to FIFO.",
+                        "KG_VULKAN",
+                        LogType::LOG_VERBOSE);
+                }
 
                 chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
             }
@@ -1711,7 +1716,7 @@ namespace KalaGraphics::Graphics
         swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
         swapchainInfo.presentMode = chosenPresentMode;
         swapchainInfo.clipped = VK_TRUE;
-        swapchainInfo.oldSwapchain = VK_NULL_HANDLE;
+        swapchainInfo.oldSwapchain = swapchain;
 
         VkSwapchainKHR newSwapchain{};
         VkResult vkResult = vkCreateSwapchainKHR(
@@ -1728,6 +1733,8 @@ namespace KalaGraphics::Graphics
                 + to_string(context->GetID()) + "' because swapchain creation failed!",
                 vkResult);
         }
+
+        destroy_swapchain();
 
         swapchain = newSwapchain;
         swapchainFormat = chosenFormat.format;
@@ -1788,6 +1795,8 @@ namespace KalaGraphics::Graphics
                     vkResult);
             }
         }
+
+        destroy_image_views();
 
         imageViews = newImageViews;
 
@@ -1863,6 +1872,8 @@ namespace KalaGraphics::Graphics
                 vkResult);
         }
 
+        destroy_depth_image_views();   
+
         depthImage = newDepthImage;
         depthAllocation = newDepthAllocation;
         depthImageView = newDepthImageView;
@@ -1905,48 +1916,9 @@ namespace KalaGraphics::Graphics
             }
         }
 
+        destroy_framebuffers(); 
+
         framebuffers = newFramebuffers;
-
-        //
-        // CREATE SEMAPHORES
-        //
-
-        VkSemaphoreCreateInfo semaphoreInfo{};
-        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-        VkSemaphore newAvailableSemaphore{};
-        vkResult = vkCreateSemaphore(
-            logicalDevice,
-            &semaphoreInfo,
-            nullptr,
-            &newAvailableSemaphore);
-
-        if (vkResult != VK_SUCCESS)
-        {
-            VulkanContext::CloseOnError(
-                "Vulkan swapchain error",
-                "Failed to recreate Vulkan swapchain for window context '" 
-                + to_string(context->GetID()) + "' because available semaphore creation failed!",
-                vkResult);
-        }
-        VkSemaphore newRenderFinishedSemaphore{};
-        vkResult = vkCreateSemaphore(
-            logicalDevice,
-            &semaphoreInfo,
-            nullptr,
-            &newRenderFinishedSemaphore);
-
-        if (vkResult != VK_SUCCESS)
-        {
-            VulkanContext::CloseOnError(
-                "Vulkan swapchain error",
-                "Failed to recreate Vulkan swapchain for window context '" 
-                + to_string(context->GetID()) + "' because render finished semaphore creation failed!",
-                vkResult);
-        }
-
-        availableSemaphore = newAvailableSemaphore;
-        renderFinishedSemaphore = newRenderFinishedSemaphore;
 
         if (isVerboseLoggingEnabled)
         {
