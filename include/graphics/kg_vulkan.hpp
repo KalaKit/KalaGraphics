@@ -91,12 +91,13 @@ namespace KalaGraphics::Graphics
         //Actions that occur only when the window size changes
         void ResizeUpdate();
 
+        //Recreates the Vulkan swapchain and its related content, useful for resize events etc
+        bool RecreateSwapchain();
+
         void Destroy();
 
         ~VulkanContext();
     private:
-        bool RecreateSwapchain();
-
         u32 ID{};
         u32 graphicsContextID{};
 
