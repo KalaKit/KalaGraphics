@@ -245,8 +245,7 @@ namespace KalaGraphics::Graphics
                     {
                         KalaGraphicsCore::ForceClose(
                             "Vulkan shader error",
-                            message,
-                            true);
+                            message);
                     }
                     else
                     {
@@ -426,8 +425,7 @@ namespace KalaGraphics::Graphics
             {
                 KalaGraphicsCore::ForceClose(
                     "Vulkan shader error",
-                    message,
-                    true);
+                    message);
             }
             else
             {
@@ -487,8 +485,7 @@ namespace KalaGraphics::Graphics
             {
                 KalaGraphicsCore::ForceClose(
                     "Vulkan shader error",
-                    message,
-                    true);
+                    message);
             }
             else
             {
@@ -679,8 +676,7 @@ namespace KalaGraphics::Graphics
             {
                 KalaGraphicsCore::ForceClose(
                     "Vulkan shader error",
-                    message,
-                    true);
+                    message);
             }
             else
             {

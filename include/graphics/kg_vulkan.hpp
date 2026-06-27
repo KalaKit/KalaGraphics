@@ -6,6 +6,7 @@
 #pragma once
 
 #include <vector>
+#include <array>
 #include <string>
 
 #include "vulkan/vulkan_core.h"
@@ -18,10 +19,13 @@
 
 namespace KalaGraphics::Graphics
 {
+    constexpr u8 MAX_FRAMES_IN_FLIGHT = 2;
+
     using KalaGraphics::Core::KalaGraphicsRegistry;
     using KalaGraphics::Core::VSyncState;
 
     using std::vector;
+    using std::array;
     using std::string;
     using std::string_view;
 
@@ -73,16 +77,16 @@ namespace KalaGraphics::Graphics
         u32 GetID() const;
         u32 GetGraphicsContextID() const;
 
-        VkSwapchainKHR GetSwapchain();
-        vector<VkImageView> GetImageViews();
-        VkRenderPass GetRenderPass();
-        VkImage GetDepthImage();
-        VkImageView GetDepthImageView();
-        vector<VkFramebuffer> GetFramebuffers();
-        VkSemaphore GetAvailableSemaphore();
-        VkSemaphore GetRenderFinishedSemaphore();
-        VkFence GetInFlightFence();
-        VkCommandBuffer GetCommandBuffer();
+        VkSwapchainKHR& GetSwapchain();
+        vector<VkImageView>& GetImageViews();
+        VkRenderPass& GetRenderPass();
+        VkImage& GetDepthImage();
+        VkImageView& GetDepthImageView();
+        vector<VkFramebuffer>& GetFramebuffers();
+        array<VkSemaphore, MAX_FRAMES_IN_FLIGHT>& GetAvailableSemaphores();
+        vector<VkSemaphore>& GetRenderFinishedSemaphores();
+        array<VkFence, MAX_FRAMES_IN_FLIGHT>& GetInFlightFences();
+        array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT>& GetCommandBuffers();
 
         bool SetVSyncState();
 
@@ -101,18 +105,21 @@ namespace KalaGraphics::Graphics
         u32 ID{};
         u32 graphicsContextID{};
 
+        size_t currentFrame{};
+
         VkExtent2D extent{};
         VkSwapchainKHR swapchain{};
         VkFormat swapchainFormat{};
+        vector<VkFence> imagesInFlight{};
         vector<VkImageView> imageViews{};
         VkRenderPass renderPass{};
         VkImage depthImage{};
         VmaAllocation depthAllocation{};
         VkImageView depthImageView{};
         vector<VkFramebuffer> framebuffers{};
-        VkSemaphore availableSemaphore{};
-        VkSemaphore renderFinishedSemaphore{};
-        VkFence inFlightFence{};
-        VkCommandBuffer commandBuffer{};
+        array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> availableSemaphores{};
+        vector<VkSemaphore> renderFinishedSemaphores{};
+        array<VkFence, MAX_FRAMES_IN_FLIGHT> inFlightFences{};
+        array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> commandBuffers{};
     };
 }

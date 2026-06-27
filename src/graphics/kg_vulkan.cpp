@@ -3,6 +3,7 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
+#include <cstdint>
 #include <vector>
 #include <array>
 #include <cstring>
@@ -571,23 +572,20 @@ namespace KalaGraphics::Graphics
 
             KalaGraphicsCore::ForceClose(
                 title,
-                string(message),
-                true);
+                string(message));
         }
 
         if (result == VK_SUCCESS)
         {
             KalaGraphicsCore::ForceClose(
                 title,
-                string(message),
-                true);
+                string(message));
         }
         else
         {
             KalaGraphicsCore::ForceClose(
                 title,
-                string(message) + "\nReason: " + GetVkResultMessage(result),
-                true);
+                string(message) + "\nReason: " + GetVkResultMessage(result));
         }
     }
 
@@ -945,6 +943,7 @@ namespace KalaGraphics::Graphics
         }
 
         contextPtr->imageViews = scImageViews;
+        contextPtr->imagesInFlight.resize(swapchainImageCount, VK_NULL_HANDLE);
 
         //
         // CREATE RENDER PASS
@@ -989,11 +988,14 @@ namespace KalaGraphics::Graphics
         dependency.dstSubpass = 0;
         dependency.srcStageMask = 
             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
-            | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+            | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT
+            | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
         dependency.dstStageMask =
             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
             | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependency.srcAccessMask = 0;
+        dependency.srcAccessMask = 
+            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
+            | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
         dependency.dstAccessMask =
             VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
             | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
@@ -1154,81 +1156,89 @@ namespace KalaGraphics::Graphics
         fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-        VkSemaphore availableSemaphore{};
-        VkSemaphore renderFinishedSemaphore{};
-        VkFence inFlightFence{};
+        array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> availableSemaphores{};
+        array<VkFence, MAX_FRAMES_IN_FLIGHT> inFlightFences{};
 
-        vkResult = vkCreateSemaphore(
-            logicalDevice,
-            &semaphoreInfo,
-            nullptr,
-            &availableSemaphore);
-
-        if (vkResult != VK_SUCCESS)
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
         {
-            CloseOnError(
-                "Vulkan surface init error",
-                "Failed to initialize Vulkan surface for window context '" + to_string(context->GetID()) + "' because available semaphore creation failed!",
-                vkResult);
+            vkResult = vkCreateSemaphore(
+                logicalDevice,
+                &semaphoreInfo,
+                nullptr,
+                &availableSemaphores[i]);
+
+            if (vkResult != VK_SUCCESS)
+            {
+                CloseOnError(
+                    "Vulkan surface init error",
+                    "Failed to initialize Vulkan surface for window context '" + to_string(context->GetID())
+                    + "' because available semaphore '" + to_string(i) + "' creation failed!",
+                    vkResult);
+            }
+
+            vkResult = vkCreateFence(
+                logicalDevice,
+                &fenceInfo,
+                nullptr,
+                &inFlightFences[i]);
+
+            if (vkResult != VK_SUCCESS)
+            {
+                CloseOnError(
+                    "Vulkan surface init error",
+                    "Failed to initialize Vulkan surface for window context '" + to_string(context->GetID())
+                    + "' because in flight fence '" + to_string(i) + "' creation failed!",
+                    vkResult);
+            }
         }
 
-        vkResult = vkCreateSemaphore(
-            logicalDevice,
-            &semaphoreInfo,
-            nullptr,
-            &renderFinishedSemaphore);
+        contextPtr->availableSemaphores = availableSemaphores;
+        contextPtr->inFlightFences = inFlightFences;
 
-        if (vkResult != VK_SUCCESS)
+        vector<VkSemaphore> renderFinishedSemaphores(swapchainImageCount);
+        for (u32 i = 0; i < swapchainImageCount; i++)
         {
-            CloseOnError(
-                "Vulkan surface init error",
-                "Failed to initialize Vulkan surface for window context '" + to_string(context->GetID()) + "' because render finished semaphore creation failed!",
-                vkResult);
+            vkResult = vkCreateSemaphore(
+                logicalDevice,
+                &semaphoreInfo,
+                nullptr,
+                &renderFinishedSemaphores[i]);
+
+            if (vkResult != VK_SUCCESS)
+            {
+                CloseOnError(
+                    "Vulkan surface init error",
+                    "Failed to initialize Vulkan surface for window context '" + to_string(context->GetID())
+                    + "' because render finished semaphore '" + to_string(i) + "' creation failed!",
+                    vkResult);
+            }
         }
 
-        vkResult = vkCreateFence(
-            logicalDevice,
-            &fenceInfo,
-            nullptr,
-            &inFlightFence);
-
-        if (vkResult != VK_SUCCESS)
-        {
-            CloseOnError(
-                "Vulkan surface init error",
-                "Failed to initialize Vulkan surface for window context '" + to_string(context->GetID()) + "' because in flight fence creation failed!",
-                vkResult);
-        }
-
-        contextPtr->availableSemaphore = availableSemaphore;
-        contextPtr->renderFinishedSemaphore = renderFinishedSemaphore;
-        contextPtr->inFlightFence = inFlightFence;
+        contextPtr->renderFinishedSemaphores = renderFinishedSemaphores;
 
         //
-        // ALLOCATE COMMAND BUFFER
+        // ALLOCATE COMMAND BUFFERS
         //
 
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.commandPool = commandPool;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = 1;
+        allocInfo.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
 
-        VkCommandBuffer commandBuffer{};
         vkResult = vkAllocateCommandBuffers(
             logicalDevice,
             &allocInfo,
-            &commandBuffer);
+            contextPtr->commandBuffers.data());
 
         if (vkResult != VK_SUCCESS)
         {
             CloseOnError(
                 "Vulkan surface init error",
-                "Failed to initialize Vulkan surface for window context '" + to_string(context->GetID()) + "' because command buffer allocation failed!",
+                "Failed to initialize Vulkan surface for window context '" + to_string(context->GetID())
+                + "' because parallel command buffer allocation failed!",
                 vkResult);
         }
-
-        contextPtr->commandBuffer = commandBuffer;
 
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
@@ -1238,7 +1248,7 @@ namespace KalaGraphics::Graphics
         registry.AddContent(newID, std::move(newContext));
 
         Log::Print(
-            "Initialized Vulkan context!",
+            "Created new Vulkan context with ID '" + to_string(newID) + "'!",
             "KG_VULKAN",
             LogType::LOG_SUCCESS);
 
@@ -1248,22 +1258,23 @@ namespace KalaGraphics::Graphics
     u32 VulkanContext::GetID() const { return ID; }
     u32 VulkanContext::GetGraphicsContextID() const { return graphicsContextID; }
 
-    VkSwapchainKHR VulkanContext::GetSwapchain() { return swapchain; }
-    vector<VkImageView> VulkanContext::GetImageViews() { return imageViews; }
-    VkRenderPass VulkanContext::GetRenderPass() { return renderPass; } 
-    VkImage VulkanContext::GetDepthImage() { return depthImage; }
-    VkImageView VulkanContext::GetDepthImageView() { return depthImageView; }
-    vector<VkFramebuffer> VulkanContext::GetFramebuffers() { return framebuffers; } 
-    VkSemaphore VulkanContext::GetAvailableSemaphore() { return availableSemaphore; }
-    VkSemaphore VulkanContext::GetRenderFinishedSemaphore() { return renderFinishedSemaphore; }
-    VkFence VulkanContext::GetInFlightFence() { return inFlightFence; }
-    VkCommandBuffer VulkanContext::GetCommandBuffer() { return commandBuffer; }
+    VkSwapchainKHR& VulkanContext::GetSwapchain() { return swapchain; }
+    vector<VkImageView>& VulkanContext::GetImageViews() { return imageViews; }
+    VkRenderPass& VulkanContext::GetRenderPass() { return renderPass; } 
+    VkImage& VulkanContext::GetDepthImage() { return depthImage; }
+    VkImageView& VulkanContext::GetDepthImageView() { return depthImageView; }
+    vector<VkFramebuffer>& VulkanContext::GetFramebuffers() { return framebuffers; } 
+    array<VkSemaphore, MAX_FRAMES_IN_FLIGHT>& VulkanContext::GetAvailableSemaphores() { return availableSemaphores; }
+    vector<VkSemaphore>& VulkanContext::GetRenderFinishedSemaphores() { return renderFinishedSemaphores; }
+    array<VkFence, MAX_FRAMES_IN_FLIGHT>& VulkanContext::GetInFlightFences() { return inFlightFences; }
+    array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT>& VulkanContext::GetCommandBuffers() { return commandBuffers; }
 
     bool VulkanContext::SetVSyncState() { return RecreateSwapchain(); }
 
     void VulkanContext::Update()
     {
         GraphicsContext* ctx = GraphicsContext::GetRegistry().GetContent(graphicsContextID);
+
         if (!ctx)
         {
             CloseOnError(
@@ -1275,7 +1286,7 @@ namespace KalaGraphics::Graphics
         vkWaitForFences(
             logicalDevice,
             1,
-            &inFlightFence,
+            &inFlightFences[currentFrame],
             VK_TRUE,
             UINT64_MAX);
 
@@ -1284,7 +1295,7 @@ namespace KalaGraphics::Graphics
             logicalDevice,
             swapchain,
             UINT64_MAX,
-            availableSemaphore,
+            availableSemaphores[currentFrame],
             VK_NULL_HANDLE,
             &imageIndex);
 
@@ -1334,18 +1345,30 @@ namespace KalaGraphics::Graphics
             }
         }
 
+        if (imagesInFlight[imageIndex] != VK_NULL_HANDLE)
+        {
+            vkWaitForFences(
+                logicalDevice,
+                1,
+                &imagesInFlight[imageIndex],
+                VK_TRUE,
+                UINT64_MAX);
+        }
+
+        imagesInFlight[imageIndex] = inFlightFences[currentFrame];
+
         vkResetFences(
             logicalDevice,
             1,
-            &inFlightFence);
+            &inFlightFences[currentFrame]);
         vkResetCommandBuffer(
-            commandBuffer,
+            commandBuffers[currentFrame],
             0);
 
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         vkBeginCommandBuffer(
-            commandBuffer,
+            commandBuffers[currentFrame],
             &beginInfo);
 
         array<VkClearValue, 2> clearValues{};
@@ -1362,7 +1385,7 @@ namespace KalaGraphics::Graphics
         renderPassInfo.pClearValues = clearValues.data();
 
         vkCmdBeginRenderPass(
-            commandBuffer,
+            commandBuffers[currentFrame],
             &renderPassInfo,
             VK_SUBPASS_CONTENTS_INLINE);
 
@@ -1387,13 +1410,13 @@ namespace KalaGraphics::Graphics
         scissor.extent = extent;
 
         vkCmdSetViewport(
-            commandBuffer,
+            commandBuffers[currentFrame],
             0,
             1,
             &viewport);
             
         vkCmdSetScissor(
-            commandBuffer,
+            commandBuffers[currentFrame],
             0,
             1,
             &scissor);
@@ -1402,31 +1425,31 @@ namespace KalaGraphics::Graphics
         // END DRAW
         //
 
-        vkCmdEndRenderPass(commandBuffer);
-        vkEndCommandBuffer(commandBuffer);
+        vkCmdEndRenderPass(commandBuffers[currentFrame]);
+        vkEndCommandBuffer(commandBuffers[currentFrame]);
 
         VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = &availableSemaphore;
+        submitInfo.pWaitSemaphores = &availableSemaphores[currentFrame];
         submitInfo.pWaitDstStageMask = &waitStage;
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer;
+        submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
         submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &renderFinishedSemaphore;
+        submitInfo.pSignalSemaphores = &renderFinishedSemaphores[imageIndex];
 
         vkQueueSubmit(
             graphicsQueue,
             1,
             &submitInfo,
-            inFlightFence);
+            inFlightFences[currentFrame]);
 
         VkPresentInfoKHR presentInfo{};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
         presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = &renderFinishedSemaphore;
+        presentInfo.pWaitSemaphores = &renderFinishedSemaphores[imageIndex];
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = &swapchain;
         presentInfo.pImageIndices = &imageIndex;
@@ -1475,7 +1498,10 @@ namespace KalaGraphics::Graphics
             }
 
             RecreateSwapchain();
+            return;
         }
+
+        currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
     void VulkanContext::ResizeUpdate() { RecreateSwapchain(); }
@@ -1487,8 +1513,7 @@ namespace KalaGraphics::Graphics
         {
             KalaGraphicsCore::ForceClose(
                 "Vulkan swapchain error", 
-                "Failed to recreate swapchain because Graphics context '" + to_string(graphicsContextID) + "' was not found!",
-                true);
+                "Failed to recreate swapchain because Graphics context '" + to_string(graphicsContextID) + "' was not found!");
         }
 
         VkSurfaceKHR surface = context->GetGraphicsContextData().context_vk_surface;
@@ -1520,48 +1545,44 @@ namespace KalaGraphics::Graphics
         // DESTROY
         //
 
-        auto destroy_framebuffers = [&]() -> void
-            {
-                for (auto& fb : framebuffers)
-                {
-                    vkDestroyFramebuffer(
-                        logicalDevice,
-                        fb,
-                        nullptr);
-                }
+        for (auto& fb : framebuffers)
+        {
+            vkDestroyFramebuffer(
+                logicalDevice,
+                fb,
+                nullptr);
+        }
+        framebuffers.clear();
 
-                framebuffers.clear();
-            };
-        auto destroy_depth_image_views = [&]() -> void
-            {
-                vkDestroyImageView(
-                    logicalDevice,
-                    depthImageView,
-                    nullptr);
-                vmaDestroyImage(
-                    vmaAllocator,
-                    depthImage,
-                    depthAllocation);
-            };
-        auto destroy_image_views = [&]() -> void
-            {
-                for (auto& view : imageViews)
-                {
-                    vkDestroyImageView(
-                        logicalDevice,
-                        view,
-                        nullptr);
-                }
+        for (auto& view : imageViews)
+        {
+            vkDestroyImageView(
+                logicalDevice,
+                view,
+                nullptr);
+        }
+        imageViews.clear();
 
-                imageViews.clear();
-            };
-        auto destroy_swapchain = [&]() -> void
-            {
-                vkDestroySwapchainKHR(
-                    logicalDevice,
-                    swapchain,
-                    nullptr);
-            };   
+        if (depthImageView != VK_NULL_HANDLE)
+        {
+            vkDestroyImageView(
+                logicalDevice,
+                depthImageView,
+                nullptr);
+
+            depthImageView = VK_NULL_HANDLE;
+        }
+
+        if (depthImage != VK_NULL_HANDLE)
+        {
+            vmaDestroyImage(
+                vmaAllocator,
+                depthImage,
+                depthAllocation);
+
+            depthImage = VK_NULL_HANDLE;
+            depthAllocation = VK_NULL_HANDLE;
+        }
 
         //
         // QUERY SURFACE
@@ -1734,7 +1755,13 @@ namespace KalaGraphics::Graphics
                 vkResult);
         }
 
-        destroy_swapchain();
+        if (swapchain != VK_NULL_HANDLE)
+        {
+            vkDestroySwapchainKHR(
+                logicalDevice,
+                swapchain,
+                nullptr);
+        }
 
         swapchain = newSwapchain;
         swapchainFormat = chosenFormat.format;
@@ -1762,7 +1789,7 @@ namespace KalaGraphics::Graphics
         // CREATE IMAGE VIEWS
         //
 
-        vector<VkImageView> newImageViews(swapchainImageCount);
+        imageViews.resize(swapchainImageCount);
         for (u32 i = 0; i < swapchainImageCount; i++)
         {
             VkImageViewCreateInfo viewInfo{};
@@ -1784,7 +1811,7 @@ namespace KalaGraphics::Graphics
                 logicalDevice,
                 &viewInfo,
                 nullptr,
-                &newImageViews[i]);
+                &imageViews[i]);
 
             if (vkResult != VK_SUCCESS)
             {
@@ -1795,10 +1822,6 @@ namespace KalaGraphics::Graphics
                     vkResult);
             }
         }
-
-        destroy_image_views();
-
-        imageViews = newImageViews;
 
         //
         // CREATE DEPTH IMAGE
@@ -1822,14 +1845,12 @@ namespace KalaGraphics::Graphics
         VmaAllocationCreateInfo depthAllocInfo{};
         depthAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
-        VkImage newDepthImage{};
-        VmaAllocation newDepthAllocation{};
         vkResult = vmaCreateImage(
             vmaAllocator,
             &depthImageInfo,
             &depthAllocInfo,
-            &newDepthImage,
-            &newDepthAllocation,
+            &depthImage,
+            &depthAllocation,
             nullptr);
 
         if (vkResult != VK_SUCCESS)
@@ -1847,7 +1868,7 @@ namespace KalaGraphics::Graphics
 
         VkImageViewCreateInfo depthViewInfo{};
         depthViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        depthViewInfo.image = newDepthImage;
+        depthViewInfo.image = depthImage;
         depthViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
         depthViewInfo.format = VK_FORMAT_D32_SFLOAT;
         depthViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -1856,12 +1877,11 @@ namespace KalaGraphics::Graphics
         depthViewInfo.subresourceRange.baseArrayLayer = 0;
         depthViewInfo.subresourceRange.layerCount = 1;
 
-        VkImageView newDepthImageView{};
         vkResult = vkCreateImageView(
             logicalDevice,
             &depthViewInfo,
             nullptr,
-            &newDepthImageView);
+            &depthImageView);
 
         if (vkResult != VK_SUCCESS)
         {
@@ -1872,17 +1892,11 @@ namespace KalaGraphics::Graphics
                 vkResult);
         }
 
-        destroy_depth_image_views();   
-
-        depthImage = newDepthImage;
-        depthAllocation = newDepthAllocation;
-        depthImageView = newDepthImageView;
-
         //
         // CREATE FRAMEBUFFERS
         //
 
-        vector<VkFramebuffer> newFramebuffers(swapchainImageCount);
+        framebuffers.resize(swapchainImageCount);
         for (u32 i = 0; i < swapchainImageCount; i++)
         {
             array<VkImageView, 2> attachments = 
@@ -1904,7 +1918,7 @@ namespace KalaGraphics::Graphics
                 logicalDevice,
                 &framebufferInfo,
                 nullptr,
-                &newFramebuffers[i]);
+                &framebuffers[i]);
 
             if (vkResult != VK_SUCCESS)
             {
@@ -1916,9 +1930,47 @@ namespace KalaGraphics::Graphics
             }
         }
 
-        destroy_framebuffers(); 
+        //
+        // CLEANUP AND FINISH
+        //
 
-        framebuffers = newFramebuffers;
+        for (auto& sem : renderFinishedSemaphores)
+        {
+            if (sem != VK_NULL_HANDLE)
+            {
+                vkDestroySemaphore(
+                    logicalDevice,
+                    sem,
+                    nullptr);
+            }
+        }
+        renderFinishedSemaphores.resize(swapchainImageCount);
+
+        VkSemaphoreCreateInfo semaphoreInfo{};
+        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+        for (u32 i = 0; i < swapchainImageCount; i++)
+        {
+            vkResult = vkCreateSemaphore(
+                logicalDevice,
+                &semaphoreInfo,
+                nullptr,
+                &renderFinishedSemaphores[i]);
+
+            if (vkResult != VK_SUCCESS)
+            {
+                VulkanContext::CloseOnError(
+                    "Vulkan swapchain error",
+                    "Failed to recreate render finished semaphore at index " + to_string(i),
+                    vkResult);
+            }
+        }
+
+        imagesInFlight.resize(swapchainImageCount);
+        fill(
+            imagesInFlight.begin(),
+            imagesInFlight.end(),
+            VK_NULL_HANDLE);
 
         if (isVerboseLoggingEnabled)
         {
@@ -1939,33 +1991,52 @@ namespace KalaGraphics::Graphics
     VulkanContext::~VulkanContext()
     {
         //drain the gpu before freeing its context resources
-        vkDeviceWaitIdle(logicalDevice);
+        if (logicalDevice != VK_NULL_HANDLE) vkDeviceWaitIdle(logicalDevice);
 
         Log::Print(
             "Destroying Vulkan context '" + to_string(ID) + "'.",
             "KG_VULKAN",
             LogType::LOG_INFO);
 
-        vkFreeCommandBuffers(
-            logicalDevice,
-            commandPool,
-            1,
-            &commandBuffer);
+        if (commandBuffers[0] != VK_NULL_HANDLE)
+        {
+            vkFreeCommandBuffers(
+                logicalDevice,
+                commandPool,
+                MAX_FRAMES_IN_FLIGHT,
+                commandBuffers.data());
+        }
 
-        vkDestroyFence(
-            logicalDevice,
-            inFlightFence,
-            nullptr);
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+        {
+            if (inFlightFences[i] != VK_NULL_HANDLE)
+            {
+                vkDestroyFence(
+                    logicalDevice,
+                    inFlightFences[i],
+                    nullptr);   
+            }
 
-        vkDestroySemaphore(
-            logicalDevice,
-            renderFinishedSemaphore,
-            nullptr);
+            if (availableSemaphores[i] != VK_NULL_HANDLE)
+            {
+                vkDestroySemaphore(
+                    logicalDevice,
+                    availableSemaphores[i],
+                    nullptr);   
+            }
+        }
 
-        vkDestroySemaphore(
-            logicalDevice,
-            availableSemaphore,
-            nullptr);
+        for (auto& sem : renderFinishedSemaphores)
+        {
+            if (sem != VK_NULL_HANDLE)
+            {
+                vkDestroySemaphore(
+                    logicalDevice,
+                    sem,
+                    nullptr);   
+            }
+        }
+        renderFinishedSemaphores.clear();
 
         for (auto& fb : framebuffers)
         {
@@ -1974,21 +2045,38 @@ namespace KalaGraphics::Graphics
                 fb,
                 nullptr);
         }
+        framebuffers.clear();
 
-        vkDestroyImageView(
-            logicalDevice,
-            depthImageView,
-            nullptr);
+        if (depthImageView != VK_NULL_HANDLE)
+        {
+            vkDestroyImageView(
+                logicalDevice,
+                depthImageView,
+                nullptr);
 
-        vmaDestroyImage(
-            vmaAllocator,
-            depthImage,
-            depthAllocation);
+            depthImageView = VK_NULL_HANDLE;
+        }
 
-        vkDestroyRenderPass(
-            logicalDevice,
-            renderPass,
-            nullptr);
+        if (depthImage != VK_NULL_HANDLE)
+        {
+            vmaDestroyImage(
+                vmaAllocator,
+                depthImage,
+                depthAllocation);
+
+            depthImage = VK_NULL_HANDLE;
+            depthAllocation = VK_NULL_HANDLE;
+        }
+
+        if (renderPass != VK_NULL_HANDLE)
+        {
+            vkDestroyRenderPass(
+                logicalDevice,
+                renderPass,
+                nullptr);
+
+            renderPass = VK_NULL_HANDLE;
+        }
 
         for (auto& view : imageViews)
         {
@@ -1997,14 +2085,19 @@ namespace KalaGraphics::Graphics
                 view,
                 nullptr);
         }
-
-        vkDestroySwapchainKHR(
-            logicalDevice,
-            swapchain,
-            nullptr);
-
-        framebuffers.clear();
         imageViews.clear();
+
+        if (swapchain != VK_NULL_HANDLE)
+        {
+            vkDestroySwapchainKHR(
+                logicalDevice,
+                swapchain,
+                nullptr);
+
+            swapchain = VK_NULL_HANDLE;
+        }
+
+        imagesInFlight.clear();
 
         if (registry.runtimeContent.empty())
         {
@@ -2029,9 +2122,6 @@ namespace KalaGraphics::Graphics
                     logicalDevice,
                     nullptr);
             }
-
-            framebuffers.clear();
-            imageViews.clear();
         }
     }
 }

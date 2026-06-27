@@ -31,11 +31,10 @@ namespace KalaGraphics::Core
         static void SetExternalHandler(const function<void(string, string)>& externalHandler);
 
         //Force-closes the application and gives a breakpoint, good for hard stops or bad user errors,
-        //setting callExternalHandler to true calls the assigned external handler callback,
-        //if the callback is unassigned then it falls back to the local setup
+        //assigning a callback via SetExternalHandler will always use whatever is assigned there,
+        //if the callback is unassigned or invalid then it falls back to the local setup
 		static void ForceClose(
 			string_view title,
-			string_view reason,
-            bool callExternalHandler);
+			string_view reason);
     };
 }

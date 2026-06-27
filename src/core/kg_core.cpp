@@ -38,14 +38,9 @@ namespace KalaGraphics::Core
 
     void KalaGraphicsCore::ForceClose(
 		string_view target,
-		string_view reason,
-		bool callExternalHandler)
+		string_view reason)
 	{
-		if (callExternalHandler
-			&& externalHandler)
-		{
-			externalHandler(string(target), string(reason));
-		}
+		if (externalHandler) externalHandler(string(target), string(reason));
 		else
 		{
 			Log::Print(

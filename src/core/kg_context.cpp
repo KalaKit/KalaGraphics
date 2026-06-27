@@ -214,8 +214,7 @@ namespace KalaGraphics::Core
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context because it had no window ID!",
-                true);
+                "Failed to initialize window context because it had no window ID!");
 
             return nullptr;
         }
@@ -226,8 +225,7 @@ namespace KalaGraphics::Core
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + idStr + "' because its ID was added more than once!",
-                true);
+                "Failed to initialize window context '" + idStr + "' because its ID was added more than once!");
 
             return nullptr;
         }
@@ -237,8 +235,7 @@ namespace KalaGraphics::Core
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + idStr + "' because it was missing its window!",
-                true);
+                "Failed to initialize window context '" + idStr + "' because it was missing its window!");
 
             return nullptr;
         }
@@ -248,8 +245,7 @@ namespace KalaGraphics::Core
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + idStr + "' because it did not contain a real window!",
-                true);
+                "Failed to initialize window context '" + idStr + "' because it did not contain a real window!");
 
             return nullptr;
         }
@@ -259,8 +255,7 @@ namespace KalaGraphics::Core
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + idStr + "' because it was missing its display or window!",
-                true);
+                "Failed to initialize window context '" + idStr + "' because it was missing its display or window!");
 
             return nullptr;
         }
@@ -273,8 +268,7 @@ namespace KalaGraphics::Core
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + idStr + "' because it did not contain a real display or window!",
-                true);
+                "Failed to initialize window context '" + idStr + "' because it did not contain a real display or window!");
 
             return nullptr;
         }
@@ -284,8 +278,7 @@ namespace KalaGraphics::Core
         {
             KalaGraphicsCore::ForceClose(
                 "Window context init error",
-                "Failed to initialize window context '" + idStr + "' because no Vulkan instance was passed!",
-                true);
+                "Failed to initialize window context '" + idStr + "' because no Vulkan instance was passed!");
 
             return nullptr;
         }
@@ -296,7 +289,7 @@ namespace KalaGraphics::Core
         string fbVal = string(GetStaticViewportName(contextPtr->vpData.vpSize));
 
         Log::Print(
-            "Created new context with ID '" + idStr + "'!",
+            "Created new graphics context with ID '" + idStr + "'!",
             "KG_CONTEXT",
             LogType::LOG_SUCCESS);
 
@@ -379,16 +372,49 @@ namespace KalaGraphics::Core
 
     void GraphicsContext::Update()
     {
-        VulkanContext::GetRegistry().GetContent(vulkanContextID)->Update();
+        VulkanContext* ctx = VulkanContext::GetRegistry().GetContent(vulkanContextID);
+
+        if (!ctx)
+        {
+            KalaGraphicsCore::ForceClose(
+                "Graphics context update error",
+                "Failed to run graphics context update because the Vulkan context '" + to_string(ID) + "' was not found!");
+            return;
+        }
+
+        ctx->Update();
     }
 
     void GraphicsContext::ResizeUpdate()
     {
-        VulkanContext::GetRegistry().GetContent(vulkanContextID)->ResizeUpdate();
+        VulkanContext* ctx = VulkanContext::GetRegistry().GetContent(vulkanContextID);
+
+        if (!ctx)
+        {
+            KalaGraphicsCore::ForceClose(
+                "Graphics context update error",
+                "Failed to run graphics context resize update because the Vulkan context '" + to_string(ID) + "' was not found!");
+        }
+
+        ctx->ResizeUpdate();
     }
 
     void GraphicsContext::Destroy()
     {
+        VulkanContext* vkctx = VulkanContext::GetRegistry().GetContent(vulkanContextID);
+        if (!vkctx)
+        {
+            Log::Print(
+                "Failed to destroy vulkan context because its ID '" + to_string(vulkanContextID) + "' was not found!",
+                "KG_CONTEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        vkctx->Destroy();
+
         registry.RemoveContent(ID);
     }
 
@@ -398,7 +424,5 @@ namespace KalaGraphics::Core
 			"Destroying graphics context '" + to_string(ID) + "'.",
 			"KG_CONTEXT",
 			LogType::LOG_INFO);
-
-        if (registry.runtimeContent.size() == 0) VulkanContext::GetRegistry().GetContent(vulkanContextID)->Destroy();
     }
 }
