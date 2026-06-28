@@ -376,9 +376,12 @@ namespace KalaGraphics::Core
 
         if (!ctx)
         {
-            KalaGraphicsCore::ForceClose(
-                "Graphics context update error",
-                "Failed to run graphics context update because the Vulkan context '" + to_string(ID) + "' was not found!");
+            Log::Print(
+                "Failed to update graphics context '" + to_string(ID) + "' because its vulkan context ID '" + to_string(vulkanContextID) + "' was not found!",
+                "KG_CONTEXT",
+                LogType::LOG_ERROR,
+                2);
+
             return;
         }
 

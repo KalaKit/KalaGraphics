@@ -64,12 +64,12 @@ static bool isInitialized{};
 static bool isVerboseLoggingEnabled{};
 
 static u32 deviceCount{};
+static u32 graphicsFamily = UINT32_MAX;
 static vector<VkPhysicalDevice> devices{};
 
 static VkPhysicalDevice physicalDevice{};
 static VkDevice logicalDevice{};
 static VkQueue graphicsQueue{};
-static VkCommandPool commandPool{};
 static VmaAllocator vmaAllocator{};
 static VkDescriptorPool descriptorPool{};
 
@@ -373,7 +373,6 @@ namespace KalaGraphics::Graphics
             &queueFamilyCount,
             queueFamilies.data());
 
-        u32 graphicsFamily = UINT32_MAX;
         for (u32 i = 0; i < queueFamilyCount; i++)
         {
             if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
@@ -441,29 +440,6 @@ namespace KalaGraphics::Graphics
             graphicsFamily,
             0,
             &graphicsQueue);
-
-        //
-        // CREATE COMMAND POOL
-        //
-
-        VkCommandPoolCreateInfo poolInfo{};
-        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolInfo.queueFamilyIndex = graphicsFamily;
-        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-
-        vkResult = vkCreateCommandPool(
-            logicalDevice,
-            &poolInfo,
-            nullptr,
-            &commandPool);
-
-        if (vkResult != VK_SUCCESS)
-        {
-            CloseOnError(
-                "Vulkan instance init error",
-                "Failed to initialize Vulkan instance because command pool creation failed!",
-                vkResult);
-        }
 
         //
         // CREATE VMA ALLOCATOR
@@ -621,17 +597,6 @@ namespace KalaGraphics::Graphics
         }
         
         return graphicsQueue;
-    }
-    VkCommandPool VulkanContext::GetCommandPool()
-    {
-        if (!isInitialized)
-        {
-            PrintError("Failed to get command pool because Vulkan has not been initialized!");
-
-            return nullptr;
-        }
-        
-        return commandPool;
     }
     VmaAllocator VulkanContext::GetVmaAllocator()
     {
@@ -1217,12 +1182,35 @@ namespace KalaGraphics::Graphics
         contextPtr->renderFinishedSemaphores = renderFinishedSemaphores;
 
         //
+        // CREATE CONTEXT POOL
+        //
+
+        VkCommandPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolInfo.queueFamilyIndex = graphicsFamily;
+        poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+        vkResult = vkCreateCommandPool(
+            logicalDevice,
+            &poolInfo,
+            nullptr,
+            &contextPtr->commandPool);
+
+        if (vkResult != VK_SUCCESS)
+        {
+            CloseOnError(
+                "Vulkan window context init error",
+                "Failed to initialize Vulkan window context because command pool creation failed!",
+                vkResult);
+        }
+
+        //
         // ALLOCATE COMMAND BUFFERS
         //
 
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = commandPool;
+        allocInfo.commandPool = contextPtr->commandPool;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
 
@@ -1266,6 +1254,7 @@ namespace KalaGraphics::Graphics
     vector<VkFramebuffer>& VulkanContext::GetFramebuffers() { return framebuffers; } 
     array<VkSemaphore, MAX_FRAMES_IN_FLIGHT>& VulkanContext::GetAvailableSemaphores() { return availableSemaphores; }
     vector<VkSemaphore>& VulkanContext::GetRenderFinishedSemaphores() { return renderFinishedSemaphores; }
+    VkCommandPool& VulkanContext::GetCommandPool() { return commandPool; }
     array<VkFence, MAX_FRAMES_IN_FLIGHT>& VulkanContext::GetInFlightFences() { return inFlightFences; }
     array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT>& VulkanContext::GetCommandBuffers() { return commandBuffers; }
 
@@ -1280,6 +1269,14 @@ namespace KalaGraphics::Graphics
             CloseOnError(
                 "Vulkan update error",
                 "Failed to run Vulkan update loop because the Vulkan context '" + to_string(ID) + "' lost its graphics context!",
+                0);
+        }
+
+        if (logicalDevice == VK_NULL_HANDLE)
+        {
+            CloseOnError(
+                "Vulkan update error",
+                "Logical device for Vulkan context '" + to_string(ID) + "' was not found!",
                 0);
         }
 
@@ -2015,6 +2012,8 @@ namespace KalaGraphics::Graphics
                     logicalDevice,
                     inFlightFences[i],
                     nullptr);   
+
+                inFlightFences[i] = VK_NULL_HANDLE;
             }
 
             if (availableSemaphores[i] != VK_NULL_HANDLE)
@@ -2022,8 +2021,20 @@ namespace KalaGraphics::Graphics
                 vkDestroySemaphore(
                     logicalDevice,
                     availableSemaphores[i],
-                    nullptr);   
+                    nullptr);
+
+                availableSemaphores[i] = VK_NULL_HANDLE;
             }
+        }
+
+        if (commandPool != VK_NULL_HANDLE)
+        {
+            vkDestroyCommandPool(
+                logicalDevice, 
+                commandPool,
+                nullptr);
+
+            commandPool = VK_NULL_HANDLE;
         }
 
         for (auto& sem : renderFinishedSemaphores)
@@ -2099,28 +2110,31 @@ namespace KalaGraphics::Graphics
 
         imagesInFlight.clear();
 
+        //only destroy the static resources if all vulkan contexts are destroyed
         if (registry.runtimeContent.empty())
         {
-            if (descriptorPool)
+            if (descriptorPool != VK_NULL_HANDLE)
             {
                 vkDestroyDescriptorPool(
                     logicalDevice,
                     descriptorPool,
                     nullptr);
+
+                descriptorPool = VK_NULL_HANDLE;
             }
-            if (vmaAllocator) vmaDestroyAllocator(vmaAllocator);
-            if (commandPool)
+            if (vmaAllocator != VK_NULL_HANDLE)
             {
-                vkDestroyCommandPool(
-                    logicalDevice, 
-                    commandPool,
-                    nullptr);
+                vmaDestroyAllocator(vmaAllocator);
+
+                vmaAllocator = VK_NULL_HANDLE;
             }
-            if (logicalDevice)
+            if (logicalDevice != VK_NULL_HANDLE)
             {
                 vkDestroyDevice(
                     logicalDevice,
                     nullptr);
+
+                logicalDevice = VK_NULL_HANDLE;
             }
         }
     }

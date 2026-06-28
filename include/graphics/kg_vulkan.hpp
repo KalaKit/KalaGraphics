@@ -67,7 +67,6 @@ namespace KalaGraphics::Graphics
         static VkPhysicalDevice GetPhysicalDevice();
         static VkDevice GetLogicalDevice();
         static VkQueue GetGraphicsQueue();
-        static VkCommandPool GetCommandPool();
         static VmaAllocator GetVmaAllocator();
         static VkDescriptorPool GetDescriptorPool();
 
@@ -85,6 +84,7 @@ namespace KalaGraphics::Graphics
         vector<VkFramebuffer>& GetFramebuffers();
         array<VkSemaphore, MAX_FRAMES_IN_FLIGHT>& GetAvailableSemaphores();
         vector<VkSemaphore>& GetRenderFinishedSemaphores();
+        VkCommandPool& GetCommandPool();
         array<VkFence, MAX_FRAMES_IN_FLIGHT>& GetInFlightFences();
         array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT>& GetCommandBuffers();
 
@@ -119,6 +119,7 @@ namespace KalaGraphics::Graphics
         vector<VkFramebuffer> framebuffers{};
         array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> availableSemaphores{};
         vector<VkSemaphore> renderFinishedSemaphores{};
+        VkCommandPool commandPool{};
         array<VkFence, MAX_FRAMES_IN_FLIGHT> inFlightFences{};
         array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> commandBuffers{};
     };
