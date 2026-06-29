@@ -5,13 +5,15 @@
 
 #include "log_utils.hpp"
 
-#include "graphics/models/kg_model.hpp"
+#include "graphics/kg_model.hpp"
 #include "core/kg_core.hpp"
 
 using KalaGraphics::Core::MAX_NAME_LENGTH;
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
+
+using std::to_string;
 
 namespace KalaGraphics::Graphics
 {
@@ -53,4 +55,17 @@ namespace KalaGraphics::Graphics
     u32 Model::GetGraphicsContextID() const { return contextID; }
     u32 Model::GetVulkanContextID() const { return vulkanID; }
     u32 Model::GetShaderID() const { return shaderID; }
+
+    void Model::Destroy()
+    {
+        registry.RemoveContent(ID);
+    }
+
+    Model::~Model()
+    {
+        Log::Print(
+            "Destroying model '" + to_string(ID) + "'.",
+            "KG_MODEL",
+            LogType::LOG_INFO);
+    }
 }

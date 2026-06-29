@@ -144,6 +144,8 @@ namespace KalaGraphics::Graphics
 
         void Update();
 
+        void Destroy();
+
         ~Model();
     private:
         static Model* InitializeInternal(
