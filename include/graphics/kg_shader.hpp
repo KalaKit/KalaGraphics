@@ -82,7 +82,6 @@ namespace KalaGraphics::Graphics
 
         u32 GetID() const;
         u32 GetGraphicsContextID() const;
-        u32 GetVulkanContextID() const;
 
         string_view GetName() const;
 
@@ -104,7 +103,6 @@ namespace KalaGraphics::Graphics
 
         u32 ID{};
         u32 graphicsContextID{};
-        u32 vulkanContextID{};
 
         ShaderData shaderData{};
         ShaderModuleData shaderModuleData{};

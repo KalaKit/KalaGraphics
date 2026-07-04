@@ -33,7 +33,7 @@ This project relies on several [external dependencies](https://github.com/greeen
 
 | Render Pipeline | Status        | Notes                                |
 |-----------------|---------------|--------------------------------------|
-| Vulkan          | Supported     | Internally locked to Vulkan 1.3      |
+| Vulkan          | Supported     | Internally locked to Vulkan 1.4      |
 | OpenGL          | Not supported | No plans for OpenGL support          |
 | DirectX         | Not Supported | No plans for DirectX support         |
 | MoltenVK        | Not Supported | No plans for MoltenVK support        |

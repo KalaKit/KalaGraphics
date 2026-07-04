@@ -7,6 +7,7 @@
 
 #include <string>
 #include <vector>
+#include <array>
 
 #include "core_utils.hpp"
 #include "math_utils.hpp"
@@ -19,16 +20,73 @@ using VkInstance = VkInstance_T*;
 struct VkSurfaceKHR_T;
 using VkSurfaceKHR = VkSurfaceKHR_T*;
 
+struct VkPhysicalDevice_T;
+using VkPhysicalDevice = VkPhysicalDevice_T*;
+
+struct VkDevice_T;
+using VkDevice = VkDevice_T*;
+
+struct VkQueue_T;
+using VkQueue = VkQueue_T*;
+
+struct VkDescriptorPool_T;
+using VkDescriptorPool = VkDescriptorPool_T*;
+
+struct VmaAllocator_T;
+using VmaAllocator = VmaAllocator_T*;
+
+struct VkSwapchainKHR_T;
+using VkSwapchainKHR = VkSwapchainKHR_T*;
+
+struct VkRenderPass_T;
+using VkRenderPass = VkRenderPass_T*;
+
+struct VkImage_T;
+using VkImage = VkImage_T*;
+
+struct VmaAllocation_T;
+using VmaAllocation = VmaAllocation_T*;
+
+struct VkImageView_T;
+using VkImageView = VkImageView_T*;
+
+struct VkFramebuffer_T;
+using VkFramebuffer = VkFramebuffer_T*;
+
+struct VkSemaphore_T;
+using VkSemaphore = VkSemaphore_T*;
+
+struct VkFence_T;
+using VkFence = VkFence_T*;
+
+struct VkCommandPool_T;
+using VkCommandPool = VkCommandPool_T*;
+
+struct VkCommandBuffer_T;
+using VkCommandBuffer = VkCommandBuffer_T*;
+
 namespace KalaGraphics::Core
 {
+    constexpr u8 MAX_FRAMES_IN_FLIGHT = 2;
+
     using KalaHeaders::KalaMath::vec2;
 
     using std::string;
     using std::string_view;
     using std::vector;
+    using std::array;
 
     using u8 = uint8_t;
     using u32 = uint32_t;
+
+    enum class Severity : u8
+    {
+        S_INVALID = 0u,
+
+        S_INFO = 1u,
+        S_WARNING = 2u,
+        S_FATAL = 3u
+    };
 
     enum class ViewportSize : u8
     {
@@ -124,15 +182,37 @@ namespace KalaGraphics::Core
     public:
         static KalaGraphicsRegistry<GraphicsContext>& GetRegistry();
 
-        //Sets the global vk instance
-        static void SetVKInstance(VkInstance vk_instance);
-        static VkInstance GetVKInstance();
+        //Close the program, this close function is useful for
+        //printing the VkResult error type that occured so it can be logged
+        static void ForceClose(
+            string_view title,
+            string_view reason,
+            int result);
 
-        //Initialize a new window context
+        static bool IsVerboseLoggingEnabled();
+        static void SetVerboseLoggingState(bool state);
+
+        static string GetVkResultMessage(int result);
+        static Severity GetVkResultSeverity(int result);
+
+        static VkInstance GetVKInstance();
+        static void SetVKInstance(VkInstance vk_instance);
+
+        static VkPhysicalDevice GetPhysicalDevice();
+        static VkDevice GetLogicalDevice();
+        static VkQueue GetGraphicsQueue();
+        static VmaAllocator GetVmaAllocator();
+        static VkDescriptorPool GetDescriptorPool();
+
+        //Global one-time Vulkan 1.4 device init,
+        //needs to be called before per-window Vulkan init
+        static void InitializeGlobal();
+        static bool IsInitialized();
+
+        //Initialize a per-window Vulkan context, creates the swapchain logic
         static GraphicsContext* Initialize(const GraphicsContextData& context);
 
         u32 GetID() const;
-        u32 GetVulkanContextID() const;
 
         VSyncState GetVSyncState() const;
         void SetVSyncState(VSyncState newValue);
@@ -159,22 +239,57 @@ namespace KalaGraphics::Core
     
         const GraphicsContextData& GetGraphicsContextData() const;
 
+        VkSwapchainKHR& GetSwapchain();
+        vector<VkImageView>& GetImageViews();
+        VkRenderPass& GetRenderPass();
+        VkImage& GetDepthImage();
+        VkImageView& GetDepthImageView();
+        vector<VkFramebuffer>& GetFramebuffers();
+        array<VkSemaphore, MAX_FRAMES_IN_FLIGHT>& GetAvailableSemaphores();
+        vector<VkSemaphore>& GetRenderFinishedSemaphores();
+        VkCommandPool& GetCommandPool();
+        array<VkFence, MAX_FRAMES_IN_FLIGHT>& GetInFlightFences();
+        array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT>& GetCommandBuffers();
+
         //Regular update - single draw call
         void Update();
 
         //Called to trigger resize events - single draw call
         void ResizeUpdate();
 
+        //Recreates the Vulkan swapchain and its related content, useful for resize events etc
+        bool RecreateSwapchain();
+
         void Destroy();
 
         ~GraphicsContext();
     private:
+        void InitializeVulkanContext();
+
         u32 ID{};
-        u32 vulkanContextID{};
 
         VSyncState vsyncState = VSyncState::VSYNC_ON_TRIPLE_BUFFERED;
 
         GraphicsContextData contextData{};
         ViewportData vpData{};
+
+        size_t currentFrame{};
+
+        u32 extentWidth{};
+        u32 extentHeight{};
+        VkSwapchainKHR swapchain{};
+        u32 swapchainFormat{};
+        vector<VkFence> imagesInFlight{};
+        vector<VkImageView> imageViews{};
+        VkRenderPass renderPass{};
+        VkImage depthImage{};
+        VmaAllocation depthAllocation{};
+        VkImageView depthImageView{};
+        vector<VkFramebuffer> framebuffers{};
+        array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> availableSemaphores{};
+        vector<VkSemaphore> renderFinishedSemaphores{};
+        VkCommandPool commandPool{};
+        array<VkFence, MAX_FRAMES_IN_FLIGHT> inFlightFences{};
+        array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> commandBuffers{};
     };
 }
