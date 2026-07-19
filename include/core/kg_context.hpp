@@ -251,14 +251,14 @@ namespace KalaGraphics::Core
         array<VkFence, MAX_FRAMES_IN_FLIGHT>& GetInFlightFences();
         array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT>& GetCommandBuffers();
 
-        //Regular update - single draw call
+        //Regular update
         void Update();
 
-        //Called to trigger resize events - single draw call
+        //Called to trigger resize events
         void ResizeUpdate();
 
         //Recreates the Vulkan swapchain and its related content, useful for resize events etc
-        bool RecreateSwapchain();
+        void RecreateSwapchain();
 
         void Destroy();
 

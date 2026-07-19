@@ -891,10 +891,9 @@ namespace KalaGraphics::Core
             return;
         }
 
-        VSyncState old = vsyncState;
         vsyncState = newState;
 
-        if (!RecreateSwapchain()) vsyncState = old;
+        RecreateSwapchain();
     }
 
     vec2 GraphicsContext::GetStaticViewportSize() const
@@ -961,21 +960,6 @@ namespace KalaGraphics::Core
 
         if (result != VK_SUCCESS)
         {
-            if (result == VK_ERROR_OUT_OF_DATE_KHR
-                || result == VK_SUBOPTIMAL_KHR)
-            {
-                if (isVerboseLoggingEnabled)
-                {
-                    Log::Print(
-                        "Recreating swapchain because image aquire returned out of date or suboptimal.",
-                        "KG_VULKAN",
-                        LogType::LOG_VERBOSE);
-                }
-
-                RecreateSwapchain();
-                return;
-            }
-
             if (GetVkResultSeverity(result) == Severity::S_FATAL)
             {
                 ForceClose(
@@ -1002,6 +986,21 @@ namespace KalaGraphics::Core
                         "KG_VULKAN",
                         LogType::LOG_VERBOSE);
                 }
+            }
+
+            if (result == VK_ERROR_OUT_OF_DATE_KHR
+                || result == VK_SUBOPTIMAL_KHR)
+            {
+                if (isVerboseLoggingEnabled)
+                {
+                    Log::Print(
+                        "Recreating swapchain because image aquire returned out of date or suboptimal.",
+                        "KG_VULKAN",
+                        LogType::LOG_VERBOSE);
+                }
+
+                RecreateSwapchain();
+                return;
             }
         }
 
@@ -1118,47 +1117,50 @@ namespace KalaGraphics::Core
             graphicsQueue,
             &presentInfo);
 
-        if (GetVkResultSeverity(result) == Severity::S_FATAL)
+        if (result != VK_SUCCESS)
         {
-            ForceClose(
-                "Vulkan runtime error", 
-                "Encountered a fatal queue present error!",
-                result);
-        }
-        else if (GetVkResultSeverity(result) == Severity::S_WARNING)
-        {
-#ifdef KDEBUG
-            Log::Print(
-                "Queue present returned a warning: " + GetVkResultMessage(result),
-                "KG_VULKAN",
-                LogType::LOG_WARNING);
-#endif
-        }
-        else
-        {
-            if (isVerboseLoggingEnabled
-                && result != VK_SUCCESS)
+            if (GetVkResultSeverity(result) == Severity::S_FATAL)
             {
-                Log::Print(
-                    "Queue present returned a message: " + GetVkResultMessage(result),
-                    "KG_VULKAN",
-                    LogType::LOG_VERBOSE);
+                ForceClose(
+                    "Vulkan runtime error", 
+                    "Encountered a fatal queue present error!",
+                    result);
             }
-        }
-
-        if (result == VK_ERROR_OUT_OF_DATE_KHR
-            || result == VK_SUBOPTIMAL_KHR)
-        {
-            if (isVerboseLoggingEnabled)
+            else if (GetVkResultSeverity(result) == Severity::S_WARNING)
             {
+    #ifdef KDEBUG
                 Log::Print(
-                    "Recreating swapchain because image aquire returned out of date or suboptimal.",
+                    "Queue present returned a warning: " + GetVkResultMessage(result),
                     "KG_VULKAN",
-                    LogType::LOG_VERBOSE);
+                    LogType::LOG_WARNING);
+    #endif
+            }
+            else
+            {
+                if (isVerboseLoggingEnabled
+                    && result != VK_SUCCESS)
+                {
+                    Log::Print(
+                        "Queue present returned a message: " + GetVkResultMessage(result),
+                        "KG_VULKAN",
+                        LogType::LOG_VERBOSE);
+                }
             }
 
-            RecreateSwapchain();
-            return;
+            if (result == VK_ERROR_OUT_OF_DATE_KHR
+                || result == VK_SUBOPTIMAL_KHR)
+            {
+                if (isVerboseLoggingEnabled)
+                {
+                    Log::Print(
+                        "Recreating swapchain because queue presentt returned out of date or suboptimal.",
+                        "KG_VULKAN",
+                        LogType::LOG_VERBOSE);
+                }
+
+                RecreateSwapchain();
+                return;
+            }
         }
 
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
@@ -1770,9 +1772,12 @@ namespace KalaGraphics::Core
         }
     }
 
-    void GraphicsContext::ResizeUpdate() { RecreateSwapchain(); }
+    void GraphicsContext::ResizeUpdate() 
+    {
 
-    bool GraphicsContext::RecreateSwapchain()
+    }
+
+    void GraphicsContext::RecreateSwapchain()
     {
         VkSurfaceKHR surface = contextData.context_vk_surface;
 
@@ -1780,31 +1785,22 @@ namespace KalaGraphics::Core
         {
             PrintError("Failed to recreate swapchain because Vulkan was not initialized!");
 
-            return false;
+            return;
         }
 
         //drain the gpu before freeing its context resources
-        vkDeviceWaitIdle(logicalDevice);
-
-        VkSurfaceCapabilitiesKHR caps{};
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-            physicalDevice,
-            surface,
-            &caps);
-
-        //skip minimized window
-        if (caps.currentExtent.width == 0
-            || caps.currentExtent.height == 0)
+        //TODO: keep track of device lost errors originating from here,
+        //      if they occur too often for reasons other than agressive reszing
+        //      then come up with a proper fix for this problem,
+        //      otherwise treat as rare driver-level error for now
+        VkResult vkResult = vkDeviceWaitIdle(logicalDevice);
+        if (vkResult != VK_SUCCESS)
         {
-            if (isVerboseLoggingEnabled)
-            {
-                Log::Print(
-                    "Skipped recreating swapchain because the window attached to the context '" + to_string(ID) + "' is minimized.",
-                    "KG_CONTEXT",
-                    LogType::LOG_VERBOSE);
-            }
-
-            return true;
+            ForceClose(
+                "Vulkan swapchain error",
+                "Failed to recreate Vulkan swapchain for graphics context '" 
+                + to_string(ID) + "' because vkDeviceWaitIdle did not succeed!",
+                vkResult);
         }
 
         //
@@ -2006,7 +2002,7 @@ namespace KalaGraphics::Core
         swapchainInfo.oldSwapchain = swapchain;
 
         VkSwapchainKHR newSwapchain{};
-        VkResult vkResult = vkCreateSwapchainKHR(
+        vkResult = vkCreateSwapchainKHR(
             logicalDevice,
             &swapchainInfo,
             nullptr,
@@ -2201,43 +2197,64 @@ namespace KalaGraphics::Core
         // CLEANUP AND FINISH
         //
 
-        for (auto& sem : renderFinishedSemaphores)
+        u32 oldSwapchainImageCount = scast<u32>(renderFinishedSemaphores.size());
+
+        if (swapchainImageCount != oldSwapchainImageCount)
         {
-            if (sem != VK_NULL_HANDLE)
+            //destroy excess semaphores
+            for (u32 i = swapchainImageCount; i < oldSwapchainImageCount; ++i)
             {
                 vkDestroySemaphore(
                     logicalDevice,
-                    sem,
+                    renderFinishedSemaphores[i],
                     nullptr);
             }
-        }
-        renderFinishedSemaphores.resize(swapchainImageCount);
 
-        VkSemaphoreCreateInfo semaphoreInfo{};
-        semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+            renderFinishedSemaphores.resize(swapchainImageCount);
 
-        for (u32 i = 0; i < swapchainImageCount; i++)
-        {
-            vkResult = vkCreateSemaphore(
-                logicalDevice,
-                &semaphoreInfo,
-                nullptr,
-                &renderFinishedSemaphores[i]);
+            //create new missing semaphores
 
-            if (vkResult != VK_SUCCESS)
+            VkSemaphoreCreateInfo semaphoreInfo{};
+            semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+            for (u32 i = oldSwapchainImageCount; i < swapchainImageCount; ++i)
             {
-                ForceClose(
-                    "Vulkan swapchain error",
-                    "Failed to recreate render finished semaphore at index " + to_string(i),
-                    vkResult);
+                vkResult = vkCreateSemaphore(
+                    logicalDevice,
+                    &semaphoreInfo,
+                    nullptr,
+                    &renderFinishedSemaphores[i]);
+
+                if (vkResult != VK_SUCCESS)
+                {
+                    ForceClose(
+                        "Vulkan swapchain error",
+                        "Failed to recreate render finished semaphore at index " + to_string(i),
+                        vkResult);
+                }
             }
         }
 
-        imagesInFlight.resize(swapchainImageCount);
-        fill(
-            imagesInFlight.begin(),
-            imagesInFlight.end(),
-            VK_NULL_HANDLE);
+        u32 oldImagesInFlightCount = scast<u32>(imagesInFlight.size());
+
+        if (swapchainImageCount != oldImagesInFlightCount)
+        {
+            //destroy excess fences
+            for (u32 i = swapchainImageCount; i < oldImagesInFlightCount; ++i)
+            {
+                if (imagesInFlight[i] != VK_NULL_HANDLE)
+                {
+                    vkDestroyFence(
+                        logicalDevice,
+                        imagesInFlight[i],
+                        nullptr);
+                }
+            }
+
+            imagesInFlight.resize(
+                swapchainImageCount,
+                VK_NULL_HANDLE);
+        }
 
         if (isVerboseLoggingEnabled)
         {
@@ -2246,8 +2263,6 @@ namespace KalaGraphics::Core
                 "KG_VULKAN",
                 LogType::LOG_VERBOSE);
         }
-
-        return true;
     }
 
     void GraphicsContext::Destroy() { registry.RemoveContent(ID); }
@@ -2260,7 +2275,18 @@ namespace KalaGraphics::Core
 			LogType::LOG_INFO);
 
         //drain the gpu before freeing its context resources
-        if (logicalDevice != VK_NULL_HANDLE) vkDeviceWaitIdle(logicalDevice);
+        if (logicalDevice != VK_NULL_HANDLE) 
+        {
+            VkResult vkResult = vkDeviceWaitIdle(logicalDevice);
+            if (vkResult != VK_SUCCESS)
+            {
+                ForceClose(
+                    "Vulkan destruction error",
+                    "Failed to destroy KalaGraphics Vulkan context '" 
+                    + to_string(ID) + "' because vkDeviceWaitIdle did not succeed!",
+                    vkResult);
+            }
+        }
 
         Log::Print(
             "Destroying Vulkan context '" + to_string(ID) + "'.",
