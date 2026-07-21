@@ -28,13 +28,13 @@ namespace KalaGraphics::Core
 		static void SetGlobalID(u32 newID);
 
         //External handler for force close, overrides local version so external version can do its own action
-        static void SetExternalHandler(const function<void(string, string)>& externalHandler);
+        static void SetExternalHandler(function<void(string, string)>&& externalHandler);
 
         //Force-closes the application and gives a breakpoint, good for hard stops or bad user errors,
         //assigning a callback via SetExternalHandler will always use whatever is assigned there,
         //if the callback is unassigned or invalid then it falls back to the local setup
 		static void ForceClose(
-			string_view title,
-			string_view reason);
+			string&& title,
+			string&& reason);
     };
 }

@@ -295,8 +295,8 @@ namespace KalaGraphics::Core
     KalaGraphicsRegistry<GraphicsContext>& GraphicsContext::GetRegistry() { return registry; }
 
     void GraphicsContext::ForceClose(
-        string_view title,
-        string_view message,
+        string&& title,
+        string&& message,
         int result)
     {
         if (!vkResultData.contains((VkResult)result))
@@ -304,21 +304,21 @@ namespace KalaGraphics::Core
             PrintError("Vulkan result code '" + to_string(result) + "' is invalid!");
 
             KalaGraphicsCore::ForceClose(
-                title,
-                string(message));
+                std::move(title),
+                std::move(message));
         }
 
         if (result == VK_SUCCESS)
         {
             KalaGraphicsCore::ForceClose(
-                title,
-                string(message));
+                std::move(title),
+                std::move(message));
         }
         else
         {
             KalaGraphicsCore::ForceClose(
-                title,
-                string(message) + "\nReason: " + GetVkResultMessage(result));
+                std::move(title),
+                std::move(message) + "\nReason: " + GetVkResultMessage(result));
         }
     }
 

@@ -98,8 +98,8 @@ namespace KalaGraphics::Resources
 
         static Mesh* Initialize(
             MeshType meshType,
-            const Transform& transform,
-            const vector<Vertex>& vertices);
+            Transform&& transform,
+            vector<Vertex>&& vertices);
 
         u32 GetID() const;
 

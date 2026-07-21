@@ -44,10 +44,10 @@ namespace KalaGraphics::Graphics
 
         //Create a shape with meshes, shaders and textures
         static Shape* Initialize(
-            string_view name,
+            string&& name,
             u32 contextID,
-            const vector<Material>& materials,
-            const Transform& transform);
+            vector<Material>&& materials,
+            Transform&& transform);
 
         u32 GetID() const;
         const vector<Material>& GetMaterials() const;

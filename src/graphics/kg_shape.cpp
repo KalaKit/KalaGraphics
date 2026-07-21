@@ -3,17 +3,22 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
+#include <memory>
+
 #include "log_utils.hpp"
 
 #include "graphics/kg_shape.hpp"
 #include "core/kg_core.hpp"
 
 using KalaGraphics::Core::MAX_NAME_LENGTH;
+using KalaGraphics::Core::KalaGraphicsCore;
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
 
 using std::to_string;
+using std::unique_ptr;
+using std::make_unique;
 
 namespace KalaGraphics::Graphics
 {
@@ -22,12 +27,24 @@ namespace KalaGraphics::Graphics
     KalaGraphicsRegistry<Shape>& Shape::GetRegistry() { return registry; }
 
     Shape* Shape::Initialize(
-        string_view name,
+        string&& name,
         u32 contextID,
-        const vector<Material>& materials,
-        const Transform& transform)
+        vector<Material>&& materials,
+        Transform&& transform)
     {
-        /*TODO: fill*/
+        unique_ptr<Shape> newShape = make_unique<Shape>();
+        Shape* shapePtr = newShape.get();
+
+        u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
+        KalaGraphicsCore::SetGlobalID(newID);
+        shapePtr->ID = newID;
+
+        registry.AddContent(newID, std::move(newShape));
+
+        Log::Print(
+			"Created new mesh " + to_string(newID) + "'!",
+			"KG_MESH",
+			LogType::LOG_SUCCESS);
 
         return nullptr;
     }

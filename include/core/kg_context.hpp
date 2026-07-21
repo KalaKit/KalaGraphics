@@ -185,8 +185,8 @@ namespace KalaGraphics::Core
         //Close the program, this close function is useful for
         //printing the VkResult error type that occured so it can be logged
         static void ForceClose(
-            string_view title,
-            string_view reason,
+            string&& title,
+            string&& reason,
             int result);
 
         static bool IsVerboseLoggingEnabled();

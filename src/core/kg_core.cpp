@@ -31,16 +31,16 @@ namespace KalaGraphics::Core
     u32 KalaGraphicsCore::GetGlobalID() { return globalID; }
 	void KalaGraphicsCore::SetGlobalID(u32 newID) { globalID = newID; }
 
-	void KalaGraphicsCore::SetExternalHandler(const function<void (string, string)>& newExternalHandler)
+	void KalaGraphicsCore::SetExternalHandler(function<void (string, string)>&& newExternalHandler)
 	{ 
-		externalHandler = newExternalHandler;
+		externalHandler = std::move(newExternalHandler);
 	}
 
     void KalaGraphicsCore::ForceClose(
-		string_view target,
-		string_view reason)
+		string&& target,
+		string&& reason)
 	{
-		if (externalHandler) externalHandler(string(target), string(reason));
+		if (externalHandler) externalHandler(std::move(target), std::move(reason));
 		else
 		{
 			Log::Print(
@@ -50,8 +50,8 @@ namespace KalaGraphics::Core
 				true);
 
 			Log::Print(
-				reason,
-				target,
+				std::move(reason),
+				std::move(target),
 				LogType::LOG_ERROR,
 				2,
 				true,

@@ -77,8 +77,8 @@ namespace KalaGraphics::Resources
 
         static Shader* Initialize(
             u32 graphicsContextID,
-            string_view shaderName,
-            const ShaderData& shaderData);
+            string&& shaderName,
+            ShaderData&& shaderData);
 
         u32 GetID() const;
         u32 GetGraphicsContextID() const;

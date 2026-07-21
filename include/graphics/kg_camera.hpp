@@ -37,8 +37,8 @@ namespace KalaGraphics::Graphics
             f32 fov,
             f32 aspect,
             vec2 drawDistance = { 0.001f, 1000.0f },
-            const vec3& pos = {},
-            const vec3& rot = {});
+            vec3&& pos = {},
+            vec3&& rot = {});
 
         u32 GetID() const;
 
