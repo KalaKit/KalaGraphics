@@ -12,7 +12,7 @@
 #include "log_utils.hpp"
 #include "file_utils.hpp"
 
-#include "graphics/kg_shader.hpp"
+#include "resources/kg_shader.hpp"
 #include "core/kg_context.hpp"
 #include "core/kg_core.hpp"
 
@@ -35,7 +35,7 @@ using std::string_view;
 
 using u8 = uint8_t;
 
-namespace KalaGraphics::Graphics
+namespace KalaGraphics::Resources
 {
     static KalaGraphicsRegistry<Shader> registry{};
 

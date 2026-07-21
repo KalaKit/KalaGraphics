@@ -7,11 +7,23 @@
 
 #include "core_utils.hpp"
 
-namespace KalaGraphics::Graphics
+#include "core/kg_registry.hpp"
+
+namespace KalaGraphics::Core
 {
-    class LIB_API Texture
+    class LIB_API Canvas
     {
     public:
-    
+        static KalaGraphicsRegistry<Canvas>& GetRegistry();
+
+        static Canvas* Initialize();
+
+        u32 GetID() const;
+
+        void Destroy();
+
+        ~Canvas();
+    private:
+        u32 ID{};
     };
 }

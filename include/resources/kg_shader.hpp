@@ -14,7 +14,7 @@
 
 #include "core/kg_registry.hpp"
 
-namespace KalaGraphics::Graphics
+namespace KalaGraphics::Resources
 {
     using KalaGraphics::Core::KalaGraphicsRegistry;
 
