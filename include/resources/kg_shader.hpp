@@ -7,12 +7,18 @@
 
 #include <filesystem>
 #include <string>
+#include <vector>
 
 #include "vulkan/vulkan_core.h"
 
 #include "core_utils.hpp"
 
 #include "core/kg_registry.hpp"
+
+namespace KalaGraphics::Core
+{
+    class GraphicsContext;
+}
 
 namespace KalaGraphics::Resources
 {
@@ -21,6 +27,7 @@ namespace KalaGraphics::Resources
     using std::filesystem::path;
     using std::string;
     using std::string_view;
+    using std::vector;
 
     using u8 = uint8_t;
     using u32 = uint32_t;
@@ -72,6 +79,7 @@ namespace KalaGraphics::Resources
 
     class LIB_API Shader
     {
+    friend class KalaGraphics::Core::GraphicsContext;
     public:
         static KalaGraphicsRegistry<Shader>& GetRegistry();
 
@@ -82,6 +90,7 @@ namespace KalaGraphics::Resources
 
         u32 GetID() const;
         u32 GetGraphicsContextID() const;
+        const vector<u32>& GetMeshIDs() const;
 
         string_view GetName() const;
 
@@ -92,17 +101,17 @@ namespace KalaGraphics::Resources
         VkPipelineLayout GetPipelineLayout();
         VkPipeline GetPipeline();
 
-        //Bind the shader with the given data before this function is called
-        bool Bind();
-
         void Destroy();
 
         ~Shader();
     private:
+        void Update(VkCommandBuffer buffer);
+
         string name;
 
         u32 ID{};
         u32 graphicsContextID{};
+        vector<u32> meshIDs{};
 
         ShaderData shaderData{};
         ShaderModuleData shaderModuleData{};

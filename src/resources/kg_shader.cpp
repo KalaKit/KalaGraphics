@@ -13,6 +13,7 @@
 #include "file_utils.hpp"
 
 #include "resources/kg_shader.hpp"
+#include "resources/kg_mesh.hpp"
 #include "core/kg_context.hpp"
 #include "core/kg_core.hpp"
 
@@ -696,6 +697,7 @@ namespace KalaGraphics::Resources
 
     u32 Shader::GetID() const { return ID; }
     u32 Shader::GetGraphicsContextID() const { return graphicsContextID; }
+    const vector<u32>& Shader::GetMeshIDs() const { return meshIDs; }
 
     string_view Shader::GetName() const { return name; }
 
@@ -765,6 +767,70 @@ namespace KalaGraphics::Resources
 
     VkPipelineLayout Shader::GetPipelineLayout() { return pipelineLayout; }
     VkPipeline Shader::GetPipeline() { return pipeline; }
+
+    void Shader::Update(VkCommandBuffer cmdBuffer)
+    {
+        vkCmdBindPipeline(
+            cmdBuffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            pipeline);
+
+        vkCmdBindDescriptorSets(
+            cmdBuffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            pipelineLayout,
+            0,
+            1,
+            &descriptorSet,
+            0,
+            nullptr);
+
+        for (u32 meshID : meshIDs)
+        {
+            Mesh* mesh = Mesh::GetRegistry().GetContent(meshID);
+            if (!mesh)
+            {
+                KalaGraphicsCore::ForceClose(
+                    "Shader update error",
+                    "Failed to update shader '" + to_string(ID) + "' because its mesh '" + to_string(meshID) + "' was nullptr!");
+            }
+
+            mesh->SyncToGPU();
+
+            VkDeviceSize offset{};
+            vkCmdBindVertexBuffers(
+                cmdBuffer,
+                0,
+                1,
+                &mesh->vkVertexBuffer,
+                &offset);
+
+            if (mesh->indexBufferSize > 0)
+            {
+                vkCmdBindIndexBuffer(
+                    cmdBuffer,
+                    mesh->vkIndexBuffer,
+                    0,
+                    VK_INDEX_TYPE_UINT32);
+                vkCmdDrawIndexed(
+                    cmdBuffer,
+                    mesh->indices.size(),
+                    1,
+                    0,
+                    0,
+                    0);
+            }
+            else
+            {
+                vkCmdDraw(
+                    cmdBuffer,
+                    mesh->vertices.size(),
+                    1,
+                    0,
+                    0);
+            }
+        }
+    }
 
     void Shader::Destroy() { registry.RemoveContent(ID); }
 

@@ -10,7 +10,7 @@
 
 #include "core/kg_registry.hpp"
 
-namespace KalaGraphics::Graphics
+namespace KalaGraphics::Resources
 {
     using KalaHeaders::KalaMath::Transform3D;
     using KalaHeaders::KalaMath::vec2;

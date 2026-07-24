@@ -28,6 +28,7 @@
 #include "core/kg_context.hpp"
 #include "core/kg_core.hpp"
 #include "core/kg_registry.hpp"
+#include "resources/kg_shader.hpp"
 
 using KalaHeaders::KalaCore::ToVar;
 using KalaHeaders::KalaCore::EnumHash;
@@ -43,6 +44,7 @@ using KalaHeaders::KalaMath::vec2;
 
 using KalaGraphics::Core::ViewportSize;
 using KalaGraphics::Core::Severity;
+using KalaGraphics::Resources::Shader;
 
 using std::string;
 using std::string_view;
@@ -293,6 +295,21 @@ namespace KalaGraphics::Core
     static KalaGraphicsRegistry<GraphicsContext> registry{};
 
     KalaGraphicsRegistry<GraphicsContext>& GraphicsContext::GetRegistry() { return registry; }
+
+    void GraphicsContext::Update()
+    {
+        for (GraphicsContext* gctx : registry.runtimeContent)
+        {
+            if (!gctx)
+            {
+                KalaGraphicsCore::ForceClose(
+                    "Graphics context update error",
+                    "Failed to update graphics contexts because one of those was nullptr");
+            }
+
+            gctx->UpdateInstance();
+        }
+    }
 
     void GraphicsContext::ForceClose(
         string&& title,
@@ -932,7 +949,19 @@ namespace KalaGraphics::Core
 
     const GraphicsContextData& GraphicsContext::GetGraphicsContextData() const { return contextData; }
 
-    void GraphicsContext::Update()
+    VkSwapchainKHR& GraphicsContext::GetSwapchain()                                     { return swapchain; }
+    vector<VkImageView>& GraphicsContext::GetImageViews()                               { return imageViews; }
+    VkRenderPass& GraphicsContext::GetRenderPass()                                      { return renderPass; }
+    VkImage& GraphicsContext::GetDepthImage()                                           { return depthImage; }
+    VkImageView& GraphicsContext::GetDepthImageView()                                   { return depthImageView; }
+    vector<VkFramebuffer>& GraphicsContext::GetFramebuffers()                           { return framebuffers; }
+    array<VkSemaphore, MAX_FRAMES_IN_FLIGHT>& GraphicsContext::GetAvailableSemaphores() { return availableSemaphores; }
+    vector<VkSemaphore>& GraphicsContext::GetRenderFinishedSemaphores()                 { return renderFinishedSemaphores; }
+    VkCommandPool& GraphicsContext::GetCommandPool()                                    { return commandPool; }
+    array<VkFence, MAX_FRAMES_IN_FLIGHT>& GraphicsContext::GetInFlightFences()          { return inFlightFences; }
+    array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT>& GraphicsContext::GetCommandBuffers()  { return commandBuffers; }
+
+    void GraphicsContext::UpdateInstance()
     {
         if (logicalDevice == VK_NULL_HANDLE)
         {
@@ -1079,6 +1108,18 @@ namespace KalaGraphics::Core
             0,
             1,
             &scissor);
+
+        for (const auto& shader : Shader::GetRegistry().runtimeContent)
+        {
+            if (!shader)
+            {
+                KalaGraphicsCore::ForceClose(
+                    "Graphics context update error",
+                    "Failed to update graphics context because one of the the shaders was nullptr!");
+            }
+
+            shader->Update(commandBuffers[currentFrame]);
+        }
 
         //
         // END DRAW

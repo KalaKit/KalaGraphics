@@ -12,6 +12,12 @@
 
 #include "core/kg_registry.hpp"
 
+struct VkBuffer_T;
+using VkBuffer = VkBuffer_T*;
+
+struct VmaAllocation_T;
+using VmaAllocation = VmaAllocation_T*;
+
 namespace KalaGraphics::Resources
 {
     using KalaHeaders::KalaMath::Transform3D;
@@ -25,7 +31,6 @@ namespace KalaGraphics::Resources
     using u8 = uint8_t;
     using f32 = float;
 
-    /*
     struct LIB_API Mesh_Cube
     {
         //ranges from 3 to 255,
@@ -63,7 +68,6 @@ namespace KalaGraphics::Resources
 
         SphereType type{};
     };
-    */
 
     struct LIB_API Transform
     {
@@ -79,38 +83,79 @@ namespace KalaGraphics::Resources
     {
         //X, Y, Z, (Z is unused for 2D)
         vec3 pos{};
+        //X, Y, Z (Z is unused for 2D)
+        vec3 normal{};
         //U, V texture coordinates
         vec2 uv{};
     };
 
-    enum class MeshType : u8
-    {
-        M_INVALID = 0u,
-
-        M_2D = 1u,
-        M_3D = 2u
-    };
-
     class LIB_API Mesh
     {
+    friend class Shader;
     public:
         static KalaGraphicsRegistry<Mesh>& GetRegistry();
 
+        //The default importer, set use2D to true if you
+        //intend to use this mesh only for UI, this cannot be changed later
         static Mesh* Initialize(
-            MeshType meshType,
+            bool use2D,
+            u32 shaderID,
             Transform&& transform,
-            vector<Vertex>&& vertices);
+            vector<Vertex>&& vertices,
+            vector<u32>&& indices);
+
+        //Create a simple cube or cylinder
+        static Mesh* Initialize(
+            u32 shaderID,
+            Transform&& transform,
+            Mesh_Cube&& cubeData);
+
+        //Create a simple pyramid or cone
+        static Mesh* Initialize(
+            u32 shaderID,
+            Transform&& transform,
+            Mesh_Pyramid&& pyramidData);
+
+        //Create a simple sphere
+        static Mesh* Initialize(
+            u32 shaderID,
+            Transform&& transform,
+            Mesh_Sphere&& sphereData);
 
         u32 GetID() const;
+        u32 GetShaderID() const;
+
+        bool Is2D() const;
+
+        VkBuffer& GetVkBuffer(bool vertex);
 
         void Destroy();
 
         ~Mesh();
     private:
+        bool InitVertices();
+        bool InitIndices();
+
+        void SyncToGPU();
+
         u32 ID{};
 
-        MeshType meshType{};
+        u32 shaderID{};
+        vector<u32> textureIDs{};
+
+        bool is2D{};
+
         vector<Vertex> vertices{};
+        VkBuffer vkVertexBuffer{};
+        VmaAllocation vmaVertexAllocation{};
+        size_t vertexBufferSize{};
+        void* vertexMappedPtr{};
+
+        vector<u32> indices{};
+        VkBuffer vkIndexBuffer{};
+        VmaAllocation vmaIndexAllocation{};
+        size_t indexBufferSize{};
+        void* indexMappedPtr{};
 
         Transform3D transform{};
     };

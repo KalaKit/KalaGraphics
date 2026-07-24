@@ -182,6 +182,10 @@ namespace KalaGraphics::Core
     public:
         static KalaGraphicsRegistry<GraphicsContext>& GetRegistry();
 
+        //Single draw call for all existing contexts,
+        //handles all active meshes, light sources and cameras
+        static void Update();
+
         //Close the program, this close function is useful for
         //printing the VkResult error type that occured so it can be logged
         static void ForceClose(
@@ -251,9 +255,6 @@ namespace KalaGraphics::Core
         array<VkFence, MAX_FRAMES_IN_FLIGHT>& GetInFlightFences();
         array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT>& GetCommandBuffers();
 
-        //Regular update
-        void Update();
-
         //Called to trigger resize events
         void ResizeUpdate();
 
@@ -265,6 +266,8 @@ namespace KalaGraphics::Core
         ~GraphicsContext();
     private:
         void InitializeVulkanContext();
+
+        void UpdateInstance();
 
         u32 ID{};
 

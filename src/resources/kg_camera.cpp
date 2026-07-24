@@ -5,14 +5,14 @@
 
 #include <memory>
 
-#include "graphics/kg_camera.hpp"
+#include "resources/kg_camera.hpp"
 
 using KalaHeaders::KalaMath::toeuler3;
 
 using std::unique_ptr;
 using std::make_unique;
 
-namespace KalaGraphics::Graphics
+namespace KalaGraphics::Resources
 {
     static KalaGraphicsRegistry<Camera> registry{};
 
