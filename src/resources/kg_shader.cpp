@@ -45,8 +45,17 @@ namespace KalaGraphics::Resources
     Shader* Shader::Initialize(
         u32 graphicsContextID,
         string&& shaderName,
-        ShaderData&& shaderData)
+        ShaderData&& shaderData,
+        vector<DescriptorBinding>&& descriptorBindings)
     {
+        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
+        if (logicalDevice == VK_NULL_HANDLE)
+        {
+            KalaGraphicsCore::ForceClose(
+                "Shader init error",
+                "Failed to initialize shader because logical device was invalid!");
+        }
+
         auto empty_path = [&shaderName](string_view shaderType) -> void
             {
                 Log::Print(
@@ -196,7 +205,7 @@ namespace KalaGraphics::Resources
             VkShaderModule module{};
         };
 
-        auto create_shader_module = [&shaderName](string_view shaderType, const path& shaderPath) -> ShaderModule
+        auto create_shader_module = [&shaderName, &logicalDevice](string_view shaderType, const path& shaderPath) -> ShaderModule
             {
                 vector<u8> outData{};
                 string errMsg = ReadBinaryDataFromFile(shaderPath, outData);
@@ -219,7 +228,7 @@ namespace KalaGraphics::Resources
 
                 VkShaderModule shaderModule{};
                 VkResult vkResult = vkCreateShaderModule(
-                    GraphicsContext::GetLogicalDevice(),
+                    logicalDevice,
                     &createInfo,
                     nullptr,
                     &shaderModule);
@@ -252,12 +261,12 @@ namespace KalaGraphics::Resources
                 return { true, shaderModule};
             };
 
-        auto destroy_shaders = [](vector<VkShaderModule> modules) -> void
+        auto destroy_shaders = [&logicalDevice](vector<VkShaderModule> modules) -> void
             {
                 for (const auto& m : modules)
                 {
                     vkDestroyShaderModule(
-                        GraphicsContext::GetLogicalDevice(),
+                        logicalDevice,
                         m,
                         nullptr);
                 }
@@ -387,7 +396,7 @@ namespace KalaGraphics::Resources
 
         VkDescriptorSetLayout descriptorSetLayout{};
         VkResult vkResult = vkCreateDescriptorSetLayout(
-            GraphicsContext::GetLogicalDevice(),
+            logicalDevice,
             &descriptorLayoutInfo,
             nullptr,
             &descriptorSetLayout);
@@ -442,7 +451,7 @@ namespace KalaGraphics::Resources
 
         VkPipelineLayout pipelineLayout{};
         vkResult = vkCreatePipelineLayout(
-            GraphicsContext::GetLogicalDevice(),
+            logicalDevice,
             &pipelineLayoutInfo,
             nullptr,
             &pipelineLayout);
@@ -462,7 +471,7 @@ namespace KalaGraphics::Resources
             destroy_shaders(badShaders);
 
             vkDestroyDescriptorSetLayout(
-                GraphicsContext::GetLogicalDevice(),
+                logicalDevice,
                 descriptorSetLayout,
                 nullptr);
 
@@ -626,7 +635,7 @@ namespace KalaGraphics::Resources
 
         VkPipeline pipeline{};
         vkResult = vkCreateGraphicsPipelines(
-            GraphicsContext::GetLogicalDevice(),
+            logicalDevice,
             VK_NULL_HANDLE,
             1,
             &pipelineInfo,
@@ -648,12 +657,12 @@ namespace KalaGraphics::Resources
             destroy_shaders(badShaders);
 
             vkDestroyDescriptorSetLayout(
-                GraphicsContext::GetLogicalDevice(),
+                logicalDevice,
                 descriptorSetLayout,
                 nullptr);
 
             vkDestroyPipelineLayout(
-                GraphicsContext::GetLogicalDevice(),
+                logicalDevice,
                 pipelineLayout,
                 nullptr);
 
@@ -680,6 +689,48 @@ namespace KalaGraphics::Resources
         }
 
         shaderPtr->pipeline = pipeline;
+
+        //
+        // DESCRIPTOR SET
+        //
+
+        if (!descriptorBindings.empty())
+        {
+            VkDescriptorPoolCreateInfo poolInfo{};
+            poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+            poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+            poolInfo.maxSets = 1;
+            poolInfo.poolSizeCount = descriptorBindings.size();
+            //TODO: assign correctly
+            //poolInfo.pPoolSizes = descriptorBindings.data();
+
+            VkDescriptorPool descriptorPool;
+            vkCreateDescriptorPool(
+                logicalDevice,
+                &poolInfo,
+                nullptr,
+                &descriptorPool);
+
+            VkDescriptorSetAllocateInfo allocInfo{};
+            allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+            allocInfo.descriptorPool = descriptorPool;
+            allocInfo.descriptorSetCount = 1;
+            allocInfo.pSetLayouts = &descriptorSetLayout;
+
+            VkDescriptorSet descriptorSet;
+            vkAllocateDescriptorSets(
+                logicalDevice,
+                &allocInfo,
+                &descriptorSet);
+
+            //TODO: bind data here...
+
+            //shaderPtr->descriptorSet = descriptorSet;
+        }
+
+        //
+        // FINISH
+        //
 
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
@@ -775,15 +826,18 @@ namespace KalaGraphics::Resources
             VK_PIPELINE_BIND_POINT_GRAPHICS,
             pipeline);
 
-        vkCmdBindDescriptorSets(
-            cmdBuffer,
-            VK_PIPELINE_BIND_POINT_GRAPHICS,
-            pipelineLayout,
-            0,
-            1,
-            &descriptorSet,
-            0,
-            nullptr);
+        if (descriptorSet != VK_NULL_HANDLE)
+        {
+            vkCmdBindDescriptorSets(
+                cmdBuffer,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipelineLayout,
+                0,
+                1,
+                &descriptorSet,
+                0,
+                nullptr);
+        }
 
         for (u32 meshID : meshIDs)
         {
