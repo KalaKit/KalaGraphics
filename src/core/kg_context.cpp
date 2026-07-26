@@ -28,7 +28,11 @@
 #include "core/kg_context.hpp"
 #include "core/kg_core.hpp"
 #include "core/kg_registry.hpp"
+#include "resources/kg_mesh.hpp"
+#include "resources/kg_camera.hpp"
+#include "resources/kg_text.hpp"
 #include "resources/kg_shader.hpp"
+#include "resources/kg_texture.hpp"
 
 using KalaHeaders::KalaCore::ToVar;
 using KalaHeaders::KalaCore::EnumHash;
@@ -44,7 +48,11 @@ using KalaHeaders::KalaMath::vec2;
 
 using KalaGraphics::Core::ViewportSize;
 using KalaGraphics::Core::Severity;
+using KalaGraphics::Resources::Mesh;
+using KalaGraphics::Resources::Camera;
+using KalaGraphics::Resources::Text;
 using KalaGraphics::Resources::Shader;
+using KalaGraphics::Resources::Texture;
 
 using std::string;
 using std::string_view;
@@ -2453,9 +2461,17 @@ namespace KalaGraphics::Core
         if (registry.runtimeContent.empty())
         {
 			Log::Print(
-				"Destroying global Vulkan because all contexts were destroyed.",
+				"Destroying global Vulkan and all remaining resources "
+                "because all graphics contexts were destroyed.",
 				"KG_CONTEXT",
 				LogType::LOG_INFO);
+
+            Mesh::GetRegistry().RemoveAllContent();
+            Camera::GetRegistry().RemoveAllContent();
+            Text::GetRegistry().RemoveAllContent();
+
+            Shader::GetRegistry().RemoveAllContent();
+            Texture::GetRegistry().RemoveAllContent();
 
             if (descriptorPool != VK_NULL_HANDLE)
             {

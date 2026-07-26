@@ -93,7 +93,7 @@ namespace KalaGraphics::Resources
 
     struct ShaderData
     {
-        //transforms vertices, required
+        //transforms and vertices, required
         path shader_vert{};
         //outputs pixel colors, required
         path shader_frag{};
