@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "core_utils.hpp"
+#include "math_utils.hpp"
 
 #include "core/kg_registry.hpp"
 
@@ -38,6 +39,8 @@ namespace KalaGraphics::Core
 
 namespace KalaGraphics::Resources
 {
+    using KalaHeaders::KalaMath::vec4;
+
     using KalaGraphics::Core::KalaGraphicsRegistry;
 
     using std::filesystem::path;
@@ -120,9 +123,17 @@ namespace KalaGraphics::Resources
         VkShaderModule module_tess_eval{};
     };
 
+    //TODO: replace with spirv-reflection logic later
+    struct REPLACE_ME_TEST_SHADER_DATA
+    {
+        vec4 color{};    //offset 0
+        u32 debugMode{}; //offset 16, value should be 0 or 1
+    };
+
     class LIB_API Shader
     {
     friend class KalaGraphics::Core::GraphicsContext;
+    friend class Mesh;
     public:
         static KalaGraphicsRegistry<Shader>& GetRegistry();
 
@@ -157,6 +168,8 @@ namespace KalaGraphics::Resources
         u32 ID{};
         u32 graphicsContextID{};
         vector<u32> meshIDs{};
+
+        u8 missingMeshWarningCount{};
 
         ShaderData shaderData{};
         ShaderModuleData shaderModuleData{};

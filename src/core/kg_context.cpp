@@ -206,7 +206,7 @@ static void PrintError(string_view message)
 {
     Log::Print(
         message,
-        "KG_VULKAN",
+        "KG_CONTEXT",
         LogType::LOG_ERROR,
         2);
 }
@@ -794,7 +794,7 @@ namespace KalaGraphics::Core
 
         Log::Print(
             "Initialized Vulkan Core!",
-            "KG_VULKAN",
+            "KG_CONTEXT",
             LogType::LOG_SUCCESS);
     }
 
@@ -828,7 +828,7 @@ namespace KalaGraphics::Core
 
         string idStr = to_string(newID);
 
-        if (registry.createdContent.contains(contextPtr->contextData.windowID))
+        if (registry.GetContent(contextPtr->contextData.windowID))
         {
             KalaGraphicsCore::ForceClose(
                 "Vulkan context init error",
@@ -1009,7 +1009,7 @@ namespace KalaGraphics::Core
 #ifdef KDEBUG
                 Log::Print(
                     "Image aquire returned a warning: " + GetVkResultMessage(result),
-                    "KG_VULKAN",
+                    "KG_CONTEXT",
                     LogType::LOG_WARNING);
 #endif
             }
@@ -1020,7 +1020,7 @@ namespace KalaGraphics::Core
                 {
                     Log::Print(
                         "Image aquire returned a message: " + GetVkResultMessage(result),
-                        "KG_VULKAN",
+                        "KG_CONTEXT",
                         LogType::LOG_VERBOSE);
                 }
             }
@@ -1032,7 +1032,7 @@ namespace KalaGraphics::Core
                 {
                     Log::Print(
                         "Recreating swapchain because image aquire returned out of date or suboptimal.",
-                        "KG_VULKAN",
+                        "KG_CONTEXT",
                         LogType::LOG_VERBOSE);
                 }
 
@@ -1117,6 +1117,21 @@ namespace KalaGraphics::Core
             1,
             &scissor);
 
+        
+        if (Shader::GetRegistry().runtimeContent.empty())
+        {
+            if (missingShaderWarningCount < 10)
+            {
+                Log::Print(
+                    "Cannot render onto graphics context '" + to_string(ID) + "' "
+                    "because there are no shaders to draw with! This warning will only be given 10 times.",
+                    "KG_CONTEXT",
+                    LogType::LOG_WARNING);
+
+                missingShaderWarningCount++;
+            }
+        }
+
         for (const auto& shader : Shader::GetRegistry().runtimeContent)
         {
             if (!shader)
@@ -1180,7 +1195,7 @@ namespace KalaGraphics::Core
     #ifdef KDEBUG
                 Log::Print(
                     "Queue present returned a warning: " + GetVkResultMessage(result),
-                    "KG_VULKAN",
+                    "KG_CONTEXT",
                     LogType::LOG_WARNING);
     #endif
             }
@@ -1191,7 +1206,7 @@ namespace KalaGraphics::Core
                 {
                     Log::Print(
                         "Queue present returned a message: " + GetVkResultMessage(result),
-                        "KG_VULKAN",
+                        "KG_CONTEXT",
                         LogType::LOG_VERBOSE);
                 }
             }
@@ -1203,7 +1218,7 @@ namespace KalaGraphics::Core
                 {
                     Log::Print(
                         "Recreating swapchain because queue presentt returned out of date or suboptimal.",
-                        "KG_VULKAN",
+                        "KG_CONTEXT",
                         LogType::LOG_VERBOSE);
                 }
 
@@ -1363,7 +1378,7 @@ namespace KalaGraphics::Core
                 {
                     Log::Print(
                         "Tried to use MAILBOX but device does not support it, falling back to FIFO_RELAXED.",
-                        "KG_VULKAN",
+                        "KG_CONTEXT",
                         LogType::LOG_VERBOSE);
                 }
 
@@ -1375,7 +1390,7 @@ namespace KalaGraphics::Core
                 {
                     Log::Print(
                         "Tried to use MAILBOX and FIFO_RELAXED but device does not support them, falling back to FIFO.",
-                        "KG_VULKAN",
+                        "KG_CONTEXT",
                         LogType::LOG_VERBOSE);
                 }
 
@@ -1392,7 +1407,7 @@ namespace KalaGraphics::Core
                 {
                     Log::Print(
                         "Tried to use FIFO_RELAXED but device does not support it, falling back to FIFO.",
-                        "KG_VULKAN",
+                        "KG_CONTEXT",
                         LogType::LOG_VERBOSE);
                 }
 
@@ -1806,6 +1821,14 @@ namespace KalaGraphics::Core
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
 
+        //
+        // FINISH
+        //
+
+        vpData.depth = { 0.0f, 1.0f };
+        vpData.viewportOffset = { 0.0f, 0.0f };
+        vpData.scissorSize = { 0.0f, 0.0f };
+
         vkResult = vkAllocateCommandBuffers(
             logicalDevice,
             &allocInfo,
@@ -1989,7 +2012,7 @@ namespace KalaGraphics::Core
                 {
                     Log::Print(
                         "Tried to use MAILBOX but device does not support it, falling back to FIFO_RELAXED.",
-                        "KG_VULKAN",
+                        "KG_CONTEXT",
                         LogType::LOG_VERBOSE);
                 }
 
@@ -2001,7 +2024,7 @@ namespace KalaGraphics::Core
                 {
                     Log::Print(
                         "Tried to use MAILBOX and FIFO_RELAXED but device does not support them, falling back to FIFO.",
-                        "KG_VULKAN",
+                        "KG_CONTEXT",
                         LogType::LOG_VERBOSE);
                 }
 
@@ -2018,7 +2041,7 @@ namespace KalaGraphics::Core
                 {
                     Log::Print(
                         "Tried to use FIFO_RELAXED but device does not support it, falling back to FIFO.",
-                        "KG_VULKAN",
+                        "KG_CONTEXT",
                         LogType::LOG_VERBOSE);
                 }
 
@@ -2309,7 +2332,7 @@ namespace KalaGraphics::Core
         {
             Log::Print(
                 "Finished recreating Vulkan swapchain.",
-                "KG_VULKAN",
+                "KG_CONTEXT",
                 LogType::LOG_VERBOSE);
         }
     }
@@ -2339,7 +2362,7 @@ namespace KalaGraphics::Core
 
         Log::Print(
             "Destroying Vulkan context '" + to_string(ID) + "'.",
-            "KG_VULKAN",
+            "KG_CONTEXT",
             LogType::LOG_INFO);
 
         if (commandBuffers[0] != VK_NULL_HANDLE)

@@ -14,7 +14,7 @@ compiler: clang++
 standard: c++20
 binarytype: static
 sources: "src"
-headers: "include", "../external-shared/KalaHeaders", "../external-shared/Vulkan/Include"
+headers: "include", "../external-shared/KalaHeaders", "../external-shared/Vulkan/Include", "../external-shared/Spirv-reflect"
 defines: LIB_STATIC
 warninglevel: normal
 customflags: export-compile-commands, export-vscode-sln
@@ -30,7 +30,6 @@ binaryname: ${name_bin}
 buildtype: minsizerel
 buildpath: "${dir_release}windows"
 defines: ${def_win}
-//customflags: generate-symbols
 
 #profile debug-linux
 binaryname: lib${name_bin}d

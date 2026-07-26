@@ -6,6 +6,7 @@
 #pragma once
 
 #include <vector>
+#include <string>
 
 #include "core_utils.hpp"
 #include "math_utils.hpp"
@@ -27,6 +28,7 @@ namespace KalaGraphics::Resources
     using KalaGraphics::Core::KalaGraphicsRegistry;
 
     using std::vector;
+    using std::string;
 
     using u8 = uint8_t;
     using f32 = float;
@@ -98,6 +100,7 @@ namespace KalaGraphics::Resources
         //The default importer, set use2D to true if you
         //intend to use this mesh only for UI, this cannot be changed later
         static Mesh* Initialize(
+            string&& name,
             bool use2D,
             u32 shaderID,
             Transform&& transform,
@@ -106,18 +109,21 @@ namespace KalaGraphics::Resources
 
         //Create a simple cube or cylinder
         static Mesh* Initialize(
+            string&& name,
             u32 shaderID,
             Transform&& transform,
             Mesh_Cube&& cubeData);
 
         //Create a simple pyramid or cone
         static Mesh* Initialize(
+            string&& name,
             u32 shaderID,
             Transform&& transform,
             Mesh_Pyramid&& pyramidData);
 
         //Create a simple sphere
         static Mesh* Initialize(
+            string&& name,
             u32 shaderID,
             Transform&& transform,
             Mesh_Sphere&& sphereData);
@@ -139,9 +145,10 @@ namespace KalaGraphics::Resources
         void SyncToGPU();
 
         u32 ID{};
-
         u32 shaderID{};
         vector<u32> textureIDs{};
+
+        string name{};
 
         bool is2D{};
 

@@ -56,6 +56,18 @@ namespace KalaGraphics::Resources
                 "Failed to initialize shader because logical device was invalid!");
         }
 
+        if (shaderName.empty()
+            || shaderName.size() > 50)
+        {
+            Log::Print(
+                "Failed to create shader because its name is empty or too long!",
+                "KG_SHADER",
+                LogType::LOG_ERROR,
+                2);
+
+            return nullptr;
+        }
+
         auto empty_path = [&shaderName](string_view shaderType) -> void
             {
                 Log::Print(
@@ -365,6 +377,17 @@ namespace KalaGraphics::Resources
         }
 
         //
+        // PUSH CONSTANT LAYOUT
+        //
+
+        //TODO: use spirv reflection
+
+        VkPushConstantRange pcRange{};
+        pcRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        pcRange.offset = 0;
+        pcRange.size = sizeof(REPLACE_ME_TEST_SHADER_DATA);
+
+        //
         // DESCRIPTOR SET LAYOUT
         //
 
@@ -416,7 +439,7 @@ namespace KalaGraphics::Resources
             destroy_shaders(badShaders);
 
             string message = 
-                "Failed to create descriptor set layout for shader '" + shaderPtr->name + "'! Reason: " 
+                "Failed to create descriptor set layout for shader '" + shaderName + "'! Reason: " 
                 + GraphicsContext::GetVkResultMessage(vkResult);
 
             if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
@@ -445,9 +468,10 @@ namespace KalaGraphics::Resources
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount         = 1;
+        pipelineLayoutInfo.setLayoutCount         = 0; //TODO: update dynamically for descriptor set count
         pipelineLayoutInfo.pSetLayouts            = &descriptorSetLayout;
-        pipelineLayoutInfo.pushConstantRangeCount = 0;
+        pipelineLayoutInfo.pushConstantRangeCount = 1; //TODO: update dynamically for push constant count
+        pipelineLayoutInfo.pPushConstantRanges = &pcRange;
 
         VkPipelineLayout pipelineLayout{};
         vkResult = vkCreatePipelineLayout(
@@ -476,7 +500,7 @@ namespace KalaGraphics::Resources
                 nullptr);
 
             string message = 
-                "Failed to create pipeline layout for shader '" + shaderPtr->name + "'! Reason: " 
+                "Failed to create pipeline layout for shader '" + shaderName + "'! Reason: " 
                 + GraphicsContext::GetVkResultMessage(vkResult);
 
             if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
@@ -551,14 +575,14 @@ namespace KalaGraphics::Resources
 
         VkVertexInputBindingDescription bindingDescription{};
         bindingDescription.binding   = 0;
-        bindingDescription.stride    = sizeof(f32) * 8;
+        bindingDescription.stride    = sizeof(Vertex);
         bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
         VkVertexInputAttributeDescription attributeDescriptions[] =
         {
-            { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 },
-            { 1, 0, VK_FORMAT_R32G32_SFLOAT, sizeof(f32) * 3 },
-            { 2, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(f32) * 5 }
+            { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos) },
+            { 1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal) },
+            { 2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv) }
         };
 
         VkPipelineVertexInputStateCreateInfo vertexInput{};
@@ -590,7 +614,7 @@ namespace KalaGraphics::Resources
         VkPipelineRasterizationStateCreateInfo rasterizer{};
         rasterizer.sType       = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-        rasterizer.cullMode    = VK_CULL_MODE_BACK_BIT;
+        rasterizer.cullMode    = VK_CULL_MODE_NONE; //TODO: use correctly as VK_CULL_MODE_BACK_BIT once Y is flipped correctly;
         rasterizer.frontFace   = VK_FRONT_FACE_CLOCKWISE;
         rasterizer.lineWidth   = 1.0f;
 
@@ -667,7 +691,7 @@ namespace KalaGraphics::Resources
                 nullptr);
 
             string message = 
-                "Failed to create graphics pipeline for shader '" + shaderPtr->name + "'! Reason: " 
+                "Failed to create graphics pipeline for shader '" + shaderName + "'! Reason: " 
                 + GraphicsContext::GetVkResultMessage(vkResult);
 
             if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
@@ -735,11 +759,12 @@ namespace KalaGraphics::Resources
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
         shaderPtr->ID = newID;
+        shaderPtr->name = std::move(shaderName);
 
         registry.AddContent(newID, std::move(newShader));
 
         Log::Print(
-			"Created new shader " + shaderPtr->name + " with ID '" + to_string(newID) + "'!",
+			"Created new shader '" + shaderPtr->name + "' with ID '" + to_string(newID) + "'!",
 			"KG_SHADER",
 			LogType::LOG_SUCCESS);
 
@@ -815,16 +840,46 @@ namespace KalaGraphics::Resources
     }
 
     VkDescriptorSetLayout Shader::GetDescriptorSetLayout() { return descriptorSetLayout; }
-
+    VkDescriptorSet Shader::GetDescriptorSet() { return descriptorSet; }
     VkPipelineLayout Shader::GetPipelineLayout() { return pipelineLayout; }
     VkPipeline Shader::GetPipeline() { return pipeline; }
 
     void Shader::Update(VkCommandBuffer cmdBuffer)
     {
+        if (meshIDs.empty())
+        {
+            if (missingMeshWarningCount < 10)
+            {
+                Log::Print(
+                    "Cannot render onto shader '" + to_string(ID) + "' "
+                    "because there are no meshes to draw! This warning will only be given 10 times.",
+                    "KG_SHADER",
+                    LogType::LOG_WARNING);
+
+                missingMeshWarningCount++;
+            }
+
+            return;
+        }
+
         vkCmdBindPipeline(
             cmdBuffer,
             VK_PIPELINE_BIND_POINT_GRAPHICS,
             pipeline);
+
+        //TODO: use spriv-reflection
+        
+        REPLACE_ME_TEST_SHADER_DATA pc{};
+        pc.color = { 1.0f, 0.8f, 0.6f, 1.0f };
+        pc.debugMode = 1;
+
+        vkCmdPushConstants(
+            cmdBuffer,
+            pipelineLayout,
+            VK_SHADER_STAGE_FRAGMENT_BIT,
+            0,
+            sizeof(pc),
+            &pc);
 
         if (descriptorSet != VK_NULL_HANDLE)
         {
@@ -849,7 +904,7 @@ namespace KalaGraphics::Resources
                     "Failed to update shader '" + to_string(ID) + "' because its mesh '" + to_string(meshID) + "' was nullptr!");
             }
 
-            mesh->SyncToGPU();
+            //mesh->SyncToGPU();
 
             VkDeviceSize offset{};
             vkCmdBindVertexBuffers(

@@ -33,13 +33,28 @@ namespace KalaGraphics::Resources
     KalaGraphicsRegistry<Mesh>& Mesh::GetRegistry() { return registry; }
 
     Mesh* Mesh::Initialize(
+        string&& name,
         bool use2D,
         u32 shaderID,
         Transform&& transform,
         vector<Vertex>&& vertices,
         vector<u32>&& indices)
     {
-        if (!Shader::GetRegistry().createdContent.contains(shaderID))
+        if (name.empty()
+            || name.size() > 50)
+        {
+            Log::Print(
+                "Failed to create mesh because its name is empty or too long!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return nullptr;
+        }
+
+        Shader* shader = Shader::GetRegistry().GetContent(shaderID);
+
+        if (!shader)
         {
             Log::Print(
                 "Failed to create mesh because shader '" + to_string(shaderID) + "' does not exist!",
@@ -92,11 +107,16 @@ namespace KalaGraphics::Resources
         meshPtr->ID = newID;
         meshPtr->shaderID = shaderID;
 
+        shader->meshIDs.push_back(newID);
+
         meshPtr->is2D = use2D;
 
         meshPtr->transform.pos_world = transform.pos;
         meshPtr->transform.rot_world = toquat(transform.rot);
         meshPtr->transform.size_world = transform.size;
+
+        meshPtr->vertices = std::move(vertices);
+        meshPtr->indices = std::move(indices);
 
         if (!meshPtr->InitVertices())
         {
@@ -107,8 +127,7 @@ namespace KalaGraphics::Resources
             return nullptr;
         }
 
-        meshPtr->vertices = std::move(vertices);
-        meshPtr->indices = std::move(indices);
+        meshPtr->SyncToGPU();
 
         registry.AddContent(newID, std::move(newMesh));
 
@@ -153,7 +172,9 @@ namespace KalaGraphics::Resources
         VmaAllocationCreateInfo allocInfo{};
         allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
         allocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-        allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+        allocInfo.flags = 
+            VMA_ALLOCATION_CREATE_MAPPED_BIT
+            | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
 
         VkBuffer vkBuffer = VK_NULL_HANDLE;
         VmaAllocation vmaAllocation = VK_NULL_HANDLE;
@@ -223,7 +244,9 @@ namespace KalaGraphics::Resources
         VmaAllocationCreateInfo indexAllocInfo{};
         indexAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
         indexAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-        indexAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+        indexAllocInfo.flags = 
+            VMA_ALLOCATION_CREATE_MAPPED_BIT
+            | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
 
         VkBuffer vkBuffer = VK_NULL_HANDLE;
         VmaAllocation vmaAllocation = VK_NULL_HANDLE;
@@ -248,7 +271,7 @@ namespace KalaGraphics::Resources
             return false;
         }
 
-        memcpy(allocResult.pMappedData, indices.data(), indexBufferSize);
+        memcpy(allocResult.pMappedData, indices.data(), bufferSize);
 
         vkIndexBuffer = vkBuffer;
         vmaIndexAllocation = vmaAllocation;
@@ -260,7 +283,32 @@ namespace KalaGraphics::Resources
 
     void Mesh::SyncToGPU()
     {
-
+        if (vertexMappedPtr)
+        {
+            size_t bufferSize = vertices.size() * sizeof(Vertex);
+            if (bufferSize > 0
+                && bufferSize == vertexBufferSize)
+            {
+                memcpy(vertexMappedPtr, vertices.data(), bufferSize);
+            }
+            else
+            {
+                Log::Print("@@@@@ vertex buffer for mesh '" + to_string(ID) + "' out of size!");
+            }
+        }
+        if (indexMappedPtr)
+        {
+            size_t bufferSize = indices.size() * sizeof(u32);
+            if (bufferSize > 0
+                && bufferSize == indexBufferSize)
+            {
+                memcpy(indexMappedPtr, indices.data(), bufferSize);
+            }
+            else
+            {
+                Log::Print("@@@@@ index buffer for mesh '" + to_string(ID) + "' out of size!");
+            }
+        }
     }
 
     u32 Mesh::GetID() const { return ID; }
@@ -286,6 +334,30 @@ namespace KalaGraphics::Resources
             "KG_MESH",
             LogType::LOG_INFO);
 
-        /*TODO: fill*/
+        VmaAllocator allocator = GraphicsContext::GetVmaAllocator();
+
+        Shader* shader = Shader::GetRegistry().GetContent(shaderID);
+        erase(shader->meshIDs, ID);
+
+        if (vmaVertexAllocation)
+        {
+            vmaDestroyBuffer(
+                allocator,
+                vkVertexBuffer,
+                vmaVertexAllocation);
+            vmaVertexAllocation = VK_NULL_HANDLE;
+            vkVertexBuffer = VK_NULL_HANDLE;
+            vertexMappedPtr = nullptr;
+        }
+        if (vmaIndexAllocation)
+        {
+            vmaDestroyBuffer(
+                allocator,
+                vkIndexBuffer,
+                vmaIndexAllocation);
+            vmaIndexAllocation = VK_NULL_HANDLE;
+            vkIndexBuffer = VK_NULL_HANDLE;
+            indexMappedPtr = nullptr;
+        }
     }
 }

@@ -271,6 +271,8 @@ namespace KalaGraphics::Core
 
         u32 ID{};
 
+        u8 missingShaderWarningCount{};
+
         VSyncState vsyncState = VSyncState::VSYNC_ON_TRIPLE_BUFFERED;
 
         GraphicsContextData contextData{};
