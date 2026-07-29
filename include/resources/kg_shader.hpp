@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <string>
 #include <vector>
+#include <memory>
 
 #include "core_utils.hpp"
 #include "math_utils.hpp"
@@ -47,6 +48,7 @@ namespace KalaGraphics::Resources
     using std::string;
     using std::string_view;
     using std::vector;
+    using std::unique_ptr;
 
     using u8 = uint8_t;
     using u32 = uint32_t;
@@ -108,6 +110,9 @@ namespace KalaGraphics::Resources
         path shader_tess_eval{};
     };
 
+    //forward declaration, defined in kg_shader.cpp
+    struct ShaderPipelineRecreateData;
+
     struct ShaderModuleData
     {
         VkShaderModule module_vert{};
@@ -144,8 +149,14 @@ namespace KalaGraphics::Resources
             vector<DescriptorBinding>&& bindings = {});
 
         u32 GetID() const;
+
         u32 GetGraphicsContextID() const;
-        const vector<u32>& GetMeshIDs() const;
+        //Assign a new graphics context ID,
+        //can choose to carry content over to new graphics context ID,
+        //otherwise if left false then they will be detached from this shader
+        void SetGraphicsContextID(
+            u32 newValue,
+            bool carryContentOver = false);
 
         string_view GetName() const;
 
@@ -163,16 +174,24 @@ namespace KalaGraphics::Resources
     private:
         void Update(VkCommandBuffer buffer);
 
-        string name;
+        //used only to prevent shader from removing its ID from
+        //graphics context camera IDs list if the graphics context
+        //destroy function called the destroy function of this shader 
+        bool isDestroyingGraphicsContext{};
 
         u32 ID{};
-        u32 graphicsContextID{};
+        u32 contextID{};
+
+        string name;
+
         vector<u32> meshIDs{};
 
         u8 missingMeshWarningCount{};
 
         ShaderData shaderData{};
         ShaderModuleData shaderModuleData{};
+
+        unique_ptr<ShaderPipelineRecreateData> recreateData;
 
         VkDescriptorSetLayout descriptorSetLayout{};
         VkDescriptorSet descriptorSet{};

@@ -35,6 +35,7 @@ namespace KalaGraphics::Resources
     Mesh* Mesh::Initialize(
         string&& name,
         bool use2D,
+        u32 contextID,
         u32 shaderID,
         Transform&& transform,
         vector<Vertex>&& vertices,
@@ -52,12 +53,23 @@ namespace KalaGraphics::Resources
             return nullptr;
         }
 
-        Shader* shader = Shader::GetRegistry().GetContent(shaderID);
+        GraphicsContext* gctx = GraphicsContext::GetRegistry().GetContent(contextID);
+        if (!gctx)
+        {
+            Log::Print(
+                "Failed to create mesh because graphics context '" + to_string(contextID) + "' was not found!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
 
+            return nullptr;
+        }
+
+        Shader* shader = Shader::GetRegistry().GetContent(shaderID);
         if (!shader)
         {
             Log::Print(
-                "Failed to create mesh because shader '" + to_string(shaderID) + "' does not exist!",
+                "Failed to create mesh because shader '" + to_string(shaderID) + "' was not found!",
                 "KG_MESH",
                 LogType::LOG_ERROR,
                 2);
@@ -106,8 +118,13 @@ namespace KalaGraphics::Resources
 
         meshPtr->ID = newID;
         meshPtr->shaderID = shaderID;
+        shader->contextID = contextID;
 
+        //shader references this mesh
         shader->meshIDs.push_back(newID);
+
+        //graphics context references this mesh
+        gctx->meshIDs.push_back(newID);
 
         meshPtr->is2D = use2D;
 
@@ -145,7 +162,7 @@ namespace KalaGraphics::Resources
         if (!allocator)
         {
             KalaGraphicsCore::ForceClose(
-                "Mesh init error",
+                "KalaGraphics mesh error",
                 "Failed to initialize mesh because vma allocator was invalid!");
         }
 
@@ -216,7 +233,7 @@ namespace KalaGraphics::Resources
         if (!allocator)
         {
             KalaGraphicsCore::ForceClose(
-                "Mesh init error",
+                "KalaGraphics mesh error",
                 "Failed to initialize mesh because vma allocator was invalid!");
         }
 
@@ -313,7 +330,125 @@ namespace KalaGraphics::Resources
 
     u32 Mesh::GetID() const { return ID; }
 
+    u32 Mesh::GetContextID() const { return contextID; }
+    void Mesh::SetContextID(u32 newValue)
+    {
+        if (contextID == newValue)
+        {
+            Log::Print("Failed to set mesh '" + to_string(ID) 
+                + "' graphics context ID to '" + to_string(newValue) 
+                + "' because it already is that value!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        GraphicsContext* oldGctx = GraphicsContext::GetRegistry().GetContent(contextID);
+        GraphicsContext* gctx = GraphicsContext::GetRegistry().GetContent(newValue);
+        if (!gctx)
+        {
+            Log::Print("Failed to set mesh '" + to_string(ID) 
+                + "' graphics context ID to '" + to_string(newValue) 
+                + "' because it was not found!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        Shader* shader = Shader::GetRegistry().GetContent(shaderID);
+        if (shader
+            && shader->contextID != newValue)
+        {
+            u32 oldShaderID = shaderID;
+
+            shaderID = 0;
+            erase(
+                shader->meshIDs,
+                ID);
+
+            Log::Print("Removed shader '" + to_string(oldShaderID) 
+                + "' from mesh '" + to_string(ID) 
+                + "' because their graphics context IDs no longer match.",
+                "KG_MESH",
+                LogType::LOG_WARNING);
+        }
+
+        contextID = newValue;
+
+        erase(
+            oldGctx->meshIDs,
+            ID);
+        gctx->meshIDs.push_back(ID);
+
+        Log::Print(
+            "Set mesh '" + to_string(ID) 
+            + "' graphics context ID to '" + to_string(contextID) + "'!",
+            "KG_MESH",
+            LogType::LOG_SUCCESS);
+    }
+
+    u32 Mesh::GetShaderID() const { return shaderID; }
+    void Mesh::SetShaderID(u32 newValue)
+    {
+        if (shaderID == newValue)
+        {
+            Log::Print("Failed to set mesh '" + to_string(ID) 
+                + "' shader ID to '" + to_string(newValue) 
+                + "' because it already is that value!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        Shader* oldShader = Shader::GetRegistry().GetContent(shaderID);
+        Shader* shader = Shader::GetRegistry().GetContent(newValue);
+        if (!shader)
+        {
+            Log::Print("Failed to set mesh '" + to_string(ID) 
+                + "' shader ID to '" + to_string(newValue) 
+                + "' because it was not found!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (shader->contextID != contextID)
+        {
+            Log::Print("Failed to set mesh '" + to_string(ID) 
+                + "' shader ID to '" + to_string(newValue) 
+                + "' because their graphics context IDs don't match!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        shaderID = newValue;
+
+        erase(
+            oldShader->meshIDs,
+            ID);
+        shader->meshIDs.push_back(ID);
+
+        Log::Print(
+            "Set mesh '" + to_string(ID) 
+            + "' shader ID to '" + to_string(shaderID) + "'!",
+            "KG_MESH",
+            LogType::LOG_SUCCESS);
+    }
+
     bool Mesh::Is2D() const { return is2D; }
+
+    Transform3D& Mesh::GetTransform() { return transform; }
 
     VkBuffer& Mesh::GetVkBuffer(bool vertex) 
     { 
@@ -324,6 +459,27 @@ namespace KalaGraphics::Resources
 
     void Mesh::Destroy()
     {
+        GraphicsContext* gctx = GraphicsContext::GetRegistry().GetContent(contextID);
+        if (gctx
+            && !isDestroyingGraphicsContext)
+        {
+            erase(
+                gctx->meshIDs, 
+                ID);
+        }
+
+        //only remove this mesh from shader meshes list if the shader is still valid
+        if (shaderID != 0)
+        {
+            Shader* s = Shader::GetRegistry().GetContent(shaderID);
+            if (s)
+            {
+                erase(
+                    s->meshIDs,
+                    ID);
+            }
+        }
+
         registry.RemoveContent(ID);
     }
 
@@ -334,10 +490,23 @@ namespace KalaGraphics::Resources
             "KG_MESH",
             LogType::LOG_INFO);
 
-        VmaAllocator allocator = GraphicsContext::GetVmaAllocator();
+        VkDevice device = GraphicsContext::GetLogicalDevice();
 
-        Shader* shader = Shader::GetRegistry().GetContent(shaderID);
-        erase(shader->meshIDs, ID);
+        //drain the gpu before destroying this mesh
+        if (device != VK_NULL_HANDLE) 
+        {
+            VkResult vkResult = vkDeviceWaitIdle(device);
+            if (vkResult != VK_SUCCESS)
+            {
+                GraphicsContext::ForceClose(
+                    "KalaGraphics mesh error",
+                    "Failed to destroy mesh '" 
+                    + to_string(ID) + "' because vkDeviceWaitIdle did not succeed!",
+                    vkResult);
+            }
+        }
+
+        VmaAllocator allocator = GraphicsContext::GetVmaAllocator();
 
         if (vmaVertexAllocation)
         {

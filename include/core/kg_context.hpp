@@ -65,6 +65,13 @@ using VkCommandPool = VkCommandPool_T*;
 struct VkCommandBuffer_T;
 using VkCommandBuffer = VkCommandBuffer_T*;
 
+namespace KalaGraphics::Resources
+{
+    class Mesh;
+    class Camera;
+    class Shader;
+}
+
 namespace KalaGraphics::Core
 {
     constexpr u8 MAX_FRAMES_IN_FLIGHT = 2;
@@ -179,6 +186,9 @@ namespace KalaGraphics::Core
 
     class LIB_API GraphicsContext
     {
+    friend class KalaGraphics::Resources::Mesh;
+    friend class KalaGraphics::Resources::Camera;
+    friend class KalaGraphics::Resources::Shader;
     public:
         static KalaGraphicsRegistry<GraphicsContext>& GetRegistry();
 
@@ -243,6 +253,7 @@ namespace KalaGraphics::Core
     
         const GraphicsContextData& GetGraphicsContextData() const;
 
+        vec2 GetExtent();
         VkSwapchainKHR& GetSwapchain();
         vector<VkImageView>& GetImageViews();
         VkRenderPass& GetRenderPass();
@@ -280,8 +291,14 @@ namespace KalaGraphics::Core
 
         size_t currentFrame{};
 
-        u32 extentWidth{};
-        u32 extentHeight{};
+        //cameras that use this graphics context
+        vector<u32> cameraIDs{};
+        //meshes that use this graphics context
+        vector<u32> meshIDs{};
+        //shaders that use this graphics context
+        vector<u32> shaderIDs{};
+
+        vec2 extent{};
         VkSwapchainKHR swapchain{};
         u32 swapchainFormat{};
         vector<VkFence> imagesInFlight{};

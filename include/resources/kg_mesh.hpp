@@ -19,6 +19,11 @@ using VkBuffer = VkBuffer_T*;
 struct VmaAllocation_T;
 using VmaAllocation = VmaAllocation_T*;
 
+namespace KalaGraphics::Core
+{
+    class GraphicsContext;
+}
+
 namespace KalaGraphics::Resources
 {
     using KalaHeaders::KalaMath::Transform3D;
@@ -94,6 +99,7 @@ namespace KalaGraphics::Resources
     class LIB_API Mesh
     {
     friend class Shader;
+    friend class KalaGraphics::Core::GraphicsContext;
     public:
         static KalaGraphicsRegistry<Mesh>& GetRegistry();
 
@@ -102,14 +108,17 @@ namespace KalaGraphics::Resources
         static Mesh* Initialize(
             string&& name,
             bool use2D,
+            u32 contextID,
             u32 shaderID,
             Transform&& transform,
             vector<Vertex>&& vertices,
             vector<u32>&& indices);
 
+        /*
         //Create a simple cube or cylinder
         static Mesh* Initialize(
             string&& name,
+            u32 contextID,
             u32 shaderID,
             Transform&& transform,
             Mesh_Cube&& cubeData);
@@ -117,6 +126,7 @@ namespace KalaGraphics::Resources
         //Create a simple pyramid or cone
         static Mesh* Initialize(
             string&& name,
+            u32 contextID,
             u32 shaderID,
             Transform&& transform,
             Mesh_Pyramid&& pyramidData);
@@ -124,14 +134,23 @@ namespace KalaGraphics::Resources
         //Create a simple sphere
         static Mesh* Initialize(
             string&& name,
+            u32 contextID,
             u32 shaderID,
             Transform&& transform,
             Mesh_Sphere&& sphereData);
+        */
 
         u32 GetID() const;
+
+        u32 GetContextID() const;
+        void SetContextID(u32 newID);
+
         u32 GetShaderID() const;
+        void SetShaderID(u32 newID);
 
         bool Is2D() const;
+
+        Transform3D& GetTransform();
 
         VkBuffer& GetVkBuffer(bool vertex);
 
@@ -144,7 +163,13 @@ namespace KalaGraphics::Resources
 
         void SyncToGPU();
 
+        //used only to prevent mesh from removing its ID from
+        //graphics context camera IDs list if the graphics context
+        //destroy function called the destroy function of this mesh 
+        bool isDestroyingGraphicsContext{};
+
         u32 ID{};
+        u32 contextID{};
         u32 shaderID{};
         vector<u32> textureIDs{};
 

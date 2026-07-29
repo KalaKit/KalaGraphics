@@ -306,12 +306,12 @@ namespace KalaGraphics::Core
 
     void GraphicsContext::Update()
     {
-        for (GraphicsContext* gctx : registry.runtimeContent)
+        for (GraphicsContext* gctx : registry.GetAllContent())
         {
             if (!gctx)
             {
                 KalaGraphicsCore::ForceClose(
-                    "Graphics context update error",
+                    "KalaGraphics context error",
                     "Failed to update graphics contexts because one of those was nullptr");
             }
 
@@ -517,7 +517,7 @@ namespace KalaGraphics::Core
             && minor < 4))
         {
             ForceClose(
-                "Global Vulkan init error",
+                "KalaGraphics context error",
                 "Failed to initialize Vulkan because the instance version was lower than minimum required version 1.4!",
                 0);
         }
@@ -538,7 +538,7 @@ namespace KalaGraphics::Core
         if (vkResult != VK_SUCCESS)
         {
             ForceClose(
-                "Global Vulkan init error",
+                "KalaGraphics context error",
                 "The instance is invalid!",
                 vkResult);
         }
@@ -546,7 +546,7 @@ namespace KalaGraphics::Core
         if (deviceCount == 0)
         {
             ForceClose(
-                "Global Vulkan init error",
+                "KalaGraphics context error",
                 "No valid devices were found!",
                 vkResult);
         }
@@ -641,7 +641,7 @@ namespace KalaGraphics::Core
         if (bestDevice == VK_NULL_HANDLE)
         {
             ForceClose(
-                "Global Vulkan init error",
+                "KalaGraphics context error",
                 "Failed to initialize Global Vulkan because no suitable physical device was found!",
                 0);
         }
@@ -676,7 +676,7 @@ namespace KalaGraphics::Core
         if (graphicsFamily == UINT32_MAX)
         {
             ForceClose(
-                "Global Vulkan init error",
+                "KalaGraphics context error",
                 "Failed to initialize Global Vulkan because no graphics queue family was found!",
                 0);
         }
@@ -717,7 +717,7 @@ namespace KalaGraphics::Core
         if (vkResult != VK_SUCCESS)
         {
             ForceClose(
-                "Global Vulkan init error",
+                "KalaGraphics context error",
                 "Failed to initialize Global Vulkan because logical device creation failed!",
                 vkResult);
         }
@@ -749,7 +749,7 @@ namespace KalaGraphics::Core
         if (vkResult != VK_SUCCESS)
         {
             ForceClose(
-                "Global Vulkan init error",
+                "KalaGraphics context error",
                 "Failed to initialize Global Vulkan because VMA allocator creation failed!",
                 vkResult);
         }
@@ -785,7 +785,7 @@ namespace KalaGraphics::Core
         if (vkResult != VK_SUCCESS)
         {
             ForceClose(
-                "Global Vulkan init error",
+                "KalaGraphics context error",
                 "Failed to initialize Global Vulkan because descriptor pool creation failed!",
                 vkResult);
         }
@@ -805,7 +805,7 @@ namespace KalaGraphics::Core
         if (!isInitialized)
         {
             KalaGraphicsCore::ForceClose(
-                "Vulkan context init error",
+                "KalaGraphics context error",
                 "Failed to initialize graphics context because Vulkan core has not yet been initialized!");
         }
 
@@ -822,7 +822,7 @@ namespace KalaGraphics::Core
         if (contextPtr->contextData.windowID == 0)
         {
             KalaGraphicsCore::ForceClose(
-                "Vulkan context init error",
+                "KalaGraphics context error",
                 "Failed to initialize graphics context because it had no window ID!");
         }
 
@@ -831,7 +831,7 @@ namespace KalaGraphics::Core
         if (registry.GetContent(contextPtr->contextData.windowID))
         {
             KalaGraphicsCore::ForceClose(
-                "Vulkan context init error",
+                "KalaGraphics context error",
                 "Failed to initialize graphics context '" + idStr + "' because its ID was added more than once!");
         }
 
@@ -839,7 +839,7 @@ namespace KalaGraphics::Core
         if (!contextPtr->contextData.context_window)
         {
             KalaGraphicsCore::ForceClose(
-                "Vulkan context init error",
+                "KalaGraphics context error",
                 "Failed to initialize graphics context '" + idStr + "' because it was missing its window!");
         }
 
@@ -847,7 +847,7 @@ namespace KalaGraphics::Core
         if (!IsWindow(hwnd))
         {
             KalaGraphicsCore::ForceClose(
-                "Vulkan context init error",
+                "KalaGraphics context error",
                 "Failed to initialize graphics context '" + idStr + "' because it did not contain a real window!");
         }
 #else
@@ -855,7 +855,7 @@ namespace KalaGraphics::Core
             || !contextPtr->contextData.context_window)
         {
             KalaGraphicsCore::ForceClose(
-                "Vulkan context init error",
+                "KalaGraphics context error",
                 "Failed to initialize graphics context '" + idStr + "' because it was missing its display or window!");
         }
 
@@ -866,7 +866,7 @@ namespace KalaGraphics::Core
         if (!XGetWindowAttributes(display, window, &attr))
         {
             KalaGraphicsCore::ForceClose(
-                "Vulkan context init error",
+                "KalaGraphics context error",
                 "Failed to initialize graphics context '" + idStr + "' because it did not contain a real display or window!");
         }
 #endif
@@ -874,7 +874,7 @@ namespace KalaGraphics::Core
         if (!vk_instance)
         {
             KalaGraphicsCore::ForceClose(
-                "Vulkan context init error",
+                "KalaGraphics context error",
                 "Failed to initialize graphics context '" + idStr + "' because no Vulkan surface was passed!");
         }
 
@@ -957,6 +957,7 @@ namespace KalaGraphics::Core
 
     const GraphicsContextData& GraphicsContext::GetGraphicsContextData() const { return contextData; }
 
+    vec2 GraphicsContext::GetExtent()                                                   { return extent; }
     VkSwapchainKHR& GraphicsContext::GetSwapchain()                                     { return swapchain; }
     vector<VkImageView>& GraphicsContext::GetImageViews()                               { return imageViews; }
     VkRenderPass& GraphicsContext::GetRenderPass()                                      { return renderPass; }
@@ -974,8 +975,8 @@ namespace KalaGraphics::Core
         if (logicalDevice == VK_NULL_HANDLE)
         {
             ForceClose(
-                "Vulkan update error",
-                "Logical device for Vulkan context '" + to_string(ID) + "' was not found!",
+                "KalaGraphics context error",
+                "Logical device for graphics context '" + to_string(ID) + "' was not found!",
                 0);
         }
 
@@ -1000,7 +1001,7 @@ namespace KalaGraphics::Core
             if (GetVkResultSeverity(result) == Severity::S_FATAL)
             {
                 ForceClose(
-                    "Vulkan runtime error", 
+                    "KalaGraphics context error", 
                     "Encountered a fatal image aquire error!",
                     result);
             }
@@ -1076,7 +1077,7 @@ namespace KalaGraphics::Core
         renderPassInfo.renderPass = renderPass;
         renderPassInfo.framebuffer = framebuffers[imageIndex];
         renderPassInfo.renderArea.offset = { 0, 0 };
-        renderPassInfo.renderArea.extent = { extentWidth, extentHeight };
+        renderPassInfo.renderArea.extent = { scast<u32>(extent.x), scast<u32>(extent.y) };
         renderPassInfo.clearValueCount = scast<u32>(clearValues.size());
         renderPassInfo.pClearValues = clearValues.data();
 
@@ -1096,14 +1097,14 @@ namespace KalaGraphics::Core
         VkViewport viewport{};
         viewport.x = vpOffset.x;
         viewport.y = vpOffset.y;
-        viewport.width = scast<f32>(extentWidth);
-        viewport.height = scast<f32>(extentHeight);
+        viewport.width = extent.x;
+        viewport.height = extent.y;
         viewport.minDepth = depth.x;
         viewport.maxDepth = depth.y;
 
         VkRect2D scissor{};
         scissor.offset = { scast<int>(scissorSize.x), scast<int>(scissorSize.y) };
-        scissor.extent = { extentWidth, extentHeight };
+        scissor.extent = { scast<u32>(extent.x), scast<u32>(extent.y) };
 
         vkCmdSetViewport(
             commandBuffers[currentFrame],
@@ -1118,7 +1119,7 @@ namespace KalaGraphics::Core
             &scissor);
 
         
-        if (Shader::GetRegistry().runtimeContent.empty())
+        if (Shader::GetRegistry().GetAllContent().empty())
         {
             if (missingShaderWarningCount < 10)
             {
@@ -1132,12 +1133,12 @@ namespace KalaGraphics::Core
             }
         }
 
-        for (const auto& shader : Shader::GetRegistry().runtimeContent)
+        for (const auto& shader : Shader::GetRegistry().GetAllContent())
         {
             if (!shader)
             {
                 KalaGraphicsCore::ForceClose(
-                    "Graphics context update error",
+                    "KalaGraphics context error",
                     "Failed to update graphics context because one of the the shaders was nullptr!");
             }
 
@@ -1186,7 +1187,7 @@ namespace KalaGraphics::Core
             if (GetVkResultSeverity(result) == Severity::S_FATAL)
             {
                 ForceClose(
-                    "Vulkan runtime error", 
+                    "KalaGraphics context error", 
                     "Encountered a fatal queue present error!",
                     result);
             }
@@ -1243,8 +1244,8 @@ namespace KalaGraphics::Core
         if (physicalDevice == VK_NULL_HANDLE)
         {
             ForceClose(
-                "Vulkan context init error",
-                "Failed to initialize Vulkan context because the physical device was invalid!",
+                "KalaGraphics context error",
+                "Failed to initialize graphics context because the physical device was invalid!",
                 0);
         }
 
@@ -1279,8 +1280,8 @@ namespace KalaGraphics::Core
         if (!surfaceSupported)
         {
             ForceClose(
-                "Vulkan context init error",
-                "Failed to initialize Vulkan context because the instance surface is not supported by the physical device!",
+                "KalaGraphics context error",
+                "Failed to initialize graphics context because the instance surface is not supported by the physical device!",
                 0);
         }
         
@@ -1449,15 +1450,15 @@ namespace KalaGraphics::Core
         if (vkResult != VK_SUCCESS)
         {
             ForceClose(
-                "Vulkan context init error",
-                "Failed to initialize Vulkan context '" + to_string(ID) + "' because swapchain creation failed!",
+                "KalaGraphics context error",
+                "Failed to initialize graphics context '" + to_string(ID) + "' because swapchain creation failed!",
                 vkResult);
         }
 
         swapchain = newSwapchain;
         swapchainFormat = chosenFormat.format;
-        extentWidth = newExtent.width;
-        extentHeight = newExtent.height;
+        extent.x = newExtent.width;
+        extent.y = newExtent.height;
 
         //
         // GET SWAPCHAIN IMAGES 
@@ -1508,8 +1509,8 @@ namespace KalaGraphics::Core
             if (vkResult != VK_SUCCESS)
             {
                 ForceClose(
-                    "Vulkan context init error",
-                    "Failed to initialize Vulkan context '" + to_string(ID) + "' because image view creation failed!",
+                    "KalaGraphics context error",
+                    "Failed to initialize graphics context '" + to_string(ID) + "' because image view creation failed!",
                     vkResult);
             }
         }
@@ -1597,8 +1598,8 @@ namespace KalaGraphics::Core
         if (vkResult != VK_SUCCESS)
         {
             ForceClose(
-                "Vulkan context init error",
-                "Failed to initialize Vulkan context '" + to_string(ID) + "' because render pass creation failed!",
+                "KalaGraphics context error",
+                "Failed to initialize graphics context '" + to_string(ID) + "' because render pass creation failed!",
                 vkResult);
         }
 
@@ -1612,8 +1613,8 @@ namespace KalaGraphics::Core
         depthImageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         depthImageInfo.imageType = VK_IMAGE_TYPE_2D;
         depthImageInfo.format = VK_FORMAT_D32_SFLOAT;
-        depthImageInfo.extent.width = extentWidth;
-        depthImageInfo.extent.height = extentHeight;
+        depthImageInfo.extent.width = extent.x;
+        depthImageInfo.extent.height = extent.y;
         depthImageInfo.extent.depth = 1;
         depthImageInfo.mipLevels = 1;
         depthImageInfo.arrayLayers = 1;
@@ -1639,8 +1640,8 @@ namespace KalaGraphics::Core
         if (vkResult != VK_SUCCESS)
         {
             ForceClose(
-                "Vulkan context init error",
-                "Failed to initialize Vulkan context '" + to_string(ID) + "' because depth image creation failed!",
+                "KalaGraphics context error",
+                "Failed to initialize graphics context '" + to_string(ID) + "' because depth image creation failed!",
                 vkResult);
         }
 
@@ -1669,8 +1670,8 @@ namespace KalaGraphics::Core
         if (vkResult != VK_SUCCESS)
         {
             ForceClose(
-                "Vulkan context init error",
-                "Failed to initialize Vulkan context '" + to_string(ID) + "' because depth image view creation failed!",
+                "KalaGraphics context error",
+                "Failed to initialize graphics context '" + to_string(ID) + "' because depth image view creation failed!",
                 vkResult);
         }
 
@@ -1696,8 +1697,8 @@ namespace KalaGraphics::Core
             framebufferInfo.renderPass = newRenderPass;
             framebufferInfo.attachmentCount = scast<u32>(attachments.size());
             framebufferInfo.pAttachments = attachments.data();
-            framebufferInfo.width = extentWidth;
-            framebufferInfo.height = extentHeight;
+            framebufferInfo.width = extent.x;
+            framebufferInfo.height = extent.y;
             framebufferInfo.layers = 1;
             
             vkResult = vkCreateFramebuffer(
@@ -1709,8 +1710,8 @@ namespace KalaGraphics::Core
             if (vkResult != VK_SUCCESS)
             {
                 ForceClose(
-                    "Vulkan context init error",
-                    "Failed to initialize Vulkan context '" + to_string(ID) + "' because framebuffer creation failed for image " + to_string(i) + "!",
+                    "KalaGraphics context error",
+                    "Failed to initialize graphics context '" + to_string(ID) + "' because framebuffer creation failed for image " + to_string(i) + "!",
                     vkResult);
             }
         }
@@ -1742,8 +1743,8 @@ namespace KalaGraphics::Core
             if (vkResult != VK_SUCCESS)
             {
                 ForceClose(
-                    "Vulkan context init error",
-                    "Failed to initialize Vulkan context '" + to_string(ID)
+                    "KalaGraphics context error",
+                    "Failed to initialize graphics context '" + to_string(ID)
                     + "' because available semaphore '" + to_string(i) + "' creation failed!",
                     vkResult);
             }
@@ -1757,8 +1758,8 @@ namespace KalaGraphics::Core
             if (vkResult != VK_SUCCESS)
             {
                 ForceClose(
-                    "Vulkan context init error",
-                    "Failed to initialize Vulkan context '" + to_string(ID)
+                    "KalaGraphics context error",
+                    "Failed to initialize graphics context '" + to_string(ID)
                     + "' because in flight fence '" + to_string(i) + "' creation failed!",
                     vkResult);
             }
@@ -1779,8 +1780,8 @@ namespace KalaGraphics::Core
             if (vkResult != VK_SUCCESS)
             {
                 ForceClose(
-                    "Vulkan context init error",
-                    "Failed to initialize Vulkan context '" + to_string(ID)
+                    "KalaGraphics context error",
+                    "Failed to initialize graphics context '" + to_string(ID)
                     + "' because render finished semaphore '" + to_string(i) + "' creation failed!",
                     vkResult);
             }
@@ -1806,8 +1807,8 @@ namespace KalaGraphics::Core
         if (vkResult != VK_SUCCESS)
         {
             ForceClose(
-                "Vulkan context init error",
-                "Failed to initialize Vulkan context because command pool creation failed!",
+                "KalaGraphics context error",
+                "Failed to initialize graphics context because command pool creation failed!",
                 vkResult);
         }
 
@@ -1837,8 +1838,8 @@ namespace KalaGraphics::Core
         if (vkResult != VK_SUCCESS)
         {
             ForceClose(
-                "Vulkan context init error",
-                "Failed to initialize Vulkan context '" + to_string(ID)
+                "KalaGraphics context error",
+                "Failed to initialize graphics context '" + to_string(ID)
                 + "' because parallel command buffer allocation failed!",
                 vkResult);
         }
@@ -1869,7 +1870,7 @@ namespace KalaGraphics::Core
         if (vkResult != VK_SUCCESS)
         {
             ForceClose(
-                "Vulkan swapchain error",
+                "KalaGraphics context error",
                 "Failed to recreate Vulkan swapchain for graphics context '" 
                 + to_string(ID) + "' because vkDeviceWaitIdle did not succeed!",
                 vkResult);
@@ -2083,7 +2084,7 @@ namespace KalaGraphics::Core
         if (vkResult != VK_SUCCESS)
         {
             ForceClose(
-                "Vulkan swapchain error",
+                "KalaGraphics context error",
                 "Failed to recreate Vulkan swapchain for graphics context '" 
                 + to_string(ID) + "' because swapchain creation failed!",
                 vkResult);
@@ -2099,8 +2100,8 @@ namespace KalaGraphics::Core
 
         swapchain = newSwapchain;
         swapchainFormat = chosenFormat.format;
-        extentWidth = newExtent.width;
-        extentHeight = newExtent.height;
+        extent.x = newExtent.width;
+        extent.y = newExtent.height;
 
         //
         // GET SWAPCHAIN IMAGES 
@@ -2151,7 +2152,7 @@ namespace KalaGraphics::Core
             if (vkResult != VK_SUCCESS)
             {
                 ForceClose(
-                    "Vulkan swapchain error",
+                    "KalaGraphics context error",
                     "Failed to recreate Vulkan swapchain for graphics context '" 
                     + to_string(ID) + "' because image view creation failed!",
                     vkResult);
@@ -2166,8 +2167,8 @@ namespace KalaGraphics::Core
         depthImageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         depthImageInfo.imageType = VK_IMAGE_TYPE_2D;
         depthImageInfo.format = VK_FORMAT_D32_SFLOAT;
-        depthImageInfo.extent.width = extentWidth;
-        depthImageInfo.extent.height = extentHeight;
+        depthImageInfo.extent.width = extent.x;
+        depthImageInfo.extent.height = extent.y;
         depthImageInfo.extent.depth = 1;
         depthImageInfo.mipLevels = 1;
         depthImageInfo.arrayLayers = 1;
@@ -2191,7 +2192,7 @@ namespace KalaGraphics::Core
         if (vkResult != VK_SUCCESS)
         {
             ForceClose(
-                "Vulkan swapchain error",
+                "KalaGraphics context error",
                 "Failed to recreate Vulkan swapchain for graphics context '" 
                 + to_string(ID) + "' because depth image creation failed!",
                 vkResult);
@@ -2221,7 +2222,7 @@ namespace KalaGraphics::Core
         if (vkResult != VK_SUCCESS)
         {
             ForceClose(
-                "Vulkan swapchain error",
+                "KalaGraphics context error",
                 "Failed to recreate Vulkan swapchain for graphics context '" 
                 + to_string(ID) + "' because depth image view creation failed!",
                 vkResult);
@@ -2245,8 +2246,8 @@ namespace KalaGraphics::Core
             framebufferInfo.renderPass = renderPass;
             framebufferInfo.attachmentCount = scast<u32>(attachments.size());
             framebufferInfo.pAttachments = attachments.data();
-            framebufferInfo.width = extentWidth;
-            framebufferInfo.height = extentHeight;
+            framebufferInfo.width = extent.x;
+            framebufferInfo.height = extent.y;
             framebufferInfo.layers = 1;
             
             vkResult = vkCreateFramebuffer(
@@ -2258,7 +2259,7 @@ namespace KalaGraphics::Core
             if (vkResult != VK_SUCCESS)
             {
                 ForceClose(
-                    "Vulkan swapchain error",
+                    "KalaGraphics context error",
                     "Failed to recreate Vulkan swapchain for graphics context '" 
                     + to_string(ID) + "' because framebuffer creation failed for image " + to_string(i) + "!",
                     vkResult);
@@ -2300,7 +2301,7 @@ namespace KalaGraphics::Core
                 if (vkResult != VK_SUCCESS)
                 {
                     ForceClose(
-                        "Vulkan swapchain error",
+                        "KalaGraphics context error",
                         "Failed to recreate render finished semaphore at index " + to_string(i),
                         vkResult);
                 }
@@ -2328,6 +2329,20 @@ namespace KalaGraphics::Core
                 VK_NULL_HANDLE);
         }
 
+        for (u32 cid : cameraIDs)
+        {
+            Camera* c = Camera::GetRegistry().GetContent(cid);
+            if (!c)
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics context error",
+                    "Failed to recreate swapchain because "
+                    "camera '" + to_string(cid) + "' was invalid!");
+            }
+
+            c->viewport = extent;
+        }
+
         if (isVerboseLoggingEnabled)
         {
             Log::Print(
@@ -2337,7 +2352,54 @@ namespace KalaGraphics::Core
         }
     }
 
-    void GraphicsContext::Destroy() { registry.RemoveContent(ID); }
+    void GraphicsContext::Destroy()
+    { 
+        for (u32 sID : shaderIDs)
+        {
+            Shader* s = Shader::GetRegistry().GetContent(sID);
+            if (!s)
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics context error",
+                    "Failed to destroy graphics context '" + to_string(ID) + "' because "
+                    "shader '" + to_string(sID) + "' was invalid!");
+            }
+
+            s->isDestroyingGraphicsContext = true;
+            s->Destroy();
+        }
+
+        for (u32 mID : meshIDs)
+        {
+            Mesh* m = Mesh::GetRegistry().GetContent(mID);
+            if (m)
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics context error",
+                    "Failed to destroy graphics context '" + to_string(ID) + "' because "
+                    "mesh'" + to_string(mID) + "' was invalid!");
+            }
+
+            m->isDestroyingGraphicsContext = true;
+            m->Destroy();
+        }
+        for (u32 cID : cameraIDs)
+        {
+            Camera* c = Camera::GetRegistry().GetContent(cID);
+            if (c)
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics context error",
+                    "Failed to destroy graphics context '" + to_string(ID) + "' because "
+                    "camera'" + to_string(cID) + "' was invalid!");
+            }
+
+            c->isDestroyingGraphicsContext = true;
+            c->Destroy();
+        }
+
+        registry.RemoveContent(ID);
+    }
 
     GraphicsContext::~GraphicsContext()
     {
@@ -2353,17 +2415,12 @@ namespace KalaGraphics::Core
             if (vkResult != VK_SUCCESS)
             {
                 ForceClose(
-                    "Vulkan destruction error",
-                    "Failed to destroy KalaGraphics Vulkan context '" 
+                    "KalaGraphics context error",
+                    "Failed to destroy graphics context '" 
                     + to_string(ID) + "' because vkDeviceWaitIdle did not succeed!",
                     vkResult);
             }
         }
-
-        Log::Print(
-            "Destroying Vulkan context '" + to_string(ID) + "'.",
-            "KG_CONTEXT",
-            LogType::LOG_INFO);
 
         if (commandBuffers[0] != VK_NULL_HANDLE)
         {
@@ -2480,20 +2537,16 @@ namespace KalaGraphics::Core
 
         imagesInFlight.clear();
 
-        //only destroy the static resources if all vulkan contexts are destroyed
-        if (registry.runtimeContent.empty())
+        //only destroy the static resources if all graphics contexts are destroyed
+        if (registry.GetAllContent().empty())
         {
 			Log::Print(
 				"Destroying global Vulkan and all remaining resources "
                 "because all graphics contexts were destroyed.",
 				"KG_CONTEXT",
 				LogType::LOG_INFO);
-
-            Mesh::GetRegistry().RemoveAllContent();
-            Camera::GetRegistry().RemoveAllContent();
+                
             Text::GetRegistry().RemoveAllContent();
-
-            Shader::GetRegistry().RemoveAllContent();
             Texture::GetRegistry().RemoveAllContent();
 
             if (descriptorPool != VK_NULL_HANDLE)

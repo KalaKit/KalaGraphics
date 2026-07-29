@@ -33,17 +33,43 @@ using std::vector;
 using std::unordered_map;
 using std::string;
 using std::string_view;
+using std::array;
 
 using u8 = uint8_t;
 
 namespace KalaGraphics::Resources
 {
+    struct ShaderPipelineRecreateData
+    {
+        //the template - render pass is patched when recreating
+        VkGraphicsPipelineCreateInfo pipelineInfo{};
+
+        //owned arrays/structs that pipelineInfo pointers reference
+
+        vector<VkPipelineShaderStageCreateInfo> stages{};
+        VkPipelineVertexInputStateCreateInfo vertexInput{};
+        VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+        VkPipelineDynamicStateCreateInfo dynamicState{};
+        VkPipelineViewportStateCreateInfo viewportState{};
+        VkPipelineRasterizationStateCreateInfo rasterization{};
+        VkPipelineMultisampleStateCreateInfo multisampling{};
+        VkPipelineDepthStencilStateCreateInfo depthStencil{};
+        VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+        VkPipelineColorBlendStateCreateInfo colorBlend{};
+
+        //backing storage for pointer members within the above structs
+
+        vector<VkDynamicState> dynamicStates{};
+        VkVertexInputBindingDescription bindingDescription{};
+        array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
+    };
+
     static KalaGraphicsRegistry<Shader> registry{};
 
     KalaGraphicsRegistry<Shader>& Shader::GetRegistry() { return registry; }
 
     Shader* Shader::Initialize(
-        u32 graphicsContextID,
+        u32 contextID,
         string&& shaderName,
         ShaderData&& shaderData,
         vector<DescriptorBinding>&& descriptorBindings)
@@ -52,8 +78,20 @@ namespace KalaGraphics::Resources
         if (logicalDevice == VK_NULL_HANDLE)
         {
             KalaGraphicsCore::ForceClose(
-                "Shader init error",
+                "KalaGraphics shader error",
                 "Failed to initialize shader because logical device was invalid!");
+        }
+
+        GraphicsContext* gctx = GraphicsContext::GetRegistry().GetContent(contextID);
+        if (!gctx)
+        {
+            Log::Print(
+                "Cannot initialize shader '" + shaderName + "' because the graphics context '" + to_string(contextID) + "' was not found!", 
+                "KG_SHADER",
+                LogType::LOG_ERROR,
+                2);
+
+            return nullptr;
         }
 
         if (shaderName.empty()
@@ -71,7 +109,8 @@ namespace KalaGraphics::Resources
         auto empty_path = [&shaderName](string_view shaderType) -> void
             {
                 Log::Print(
-                    "Cannot initialize shader '" + shaderName + "' because it did not contain a " + string(shaderType) + " shader file!", 
+                    "Cannot initialize shader '" + shaderName + "' because it did not contain a " 
+                    + string(shaderType) + " shader file!", 
                     "KG_SHADER",
                     LogType::LOG_ERROR,
                     2);
@@ -79,7 +118,8 @@ namespace KalaGraphics::Resources
         auto bad_ext = [&shaderName](string_view shaderType) -> void
             {
                 Log::Print(
-                    "Cannot initialize shader '" + shaderName + "' because its " + string(shaderType) + " shader had a missing or incorrect extension!", 
+                    "Cannot initialize shader '" + shaderName + "' because its " + string(shaderType) 
+                    + " shader had a missing or incorrect extension!", 
                     "KG_SHADER",
                     LogType::LOG_ERROR,
                     2);
@@ -89,7 +129,8 @@ namespace KalaGraphics::Resources
             string_view shaderPath) -> void
             {
                 Log::Print(
-                    "Cannot initialize shader '" + shaderName + "' because its " + string(shaderType) + " shader path '" + string(shaderPath) + "' does not exist!", 
+                    "Cannot initialize shader '" + shaderName + "' because its " + string(shaderType) 
+                    + " shader path '" + string(shaderPath) + "' was not found!", 
                     "KG_SHADER",
                     LogType::LOG_ERROR,
                     2);
@@ -172,18 +213,6 @@ namespace KalaGraphics::Resources
             }
         }
 
-        GraphicsContext* graphicsContextPtr = GraphicsContext::GetRegistry().GetContent(graphicsContextID);
-        if (!graphicsContextPtr)
-        {
-            Log::Print(
-                "Cannot initialize shader '" + shaderName + "' because the graphics context '" + to_string(graphicsContextID) + "' was not found!", 
-                "KG_SHADER",
-                LogType::LOG_ERROR,
-                2);
-
-            return nullptr;
-        }
-
         unordered_map<string, string> shaderPaths =
         {
             { "vertex",                 shaderData.shader_vert.string() },
@@ -255,7 +284,7 @@ namespace KalaGraphics::Resources
                     if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
                     {
                         KalaGraphicsCore::ForceClose(
-                            "Vulkan shader error",
+                            "KalaGraphics shader error",
                             std::move(message));
                     }
                     else
@@ -288,14 +317,11 @@ namespace KalaGraphics::Resources
         // MODULES
         //
 
-        unique_ptr<Shader> newShader = make_unique<Shader>();
-        Shader* shaderPtr = newShader.get();
-
-        shaderPtr->graphicsContextID = graphicsContextPtr->GetID();
+        ShaderModuleData smData{};
 
         ShaderModule module_vert = create_shader_module("vertex", shaderData.shader_vert);
         if (!module_vert.success) return nullptr;
-        else shaderPtr->shaderModuleData.module_vert = module_vert.module;
+        else smData.module_vert = module_vert.module;
 
         ShaderModule module_frag = create_shader_module("fragment", shaderData.shader_frag);
         if (!module_frag.success)
@@ -304,7 +330,7 @@ namespace KalaGraphics::Resources
 
             return nullptr;
         }
-        else shaderPtr->shaderModuleData.module_frag = module_frag.module;
+        else smData.module_frag = module_frag.module;
 
         ShaderModule module_geom{};
         if (!shaderData.shader_geom.empty())
@@ -322,8 +348,8 @@ namespace KalaGraphics::Resources
             }
             else
             {
-                shaderPtr->shaderModuleData.usingGeom = true;
-                shaderPtr->shaderModuleData.module_geom = module_geom.module;
+                smData.usingGeom = true;
+                smData.module_geom = module_geom.module;
             }
         }
         ShaderModule module_tess_cont{};
@@ -346,8 +372,8 @@ namespace KalaGraphics::Resources
             }
             else
             {
-                shaderPtr->shaderModuleData.usingTessCont = true;
-                shaderPtr->shaderModuleData.module_tess_cont = module_tess_cont.module;
+                smData.usingTessCont = true;
+                smData.module_tess_cont = module_tess_cont.module;
             }
         }
         ShaderModule module_tess_eval{};
@@ -371,8 +397,8 @@ namespace KalaGraphics::Resources
             }
             else
             {
-                shaderPtr->shaderModuleData.usingTessEval = true;
-                shaderPtr->shaderModuleData.module_tess_eval = module_tess_eval.module;
+                smData.usingTessEval = true;
+                smData.module_tess_eval = module_tess_eval.module;
             }
         }
 
@@ -445,7 +471,7 @@ namespace KalaGraphics::Resources
             if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
             {
                 KalaGraphicsCore::ForceClose(
-                    "Vulkan shader error",
+                    "KalaGraphics shader error",
                     std::move(message));
             }
             else
@@ -459,8 +485,6 @@ namespace KalaGraphics::Resources
 
             return nullptr;
         }
-
-        shaderPtr->descriptorSetLayout = descriptorSetLayout;
 
         //
         // PIPELINE LAYOUT
@@ -506,7 +530,7 @@ namespace KalaGraphics::Resources
             if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
             {
                 KalaGraphicsCore::ForceClose(
-                    "Vulkan shader error",
+                    "KalaGraphics shader error",
                     std::move(message));
             }
             else
@@ -521,13 +545,11 @@ namespace KalaGraphics::Resources
             return nullptr;
         }
 
-        shaderPtr->pipelineLayout = pipelineLayout;
-
         //
         // PIPELINE
         //
 
-        vector<VkPipelineShaderStageCreateInfo> stages{};
+        unique_ptr<ShaderPipelineRecreateData> rcData = make_unique<ShaderPipelineRecreateData>();
 
         auto add_stage = [](
             vector<VkPipelineShaderStageCreateInfo>& stages,
@@ -543,118 +565,108 @@ namespace KalaGraphics::Resources
             };
 
         add_stage(
-            stages,
+            rcData->stages,
             VK_SHADER_STAGE_VERTEX_BIT,
-            shaderPtr->shaderModuleData.module_vert);
+            smData.module_vert);
         add_stage(
-            stages,
+            rcData->stages,
             VK_SHADER_STAGE_FRAGMENT_BIT,
-            shaderPtr->shaderModuleData.module_frag);
+            smData.module_frag);
 
-        if (shaderPtr->shaderModuleData.usingGeom)
+        if (smData.usingGeom)
         {
             add_stage(
-                stages,
+                rcData->stages,
                 VK_SHADER_STAGE_GEOMETRY_BIT,
-                shaderPtr->shaderModuleData.module_geom);
+                smData.module_geom);
         }
-        if (shaderPtr->shaderModuleData.usingTessCont)
+        if (smData.usingTessCont)
         {
             add_stage(
-                stages,
+                rcData->stages,
                 VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
-                shaderPtr->shaderModuleData.module_tess_cont);
+                smData.module_tess_cont);
         }
-        if (shaderPtr->shaderModuleData.usingTessEval)
+        if (smData.usingTessEval)
         {
             add_stage(
-                stages,
+                rcData->stages,
                 VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
-                shaderPtr->shaderModuleData.module_tess_eval);
+                smData.module_tess_eval);
         }
 
-        VkVertexInputBindingDescription bindingDescription{};
-        bindingDescription.binding   = 0;
-        bindingDescription.stride    = sizeof(Vertex);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+        rcData->bindingDescription.binding   = 0;
+        rcData->bindingDescription.stride    = sizeof(Vertex);
+        rcData->bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-        VkVertexInputAttributeDescription attributeDescriptions[] =
+        rcData->attributeDescriptions = array<VkVertexInputAttributeDescription, 3>{
         {
             { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos) },
             { 1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal) },
             { 2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv) }
-        };
+        }};
 
-        VkPipelineVertexInputStateCreateInfo vertexInput{};
-        vertexInput.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInput.vertexBindingDescriptionCount   = 1;
-        vertexInput.pVertexBindingDescriptions      = &bindingDescription;
-        vertexInput.vertexAttributeDescriptionCount = 3;
-        vertexInput.pVertexAttributeDescriptions    = attributeDescriptions;
+        rcData->vertexInput.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        rcData->vertexInput.vertexBindingDescriptionCount   = 1;
+        rcData->vertexInput.pVertexBindingDescriptions      = &rcData->bindingDescription;
+        rcData->vertexInput.vertexAttributeDescriptionCount = 3;
+        rcData->vertexInput.pVertexAttributeDescriptions    = rcData->attributeDescriptions.data();
 
-        VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-        inputAssembly.sType    = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        rcData->inputAssembly.sType    = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+        rcData->inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
-        vector<VkDynamicState> dynamicStates = 
+        rcData->dynamicStates = 
         {
             VK_DYNAMIC_STATE_VIEWPORT,
             VK_DYNAMIC_STATE_SCISSOR
         };
-        VkPipelineDynamicStateCreateInfo dynamicState{};
-        dynamicState.sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        dynamicState.dynamicStateCount = scast<u32>(dynamicStates.size());
-        dynamicState.pDynamicStates    = dynamicStates.data();
+        rcData->dynamicState.sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        rcData->dynamicState.dynamicStateCount = scast<u32>(rcData->dynamicStates.size());
+        rcData->dynamicState.pDynamicStates    = rcData->dynamicStates.data();
 
-        VkPipelineViewportStateCreateInfo viewportState{};
-        viewportState.sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-        viewportState.viewportCount = 1;
-        viewportState.scissorCount  = 1;
+        rcData->viewportState.sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+        rcData->viewportState.viewportCount = 1;
+        rcData->viewportState.scissorCount  = 1;
 
-        VkPipelineRasterizationStateCreateInfo rasterizer{};
-        rasterizer.sType       = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-        rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-        rasterizer.cullMode    = VK_CULL_MODE_NONE; //TODO: use correctly as VK_CULL_MODE_BACK_BIT once Y is flipped correctly;
-        rasterizer.frontFace   = VK_FRONT_FACE_CLOCKWISE;
-        rasterizer.lineWidth   = 1.0f;
+        rcData->rasterization.sType       = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        rcData->rasterization.polygonMode = VK_POLYGON_MODE_FILL;
+        rcData->rasterization.cullMode    = VK_CULL_MODE_NONE; //TODO: use correctly as VK_CULL_MODE_BACK_BIT once Y is flipped correctly;
+        rcData->rasterization.frontFace   = VK_FRONT_FACE_CLOCKWISE;
+        rcData->rasterization.lineWidth   = 1.0f;
 
-        VkPipelineMultisampleStateCreateInfo multisampling{};
-        multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+        rcData->multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        rcData->multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-        VkPipelineDepthStencilStateCreateInfo depthStencil{};
-        depthStencil.sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        depthStencil.depthTestEnable  = VK_TRUE;
-        depthStencil.depthWriteEnable = VK_TRUE;
-        depthStencil.depthCompareOp   = VK_COMPARE_OP_LESS;
+        rcData->depthStencil.sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+        rcData->depthStencil.depthTestEnable  = VK_TRUE;
+        rcData->depthStencil.depthWriteEnable = VK_TRUE;
+        rcData->depthStencil.depthCompareOp   = VK_COMPARE_OP_LESS;
 
-        VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-        colorBlendAttachment.colorWriteMask =
+        rcData->colorBlendAttachment.colorWriteMask =
             VK_COLOR_COMPONENT_R_BIT
             | VK_COLOR_COMPONENT_G_BIT
             | VK_COLOR_COMPONENT_B_BIT
             | VK_COLOR_COMPONENT_A_BIT;
-        colorBlendAttachment.blendEnable = VK_FALSE;
+        rcData->colorBlendAttachment.blendEnable = VK_FALSE;
 
-        VkPipelineColorBlendStateCreateInfo colorBlend{};
-        colorBlend.sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-        colorBlend.attachmentCount = 1;
-        colorBlend.pAttachments    = &colorBlendAttachment;
+        rcData->colorBlend.sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        rcData->colorBlend.attachmentCount = 1;
+        rcData->colorBlend.pAttachments    = &rcData->colorBlendAttachment;
 
         VkGraphicsPipelineCreateInfo pipelineInfo{};
         pipelineInfo.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        pipelineInfo.stageCount          = scast<u32>(stages.size());
-        pipelineInfo.pStages             = stages.data();
-        pipelineInfo.pVertexInputState   = &vertexInput;
-        pipelineInfo.pInputAssemblyState = &inputAssembly;
-        pipelineInfo.pViewportState      = &viewportState;
-        pipelineInfo.pRasterizationState = &rasterizer;
-        pipelineInfo.pMultisampleState   = &multisampling;
-        pipelineInfo.pDepthStencilState  = &depthStencil;
-        pipelineInfo.pColorBlendState    = &colorBlend;
-        pipelineInfo.pDynamicState       = &dynamicState;
+        pipelineInfo.stageCount          = scast<u32>(rcData->stages.size());
+        pipelineInfo.pStages             = rcData->stages.data();
+        pipelineInfo.pVertexInputState   = &rcData->vertexInput;
+        pipelineInfo.pInputAssemblyState = &rcData->inputAssembly;
+        pipelineInfo.pViewportState      = &rcData->viewportState;
+        pipelineInfo.pRasterizationState = &rcData->rasterization;
+        pipelineInfo.pMultisampleState   = &rcData->multisampling;
+        pipelineInfo.pDepthStencilState  = &rcData->depthStencil;
+        pipelineInfo.pColorBlendState    = &rcData->colorBlend;
+        pipelineInfo.pDynamicState       = &rcData->dynamicState;
         pipelineInfo.layout              = pipelineLayout;
-        pipelineInfo.renderPass          = graphicsContextPtr->GetRenderPass();
+        pipelineInfo.renderPass          = gctx->GetRenderPass();
         pipelineInfo.subpass             = 0;
 
         VkPipeline pipeline{};
@@ -697,7 +709,7 @@ namespace KalaGraphics::Resources
             if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
             {
                 KalaGraphicsCore::ForceClose(
-                    "Vulkan shader error",
+                    "KalaGraphics shader error",
                     std::move(message));
             }
             else
@@ -712,12 +724,11 @@ namespace KalaGraphics::Resources
             return nullptr;
         }
 
-        shaderPtr->pipeline = pipeline;
-
         //
         // DESCRIPTOR SET
         //
 
+        VkDescriptorSet dset{};
         if (!descriptorBindings.empty())
         {
             VkDescriptorPoolCreateInfo poolInfo{};
@@ -749,17 +760,35 @@ namespace KalaGraphics::Resources
 
             //TODO: bind data here...
 
-            //shaderPtr->descriptorSet = descriptorSet;
+            dset = descriptorSet;
         }
 
         //
         // FINISH
         //
 
+        unique_ptr<Shader> newShader = make_unique<Shader>();
+        Shader* shaderPtr = newShader.get();
+
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
+
         shaderPtr->ID = newID;
+        shaderPtr->contextID = contextID;
+
         shaderPtr->name = std::move(shaderName);
+
+        //graphics context references this shader
+        gctx->shaderIDs.push_back(newID);
+
+        shaderPtr->shaderModuleData = std::move(smData);
+
+        shaderPtr->descriptorSetLayout = descriptorSetLayout;
+        shaderPtr->pipelineLayout = pipelineLayout;
+        shaderPtr->pipeline = pipeline;
+        shaderPtr->descriptorSet = dset;
+
+        shaderPtr->recreateData = std::move(rcData);
 
         registry.AddContent(newID, std::move(newShader));
 
@@ -772,8 +801,120 @@ namespace KalaGraphics::Resources
     }
 
     u32 Shader::GetID() const { return ID; }
-    u32 Shader::GetGraphicsContextID() const { return graphicsContextID; }
-    const vector<u32>& Shader::GetMeshIDs() const { return meshIDs; }
+
+    u32 Shader::GetGraphicsContextID() const { return contextID; }
+    void Shader::SetGraphicsContextID(
+        u32 newValue,
+        bool carryContentOver)
+    {
+        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
+        if (logicalDevice == VK_NULL_HANDLE)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics shader error",
+                "Failed to update shader graphics context ID because logical device was invalid!");
+        }
+
+        if (contextID == newValue)
+        {
+            Log::Print("Failed to set shader '" + to_string(ID) 
+                + "' graphics context ID to '" + to_string(newValue) 
+                + "' because it already is that value!",
+                "KG_SHADER",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        GraphicsContext* oldGctx = GraphicsContext::GetRegistry().GetContent(contextID);
+        GraphicsContext* gctx = GraphicsContext::GetRegistry().GetContent(newValue);
+        if (!gctx)
+        {
+            Log::Print("Failed to set shader '" + to_string(ID) 
+                + "' graphics context ID to '" + to_string(newValue) 
+                + "' because it was not found!",
+                "KG_SHADER",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        recreateData->pipelineInfo.renderPass = gctx->GetRenderPass();
+
+        VkPipeline newPipeline{};
+        VkResult result = vkCreateGraphicsPipelines(
+            logicalDevice,
+            VK_NULL_HANDLE,
+            1,
+            &recreateData->pipelineInfo,
+            nullptr,
+            &newPipeline);
+
+        if (result != VK_SUCCESS)
+        {
+            Log::Print("Failed to set shader '" + to_string(ID) 
+                + "' graphics context ID to '" + to_string(newValue) 
+                + "' because pipeline recreation failed! Reason: " + GraphicsContext::GetVkResultMessage(result),
+                "KG_SHADER",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        vkDeviceWaitIdle(logicalDevice);
+        vkDestroyPipeline(
+            logicalDevice,
+            pipeline,
+            nullptr);
+
+        erase(
+            oldGctx->shaderIDs,
+            ID);
+        gctx->shaderIDs.push_back(ID);
+
+        contextID = gctx->GetID();
+        pipeline = newPipeline;
+
+        //remove all meshes because they no longer match this shader gctx ID
+
+        for (u32 mid : meshIDs)
+        {
+            Mesh* m = Mesh::GetRegistry().GetContent(mid);
+            if (m)
+            {
+                if (!carryContentOver)
+                {
+                    m->shaderID = 0;
+
+                    Log::Print("Removed shader '" + to_string(ID) 
+                        + "' from mesh '" + to_string(mid) 
+                        + "' because their graphic context IDs no longer match.",
+                        "KG_SHADER",
+                        LogType::LOG_WARNING);
+                }
+                else
+                {
+                    m->SetContextID(gctx->GetID());
+
+                    Log::Print("Carried mesh '" + to_string(mid) 
+                        + "' over with shader '" + to_string(ID) + "' to new graphics context " 
+                        + to_string(gctx->GetID()) + " because shader requested graphics context ID swap.",
+                        "KG_SHADER",
+                        LogType::LOG_WARNING);
+                }
+            }
+        }
+        if (!carryContentOver) meshIDs.clear();
+
+        Log::Print(
+            "Set shader '" + to_string(ID) 
+            + "' graphics context ID to '" + to_string(contextID) + "'!",
+            "KG_SHADER",
+            LogType::LOG_SUCCESS);
+    }
 
     string_view Shader::GetName() const { return name; }
 
@@ -900,7 +1041,7 @@ namespace KalaGraphics::Resources
             if (!mesh)
             {
                 KalaGraphicsCore::ForceClose(
-                    "Shader update error",
+                    "KalaGraphics shader error",
                     "Failed to update shader '" + to_string(ID) + "' because its mesh '" + to_string(meshID) + "' was nullptr!");
             }
 
@@ -941,11 +1082,44 @@ namespace KalaGraphics::Resources
         }
     }
 
-    void Shader::Destroy() { registry.RemoveContent(ID); }
+    void Shader::Destroy()
+    {
+        for (u32 mID : meshIDs)
+        {
+            Mesh* m = Mesh::GetRegistry().GetContent(mID);
+            if (m) m->shaderID = 0;
+        }
+        meshIDs.clear();
+
+        GraphicsContext* gctx = GraphicsContext::GetRegistry().GetContent(contextID);
+        if (gctx
+            && !isDestroyingGraphicsContext)
+        {
+            erase(
+                gctx->shaderIDs, 
+                ID);
+        }
+
+        registry.RemoveContent(ID);
+    }
 
     Shader::~Shader()
     {
         VkDevice device = GraphicsContext::GetLogicalDevice();
+
+        //drain the gpu before destroying this shader
+        if (device != VK_NULL_HANDLE) 
+        {
+            VkResult vkResult = vkDeviceWaitIdle(device);
+            if (vkResult != VK_SUCCESS)
+            {
+                GraphicsContext::ForceClose(
+                    "KalaGraphics shader error",
+                    "Failed to destroy shader '" 
+                    + to_string(ID) + "' because vkDeviceWaitIdle did not succeed!",
+                    vkResult);
+            }
+        }
 
         Log::Print(
 			"Destroying shader '" + name + "' with ID '" + to_string(ID) + "'.",
