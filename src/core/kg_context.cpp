@@ -2372,7 +2372,7 @@ namespace KalaGraphics::Core
         for (u32 mID : meshIDs)
         {
             Mesh* m = Mesh::GetRegistry().GetContent(mID);
-            if (m)
+            if (!m)
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics context error",
@@ -2386,7 +2386,7 @@ namespace KalaGraphics::Core
         for (u32 cID : cameraIDs)
         {
             Camera* c = Camera::GetRegistry().GetContent(cID);
-            if (c)
+            if (!c)
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics context error",
