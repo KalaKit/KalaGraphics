@@ -70,7 +70,6 @@ namespace KalaGraphics::Resources
 
     Shader* Shader::Initialize(
         u32 contextID,
-        string&& shaderName,
         ShaderData&& shaderData,
         vector<DescriptorBinding>&& descriptorBindings)
     {
@@ -86,7 +85,7 @@ namespace KalaGraphics::Resources
         if (!gctx)
         {
             Log::Print(
-                "Cannot initialize shader '" + shaderName + "' because the graphics context '" + to_string(contextID) + "' was not found!", 
+                "Failed to initialize shader because the graphics context '" + to_string(contextID) + "' was invalid!", 
                 "KG_SHADER",
                 LogType::LOG_ERROR,
                 2);
@@ -94,43 +93,31 @@ namespace KalaGraphics::Resources
             return nullptr;
         }
 
-        if (shaderName.empty()
-            || shaderName.size() > 50)
-        {
-            Log::Print(
-                "Failed to create shader because its name is empty or too long!",
-                "KG_SHADER",
-                LogType::LOG_ERROR,
-                2);
-
-            return nullptr;
-        }
-
-        auto empty_path = [&shaderName](string_view shaderType) -> void
+        auto empty_path = [](string_view shaderType) -> void
             {
                 Log::Print(
-                    "Cannot initialize shader '" + shaderName + "' because it did not contain a " 
+                    "Failed to initialize shader because it did not contain a " 
                     + string(shaderType) + " shader file!", 
                     "KG_SHADER",
                     LogType::LOG_ERROR,
                     2);
             };
-        auto bad_ext = [&shaderName](string_view shaderType) -> void
+        auto bad_ext = [](string_view shaderType) -> void
             {
                 Log::Print(
-                    "Cannot initialize shader '" + shaderName + "' because its " + string(shaderType) 
+                    "Failed to initialize shader because its " + string(shaderType) 
                     + " shader had a missing or incorrect extension!", 
                     "KG_SHADER",
                     LogType::LOG_ERROR,
                     2);
             };
-        auto invalid_path = [&shaderName](
+        auto invalid_path = [](
             string_view shaderType,
             string_view shaderPath) -> void
             {
                 Log::Print(
-                    "Cannot initialize shader '" + shaderName + "' because its " + string(shaderType) 
-                    + " shader path '" + string(shaderPath) + "' was not found!", 
+                    "Failed to initialize shader because its " + string(shaderType) 
+                    + " shader path '" + string(shaderPath) + "' was invalid!", 
                     "KG_SHADER",
                     LogType::LOG_ERROR,
                     2);
@@ -231,7 +218,7 @@ namespace KalaGraphics::Resources
             if (!inserted)
             {
                 Log::Print(
-                    "Cannot initialize shader '" + shaderName + "' because " + shaderStage + " was the same as " + it->second + "!", 
+                    "Failed to initialize shader because " + shaderStage + " was the same as " + it->second + "!", 
                     "KG_SHADER",
                     LogType::LOG_ERROR,
                     2);
@@ -246,7 +233,7 @@ namespace KalaGraphics::Resources
             VkShaderModule module{};
         };
 
-        auto create_shader_module = [&shaderName, &logicalDevice](string_view shaderType, const path& shaderPath) -> ShaderModule
+        auto create_shader_module = [&logicalDevice](string_view shaderType, const path& shaderPath) -> ShaderModule
             {
                 vector<u8> outData{};
                 string errMsg = ReadBinaryDataFromFile(shaderPath, outData);
@@ -254,7 +241,7 @@ namespace KalaGraphics::Resources
                 if (!errMsg.empty())
                 {
                     Log::Print(
-                        "Failed to read binary data from shader " + shaderName + " type " + string(shaderType) + "'! Reason: " + errMsg,
+                        "Failed to read binary data from shader type " + string(shaderType) + "'! Reason: " + errMsg,
                         "KG_SHADER",
                         LogType::LOG_ERROR,
                         2);
@@ -277,8 +264,7 @@ namespace KalaGraphics::Resources
                 if (vkResult != VK_SUCCESS)
                 {
                     string message =
-                        "Failed to initialize shader '" + shaderName 
-                        + "' because shader module creation failed! Reason: " 
+                        "Failed to initialize shader because shader module creation failed! Reason: " 
                         + GraphicsContext::GetVkResultMessage(vkResult);
 
                     if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
@@ -465,7 +451,7 @@ namespace KalaGraphics::Resources
             destroy_shaders(badShaders);
 
             string message = 
-                "Failed to create descriptor set layout for shader '" + shaderName + "'! Reason: " 
+                "Failed to create descriptor set layout for shader! Reason: " 
                 + GraphicsContext::GetVkResultMessage(vkResult);
 
             if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
@@ -524,7 +510,7 @@ namespace KalaGraphics::Resources
                 nullptr);
 
             string message = 
-                "Failed to create pipeline layout for shader '" + shaderName + "'! Reason: " 
+                "Failed to create pipeline layout for shader! Reason: " 
                 + GraphicsContext::GetVkResultMessage(vkResult);
 
             if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
@@ -703,7 +689,7 @@ namespace KalaGraphics::Resources
                 nullptr);
 
             string message = 
-                "Failed to create graphics pipeline for shader '" + shaderName + "'! Reason: " 
+                "Failed to create graphics pipeline for shader! Reason: " 
                 + GraphicsContext::GetVkResultMessage(vkResult);
 
             if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
@@ -776,8 +762,6 @@ namespace KalaGraphics::Resources
         shaderPtr->ID = newID;
         shaderPtr->contextID = contextID;
 
-        shaderPtr->name = std::move(shaderName);
-
         //graphics context references this shader
         gctx->shaderIDs.push_back(newID);
 
@@ -793,7 +777,8 @@ namespace KalaGraphics::Resources
         registry.AddContent(newID, std::move(newShader));
 
         Log::Print(
-			"Created new shader '" + shaderPtr->name + "' with ID '" + to_string(newID) + "'!",
+			"Created new shader '" + to_string(newID) 
+            + "' for graphics context '" + to_string(contextID) + "'!",
 			"KG_SHADER",
 			LogType::LOG_SUCCESS);
 
@@ -833,7 +818,7 @@ namespace KalaGraphics::Resources
         {
             Log::Print("Failed to set shader '" + to_string(ID) 
                 + "' graphics context ID to '" + to_string(newValue) 
-                + "' because it was not found!",
+                + "' because it was invalid!",
                 "KG_SHADER",
                 LogType::LOG_ERROR,
                 2);
@@ -916,14 +901,12 @@ namespace KalaGraphics::Resources
             LogType::LOG_SUCCESS);
     }
 
-    string_view Shader::GetName() const { return name; }
-
     VkShaderModule Shader::GetShaderModule(ShaderType type)
     {
         if (type == ShaderType::SHADER_INVALID)
         {
             Log::Print(
-                "Cannot use shader type 'SHADER_INVALID' to return shader modules!",
+                "Failed to get shader module because the shader type was invalid!",
                 "KG_SHADER",
                 LogType::LOG_ERROR,
                 2);
@@ -940,7 +923,7 @@ namespace KalaGraphics::Resources
                 if (!shaderModuleData.usingGeom)
                 {
                     Log::Print(
-                        "Couldn't get geometry shader module from shader " + name + " because it was not assigned!",
+                        "Couldn't get geometry shader module from shader '" + to_string(ID) + "' because it was not assigned!",
                         "KG_SHADER",
                         LogType::LOG_WARNING);
 
@@ -953,7 +936,7 @@ namespace KalaGraphics::Resources
                 if (!shaderModuleData.usingTessCont)
                 {
                     Log::Print(
-                        "Couldn't get tesselation control shader module from shader " + name + " because it was not assigned!",
+                        "Couldn't get tesselation control shader module from shader '" + to_string(ID) + "' because it was not assigned!",
                         "KG_SHADER",
                         LogType::LOG_WARNING);
 
@@ -966,7 +949,7 @@ namespace KalaGraphics::Resources
                 if (!shaderModuleData.usingTessEval)
                 {
                     Log::Print(
-                        "Couldn't get tesselation evaluation shader module from shader " + name + " because it was not assigned!",
+                        "Couldn't get tesselation evaluation shader module from shader '" + to_string(ID) + "' because it was not assigned!",
                         "KG_SHADER",
                         LogType::LOG_WARNING);
 
@@ -992,7 +975,7 @@ namespace KalaGraphics::Resources
             if (missingMeshWarningCount < 10)
             {
                 Log::Print(
-                    "Cannot render onto shader '" + to_string(ID) + "' "
+                    "Failed to render onto shader '" + to_string(ID) + "' "
                     "because there are no meshes to draw! This warning will only be given 10 times.",
                     "KG_SHADER",
                     LogType::LOG_WARNING);
@@ -1042,7 +1025,8 @@ namespace KalaGraphics::Resources
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics shader error",
-                    "Failed to update shader '" + to_string(ID) + "' because its mesh '" + to_string(meshID) + "' was nullptr!");
+                    "Failed to update shader '" + to_string(ID) 
+                    + "' because its mesh '" + to_string(meshID) + "' was invalid!");
             }
 
             //mesh->SyncToGPU();
@@ -1122,7 +1106,7 @@ namespace KalaGraphics::Resources
         }
 
         Log::Print(
-			"Destroying shader '" + name + "' with ID '" + to_string(ID) + "'.",
+			"Destroying shader '" + to_string(ID) + "'.",
 			"KG_SHADER",
 			LogType::LOG_INFO);
 

@@ -106,7 +106,6 @@ namespace KalaGraphics::Resources
         //The default importer, set use2D to true if you
         //intend to use this mesh only for UI, this cannot be changed later
         static Mesh* Initialize(
-            string&& name,
             bool use2D,
             u32 contextID,
             u32 shaderID,
@@ -172,8 +171,6 @@ namespace KalaGraphics::Resources
         u32 contextID{};
         u32 shaderID{};
         vector<u32> textureIDs{};
-
-        string name{};
 
         bool is2D{};
 

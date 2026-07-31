@@ -33,7 +33,6 @@ namespace KalaGraphics::Resources
     KalaGraphicsRegistry<Mesh>& Mesh::GetRegistry() { return registry; }
 
     Mesh* Mesh::Initialize(
-        string&& name,
         bool use2D,
         u32 contextID,
         u32 shaderID,
@@ -41,23 +40,11 @@ namespace KalaGraphics::Resources
         vector<Vertex>&& vertices,
         vector<u32>&& indices)
     {
-        if (name.empty()
-            || name.size() > 50)
-        {
-            Log::Print(
-                "Failed to create mesh because its name is empty or too long!",
-                "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
-
-            return nullptr;
-        }
-
         GraphicsContext* gctx = GraphicsContext::GetRegistry().GetContent(contextID);
         if (!gctx)
         {
             Log::Print(
-                "Failed to create mesh because graphics context '" + to_string(contextID) + "' was not found!",
+                "Failed to create mesh because graphics context '" + to_string(contextID) + "' was invalid!",
                 "KG_MESH",
                 LogType::LOG_ERROR,
                 2);
@@ -69,7 +56,7 @@ namespace KalaGraphics::Resources
         if (!shader)
         {
             Log::Print(
-                "Failed to create mesh because shader '" + to_string(shaderID) + "' was not found!",
+                "Failed to create mesh because shader '" + to_string(shaderID) + "' was invalid!",
                 "KG_MESH",
                 LogType::LOG_ERROR,
                 2);
@@ -120,12 +107,6 @@ namespace KalaGraphics::Resources
         meshPtr->shaderID = shaderID;
         shader->contextID = contextID;
 
-        //shader references this mesh
-        shader->meshIDs.push_back(newID);
-
-        //graphics context references this mesh
-        gctx->meshIDs.push_back(newID);
-
         meshPtr->is2D = use2D;
 
         meshPtr->transform.pos_world = transform.pos;
@@ -146,10 +127,18 @@ namespace KalaGraphics::Resources
 
         meshPtr->SyncToGPU();
 
+        //shader references this mesh
+        shader->meshIDs.push_back(newID);
+
+        //graphics context references this mesh
+        gctx->meshIDs.push_back(newID);
+
         registry.AddContent(newID, std::move(newMesh));
 
         Log::Print(
-			"Created new mesh '" + to_string(newID) + "'!",
+			"Created new mesh '" + to_string(newID) 
+            + "' for shader '" + to_string(shaderID) +
+            + "' and graphics context '" + to_string(contextID) + "'!",
 			"KG_MESH",
 			LogType::LOG_SUCCESS);
 
@@ -163,7 +152,7 @@ namespace KalaGraphics::Resources
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics mesh error",
-                "Failed to initialize mesh because vma allocator was invalid!");
+                "Failed to initialize vertices for mesh because vma allocator was invalid!");
         }
 
         size_t bufferSize = vertices.size() * sizeof(Vertex);
@@ -234,7 +223,7 @@ namespace KalaGraphics::Resources
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics mesh error",
-                "Failed to initialize mesh because vma allocator was invalid!");
+                "Failed to initialize indices for mesh because vma allocator was invalid!");
         }
 
         size_t bufferSize = indices.size() * sizeof(u32);
@@ -351,7 +340,7 @@ namespace KalaGraphics::Resources
         {
             Log::Print("Failed to set mesh '" + to_string(ID) 
                 + "' graphics context ID to '" + to_string(newValue) 
-                + "' because it was not found!",
+                + "' because it was invalid!",
                 "KG_MESH",
                 LogType::LOG_ERROR,
                 2);
@@ -412,7 +401,7 @@ namespace KalaGraphics::Resources
         {
             Log::Print("Failed to set mesh '" + to_string(ID) 
                 + "' shader ID to '" + to_string(newValue) 
-                + "' because it was not found!",
+                + "' because it was invalid!",
                 "KG_MESH",
                 LogType::LOG_ERROR,
                 2);

@@ -144,7 +144,6 @@ namespace KalaGraphics::Resources
 
         static Shader* Initialize(
             u32 graphicsContextID,
-            string&& shaderName,
             ShaderData&& shaderData,
             vector<DescriptorBinding>&& bindings = {});
 
@@ -157,8 +156,6 @@ namespace KalaGraphics::Resources
         void SetGraphicsContextID(
             u32 newValue,
             bool carryContentOver = false);
-
-        string_view GetName() const;
 
         VkShaderModule GetShaderModule(ShaderType type);
 
@@ -181,8 +178,6 @@ namespace KalaGraphics::Resources
 
         u32 ID{};
         u32 contextID{};
-
-        string name;
 
         vector<u32> meshIDs{};
 

@@ -48,7 +48,7 @@ namespace KalaGraphics::Resources
         if (!gctx)
         {
             Log::Print(
-                "Failed to create camera because the graphics context '" + to_string(contextID) + "' was not found!",
+                "Failed to create camera because the graphics context '" + to_string(contextID) + "' was invalid!",
                 "KG_CAMERA",
                 LogType::LOG_ERROR,
                 2);
@@ -133,6 +133,12 @@ namespace KalaGraphics::Resources
 
         registry.AddContent(newID, std::move(newCamera));
 
+        Log::Print(
+			"Created new camera '" + to_string(newID) 
+            + "' for graphics context '" + to_string(contextID) + "'!",
+			"KG_CAMERA",
+			LogType::LOG_SUCCESS);
+
         return cameraPtr;
     }
 
@@ -159,7 +165,7 @@ namespace KalaGraphics::Resources
         {
             Log::Print("Failed to set camera '" + to_string(ID) 
                 + "' graphics context ID to '" + to_string(newValue) 
-                + "' because it was not found!",
+                + "' because it was invalid!",
                 "KG_CAMERA",
                 LogType::LOG_ERROR,
                 2);

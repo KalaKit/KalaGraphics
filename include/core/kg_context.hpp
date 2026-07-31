@@ -224,7 +224,7 @@ namespace KalaGraphics::Core
         static bool IsInitialized();
 
         //Initialize a per-window Vulkan context, creates the swapchain logic
-        static GraphicsContext* Initialize(const GraphicsContextData& context);
+        static GraphicsContext* Initialize(GraphicsContextData&& context);
 
         u32 GetID() const;
 
