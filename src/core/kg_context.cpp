@@ -22,7 +22,6 @@
 
 #include "core_utils.hpp"
 #include "log_utils.hpp"
-#include "string_utils.hpp"
 #include "math_utils.hpp"
 
 #include "core/kg_context.hpp"
@@ -41,8 +40,6 @@ using KalaHeaders::KalaCore::ContainsValue;
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
-
-using KalaHeaders::KalaString::BoolValue;
 
 using KalaHeaders::KalaMath::vec2;
 
@@ -690,7 +687,7 @@ namespace KalaGraphics::Core
                 0);
         }
 
-        float queuePriority = 1.0f;
+        f32 queuePriority = 1.0f;
 
         VkDeviceQueueCreateInfo queueInfo{};
         queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -964,8 +961,10 @@ namespace KalaGraphics::Core
     {
         vpData.isDynamicViewport = newValue;
 
+        string val = vpData.isDynamicViewport ? "true" : "false";
+
         Log::Print(
-            "Set dynamic viewport state to " + string(BoolValue(newValue)) + " for window '" + to_string(contextData.windowID) + "'!", 
+            "Set dynamic viewport state to " + val + " for window '" + to_string(contextData.windowID) + "'!", 
             "KG_CONTEXT",
             LogType::LOG_INFO);
     }
