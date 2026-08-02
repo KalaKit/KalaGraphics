@@ -15,8 +15,29 @@
 #include <unordered_map>
 #include <vector>
 #include <array>
+#include <mutex>
+#include <shared_mutex>
 
 #include "vulkan/vulkan_core.h"
+
+struct VmaStdMutex
+{
+    void Lock() { m.lock(); }
+    void Unlock() { m.unlock(); }
+    std::mutex m;
+};
+struct VmaStdRWMutex
+{
+    void LockRead() { m.lock_shared(); }
+    void UnlockRead() { m.unlock_shared(); }
+    void LockWrite() { m.lock(); }
+    void UnlockWrite() { m.unlock(); }
+    std::shared_mutex m;
+};
+
+#define VMA_MUTEX VmaStdMutex
+#define VMA_RW_MUTEX VmaStdRWMutex
+
 #define VMA_IMPLEMENTATION
 #include "vma/vk_mem_alloc.h"
 

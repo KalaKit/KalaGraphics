@@ -16,7 +16,7 @@ binarytype: static
 sources: "src"
 headers: "include", "../external-shared/KalaHeaders", "../external-shared/Vulkan/Include", "../external-shared/Spirv-reflect"
 defines: LIB_STATIC
-warninglevel: normal
+warninglevel: none
 customflags: export-compile-commands, export-vscode-sln
 
 #profile debug-windows
@@ -31,6 +31,20 @@ buildtype: minsizerel
 buildpath: "${dir_release}windows"
 defines: ${def_win}
 
+#profile debug-win-on-linux
+targettype: windows-gnu
+binaryname: ${name_bin}-gnud
+buildtype: debug
+buildpath: "${dir_debug}win-on-linux"
+defines: ${def_win}
+
+#profile release-win-on-linux
+targettype: windows-gnu
+binaryname: ${name_bin}-gnu
+buildtype: minsizerel
+buildpath: "${dir_release}win-on-linux"
+defines: ${def_win}
+
 #profile debug-linux
 binaryname: lib${name_bin}d
 buildtype: debug
@@ -40,4 +54,3 @@ buildpath: "${dir_debug}linux"
 binaryname: lib${name_bin}
 buildtype: minsizerel
 buildpath: "${dir_release}linux"
-postbuildaction: strip --strip-unneeded ${dir_release}linux/lib${name_bin}.a
