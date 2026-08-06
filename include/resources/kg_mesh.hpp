@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <string>
+#include <filesystem>
 
 #include "core_utils.hpp"
 #include "math_utils.hpp"
@@ -19,11 +20,6 @@ using VkBuffer = VkBuffer_T*;
 struct VmaAllocation_T;
 using VmaAllocation = VmaAllocation_T*;
 
-namespace KalaGraphics::Core
-{
-    class GraphicsContext;
-}
-
 namespace KalaGraphics::Resources
 {
     using KalaHeaders::KalaMath::Transform3D;
@@ -34,6 +30,7 @@ namespace KalaGraphics::Resources
 
     using std::vector;
     using std::string;
+    using std::filesystem::path;
 
     using u8 = uint8_t;
     using f32 = float;
@@ -96,81 +93,72 @@ namespace KalaGraphics::Resources
         vec2 uv{};
     };
 
+    //Output after generating a meshes data
+    struct LIB_API Mesh_Generated_Data
+    {
+        vector<Vertex> vertices{};
+        vector<u32> indices{};
+    };
+
     class LIB_API Mesh
     {
     friend class Shader;
-    friend class KalaGraphics::Core::GraphicsContext;
+    friend class Camera;
     public:
         static KalaGraphicsRegistry<Mesh>& GetRegistry();
 
-        //The default importer, set use2D to true if you
-        //intend to use this mesh only for UI, this cannot be changed later
-        static Mesh* Initialize(
-            bool use2D,
-            u32 contextID,
-            u32 shaderID,
-            Transform&& transform,
-            vector<Vertex>&& vertices,
-            vector<u32>&& indices);
+        //Create a blank mesh,
+        //all meshes require a shader even if that shader is also blank
+        static Mesh* Initialize(u32 shaderID);
 
-        /*
-        //Create a simple cube or cylinder
-        static Mesh* Initialize(
-            string&& name,
-            u32 contextID,
-            u32 shaderID,
-            Transform&& transform,
-            Mesh_Cube&& cubeData);
-
-        //Create a simple pyramid or cone
-        static Mesh* Initialize(
-            string&& name,
-            u32 contextID,
-            u32 shaderID,
-            Transform&& transform,
-            Mesh_Pyramid&& pyramidData);
-
-        //Create a simple sphere
-        static Mesh* Initialize(
-            string&& name,
-            u32 contextID,
-            u32 shaderID,
-            Transform&& transform,
-            Mesh_Sphere&& sphereData);
-        */
+        //Import FBX, OBJ or GLTF model mesh data
+        static Mesh_Generated_Data GenerateMeshData(const path& meshPath);
+        //Generate a cube or cylinder
+        static Mesh_Generated_Data GenerateMeshData(Mesh_Cube cubeData);
+        //Generate a pyramid or cone
+        static Mesh_Generated_Data GenerateMeshData(Mesh_Pyramid pyramidData);
+        //Generate a sphere
+        static Mesh_Generated_Data GenerateMeshData(
+            SphereType sphereType,
+            Mesh_Sphere sphereData);
 
         u32 GetID() const;
 
-        u32 GetContextID() const;
-        void SetContextID(u32 newID);
+        u32 GetCameraID() const;
 
         u32 GetShaderID() const;
         void SetShaderID(u32 newID);
 
         bool Is2D() const;
+        void Set2DState(bool newState);
 
         Transform3D& GetTransform();
 
+        vector<Vertex>& GetVertices();
+        vector<u32>& GetIndices();
+
+        //Should be called after manually updating vertices
+        //to generate new vertex VkBuffer data
+        void UpdateVertices();
+        //Should be called after manually updating indices
+        //to generate new index VkBuffer data
+        void UpdateIndices();
+
+        //True if vertex VkBuffer,
+        //false if index VkBuffer
         VkBuffer& GetVkBuffer(bool vertex);
 
         void Destroy();
 
         ~Mesh();
     private:
-        bool InitVertices();
-        bool InitIndices();
-
         void SyncToGPU();
 
-        //used only to prevent mesh from removing its ID from
-        //graphics context camera IDs list if the graphics context
-        //destroy function called the destroy function of this mesh 
-        bool isDestroyingGraphicsContext{};
+        bool isDestroyingCamera{};
 
         u32 ID{};
-        u32 contextID{};
         u32 shaderID{};
-        vector<u32> textureIDs{};
+        u32 cameraID{};
 
         bool is2D{};
 

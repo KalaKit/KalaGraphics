@@ -41,6 +41,7 @@ namespace KalaGraphics::Resources
     class LIB_API Camera
     {
     friend class KalaGraphics::Core::GraphicsContext;
+    friend class Mesh;
     public:
         static KalaGraphicsRegistry<Camera>& GetRegistry();
 
@@ -56,6 +57,9 @@ namespace KalaGraphics::Resources
 
         u32 GetGraphicsContextID() const;
         void SetGraphicsContextID(u32 newValue);
+
+        u32 GetMeshID() const;
+        void SetMeshID(u32 newValue);
 
         Transform3D& GetTransform();
 
@@ -84,6 +88,7 @@ namespace KalaGraphics::Resources
 
         u32 ID{};
         u32 contextID{};
+        u32 meshID{};
 
         CameraType type{};
 

@@ -192,10 +192,6 @@ namespace KalaGraphics::Core
     public:
         static KalaGraphicsRegistry<GraphicsContext>& GetRegistry();
 
-        //Single draw call for all existing contexts,
-        //handles all active meshes, light sources and cameras
-        static void Update();
-
         //Close the program, this close function is useful for
         //printing the VkResult error type that occured so it can be logged
         static void ForceClose(
@@ -220,13 +216,19 @@ namespace KalaGraphics::Core
 
         //Global one-time Vulkan 1.4 device init,
         //needs to be called before per-window Vulkan init
-        static void InitializeGlobal();
+        static void Initialize();
         static bool IsInitialized();
 
+        //Single draw call for all existing contexts,
+        //handles all active meshes, light sources and cameras
+        static void Update();
+
         //Initialize a per-window Vulkan context, creates the swapchain logic
-        static GraphicsContext* Initialize(GraphicsContextData&& context);
+        static GraphicsContext* InitializeInstance(GraphicsContextData&& context);
 
         u32 GetID() const;
+        const vector<u32>& GetShaderIDs() const;
+        const vector<u32>& GetCameraIDs() const;
 
         VSyncState GetVSyncState() const;
         void SetVSyncState(VSyncState newValue);
@@ -282,6 +284,11 @@ namespace KalaGraphics::Core
 
         u32 ID{};
 
+        //shaders that use this graphics context
+        vector<u32> shaderIDs{};
+        //cameras that use this graphics context
+        vector<u32> cameraIDs{};
+
         u8 missingShaderWarningCount{};
 
         VSyncState vsyncState = VSyncState::VSYNC_ON_TRIPLE_BUFFERED;
@@ -290,13 +297,6 @@ namespace KalaGraphics::Core
         ViewportData vpData{};
 
         size_t currentFrame{};
-
-        //cameras that use this graphics context
-        vector<u32> cameraIDs{};
-        //meshes that use this graphics context
-        vector<u32> meshIDs{};
-        //shaders that use this graphics context
-        vector<u32> shaderIDs{};
 
         vec2 extent{};
         VkSwapchainKHR swapchain{};

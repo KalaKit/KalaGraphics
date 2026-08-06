@@ -80,22 +80,6 @@ namespace KalaGraphics::Resources
         DescriptorBindingType type{};
     };
 
-    enum class ShaderType : u8
-    {
-        SHADER_INVALID = 0u,
-
-        //transforms vertices
-        SHADER_VERT = 1u,
-        //outputs pixel colors
-        SHADER_FRAG = 2u,
-        //generates/discards primitives
-        SHADER_GEOM = 3u,
-        //controls tesselation patches
-        SHADER_TESS_CONT = 4u,
-        //generates/discards primitives
-        SHADER_TESS_EVAL = 5u
-    };
-
     struct ShaderData
     {
         //transforms and vertices, required
@@ -142,22 +126,20 @@ namespace KalaGraphics::Resources
     public:
         static KalaGraphicsRegistry<Shader>& GetRegistry();
 
-        static Shader* Initialize(
-            u32 graphicsContextID,
-            ShaderData&& shaderData,
-            vector<DescriptorBinding>&& bindings = {});
+        //Create a blank shader.
+        //This shader has no shader data and
+        //must be given shaders via SetShaderData
+        static Shader* Initialize(u32 graphicsContextID);
 
         u32 GetID() const;
 
         u32 GetGraphicsContextID() const;
-        //Assign a new graphics context ID,
-        //can choose to carry content over to new graphics context ID,
-        //otherwise if left false then they will be detached from this shader
-        void SetGraphicsContextID(
-            u32 newValue,
-            bool carryContentOver = false);
+        void SetGraphicsContextID(u32 newValue);
 
-        VkShaderModule GetShaderModule(ShaderType type);
+        //First time init or hot-reload shaders and their descriptor binding data
+        void SetShaderData(
+            ShaderData&& shaderData,
+            vector<DescriptorBinding>&& bindings = {});
 
         VkDescriptorSetLayout GetDescriptorSetLayout();
         VkDescriptorSet GetDescriptorSet();
@@ -181,6 +163,7 @@ namespace KalaGraphics::Resources
 
         vector<u32> meshIDs{};
 
+        u8 missingPipelineWarningCount{};
         u8 missingMeshWarningCount{};
 
         ShaderData shaderData{};

@@ -10,6 +10,7 @@
 #include "resources/kg_camera.hpp"
 #include "core/kg_core.hpp"
 #include "core/kg_context.hpp"
+#include "resources/kg_mesh.hpp"
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
@@ -109,7 +110,6 @@ namespace KalaGraphics::Resources
         KalaGraphicsCore::SetGlobalID(newID);
 
         cameraPtr->ID = newID;
-        cameraPtr->contextID = contextID;
 
         cameraPtr->type = type;
 
@@ -159,7 +159,7 @@ namespace KalaGraphics::Resources
             return;
         }
 
-        GraphicsContext* oldGctx = GraphicsContext::GetRegistry().GetContent(contextID);
+        GraphicsContext* oldContext = GraphicsContext::GetRegistry().GetContent(meshID);
         GraphicsContext* gctx = GraphicsContext::GetRegistry().GetContent(newValue);
         if (!gctx)
         {
@@ -175,9 +175,12 @@ namespace KalaGraphics::Resources
 
         contextID = newValue;
 
-        erase(
-            oldGctx->cameraIDs,
-            ID);
+        if (oldContext)
+        {
+            erase(
+                oldContext->cameraIDs,
+                ID);
+        }
         gctx->cameraIDs.push_back(ID);
 
         Log::Print(
@@ -187,8 +190,52 @@ namespace KalaGraphics::Resources
             LogType::LOG_SUCCESS);
     }
 
+    u32 Camera::GetMeshID() const { return meshID; }
+    void Camera::SetMeshID(u32 newValue)
+    {
+        if (meshID == newValue)
+        {
+            Log::Print("Failed to set camera '" + to_string(ID) 
+                + "' mesh ID to '" + to_string(newValue) 
+                + "' because it already is that value!",
+                "KG_CAMERA",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        Mesh* oldMesh = Mesh::GetRegistry().GetContent(meshID);
+        Mesh* mesh = Mesh::GetRegistry().GetContent(newValue);
+        if (!mesh)
+        {
+            Log::Print("Failed to set camera '" + to_string(ID) 
+                + "' mesh ID to '" + to_string(newValue) 
+                + "' because it was invalid!",
+                "KG_CAMERA",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        meshID = newValue;
+
+        if (oldMesh) oldMesh->cameraID = 0;
+        mesh->cameraID = ID;
+
+        Log::Print(
+            "Set camera '" + to_string(ID) 
+            + "' mesh ID to '" + to_string(meshID) + "'!",
+            "KG_CAMERA",
+            LogType::LOG_SUCCESS);
+    }
+
     void Camera::Destroy()
     {
+        Mesh* mesh = Mesh::GetRegistry().GetContent(meshID);
+        if (mesh) mesh->cameraID = 0;
+
         GraphicsContext* gctx = GraphicsContext::GetRegistry().GetContent(contextID);
         if (gctx
             && !isDestroyingGraphicsContext)

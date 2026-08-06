@@ -48,11 +48,11 @@ struct VmaStdRWMutex
 #include "core/kg_context.hpp"
 #include "core/kg_core.hpp"
 #include "core/kg_registry.hpp"
+#include "resources/kg_shader.hpp"
+#include "resources/kg_texture.hpp"
 #include "resources/kg_mesh.hpp"
 #include "resources/kg_camera.hpp"
 #include "resources/kg_text.hpp"
-#include "resources/kg_shader.hpp"
-#include "resources/kg_texture.hpp"
 
 using KalaHeaders::KalaCore::ToVar;
 using KalaHeaders::KalaCore::EnumHash;
@@ -66,11 +66,11 @@ using KalaHeaders::KalaMath::vec2;
 
 using KalaGraphics::Core::ViewportSize;
 using KalaGraphics::Core::Severity;
+using KalaGraphics::Resources::Shader;
+using KalaGraphics::Resources::Texture;
 using KalaGraphics::Resources::Mesh;
 using KalaGraphics::Resources::Camera;
 using KalaGraphics::Resources::Text;
-using KalaGraphics::Resources::Shader;
-using KalaGraphics::Resources::Texture;
 
 using std::string;
 using std::string_view;
@@ -507,7 +507,7 @@ namespace KalaGraphics::Core
 		return it->second;
     }
 
-    void GraphicsContext::InitializeGlobal()
+    void GraphicsContext::Initialize()
     {
         if (!vk_instance)
         {
@@ -827,7 +827,7 @@ namespace KalaGraphics::Core
 
     bool GraphicsContext::IsInitialized() { return isInitialized; }
 
-    GraphicsContext* GraphicsContext::Initialize(GraphicsContextData&& in_context)
+    GraphicsContext* GraphicsContext::InitializeInstance(GraphicsContextData&& in_context)
     {
         if (!vk_instance)
         {
@@ -933,6 +933,7 @@ namespace KalaGraphics::Core
     }
 
     u32 GraphicsContext::GetID() const { return ID; }
+    const vector<u32>& GraphicsContext::GetShaderIDs() const { return shaderIDs; }
 
     VSyncState GraphicsContext::GetVSyncState() const { return vsyncState; }
     void GraphicsContext::SetVSyncState(VSyncState newState)
@@ -2418,35 +2419,6 @@ namespace KalaGraphics::Core
             s->Destroy();
         }
 
-        for (u32 mID : meshIDs)
-        {
-            Mesh* m = Mesh::GetRegistry().GetContent(mID);
-            if (!m)
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics context error",
-                    "Failed to destroy graphics context '" + to_string(ID) + "' because "
-                    "mesh'" + to_string(mID) + "' was invalid!");
-            }
-
-            m->isDestroyingGraphicsContext = true;
-            m->Destroy();
-        }
-        for (u32 cID : cameraIDs)
-        {
-            Camera* c = Camera::GetRegistry().GetContent(cID);
-            if (!c)
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics context error",
-                    "Failed to destroy graphics context '" + to_string(ID) + "' because "
-                    "camera'" + to_string(cID) + "' was invalid!");
-            }
-
-            c->isDestroyingGraphicsContext = true;
-            c->Destroy();
-        }
-
         registry.RemoveContent(ID);
     }
 
@@ -2597,6 +2569,8 @@ namespace KalaGraphics::Core
                 
             Text::GetRegistry().RemoveAllContent();
             Texture::GetRegistry().RemoveAllContent();
+            Camera::GetRegistry().RemoveAllContent();
+            Mesh::GetRegistry().RemoveAllContent();
 
             if (descriptorPool != VK_NULL_HANDLE)
             {
