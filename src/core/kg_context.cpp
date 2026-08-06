@@ -785,21 +785,26 @@ namespace KalaGraphics::Core
         // CREATE DESCRIPTOR POOL
         //
 
-        array<VkDescriptorPoolSize, 3> poolSizes{};
+        array<VkDescriptorPoolSize, 4> poolSizes{};
         
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSizes[0].descriptorCount = 1000;
+        poolSizes[0].descriptorCount = 2048;
 
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[1].descriptorCount = 1000;
+        poolSizes[1].descriptorCount = 2048;
 
         poolSizes[2].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        poolSizes[2].descriptorCount = 1000;
+        poolSizes[2].descriptorCount = 2048;
+
+        poolSizes[3].type = VK_DESCRIPTOR_TYPE_SAMPLER;
+        poolSizes[3].descriptorCount = 64;
 
         VkDescriptorPoolCreateInfo descPoolInfo{};
         descPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        descPoolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-        descPoolInfo.maxSets = 1000;
+        descPoolInfo.flags = 
+            VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT
+            | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+        descPoolInfo.maxSets = 10;
         descPoolInfo.poolSizeCount = scast<u32>(poolSizes.size());
         descPoolInfo.pPoolSizes = poolSizes.data();
 
@@ -1044,6 +1049,21 @@ namespace KalaGraphics::Core
 
         if (result != VK_SUCCESS)
         {
+            if (result == VK_ERROR_OUT_OF_DATE_KHR
+                || result == VK_SUBOPTIMAL_KHR)
+            {
+                if (isVerboseLoggingEnabled)
+                {
+                    Log::Print(
+                        "Recreating swapchain because image aquire returned out of date or suboptimal.",
+                        "KG_CONTEXT",
+                        LogType::LOG_VERBOSE);
+                }
+
+                RecreateSwapchain();
+                return;
+            }
+
             if (GetVkResultSeverity(result) == Severity::S_FATAL)
             {
                 ForceClose(
@@ -1071,21 +1091,6 @@ namespace KalaGraphics::Core
                         "KG_CONTEXT",
                         LogType::LOG_VERBOSE);
                 }
-            }
-
-            if (result == VK_ERROR_OUT_OF_DATE_KHR
-                || result == VK_SUBOPTIMAL_KHR)
-            {
-                if (isVerboseLoggingEnabled)
-                {
-                    Log::Print(
-                        "Recreating swapchain because image aquire returned out of date or suboptimal.",
-                        "KG_CONTEXT",
-                        LogType::LOG_VERBOSE);
-                }
-
-                RecreateSwapchain();
-                return;
             }
         }
 
@@ -1164,7 +1169,6 @@ namespace KalaGraphics::Core
             0,
             1,
             &scissor);
-
         
         if (Shader::GetRegistry().GetAllContent().empty())
         {
@@ -1232,6 +1236,21 @@ namespace KalaGraphics::Core
 
         if (result != VK_SUCCESS)
         {
+            if (result == VK_ERROR_OUT_OF_DATE_KHR
+                || result == VK_SUBOPTIMAL_KHR)
+            {
+                if (isVerboseLoggingEnabled)
+                {
+                    Log::Print(
+                        "Recreating swapchain because queue present returned out of date or suboptimal.",
+                        "KG_CONTEXT",
+                        LogType::LOG_VERBOSE);
+                }
+
+                RecreateSwapchain();
+                return;
+            }
+
             if (GetVkResultSeverity(result) == Severity::S_FATAL)
             {
                 ForceClose(
@@ -1259,21 +1278,6 @@ namespace KalaGraphics::Core
                         "KG_CONTEXT",
                         LogType::LOG_VERBOSE);
                 }
-            }
-
-            if (result == VK_ERROR_OUT_OF_DATE_KHR
-                || result == VK_SUBOPTIMAL_KHR)
-            {
-                if (isVerboseLoggingEnabled)
-                {
-                    Log::Print(
-                        "Recreating swapchain because queue presentt returned out of date or suboptimal.",
-                        "KG_CONTEXT",
-                        LogType::LOG_VERBOSE);
-                }
-
-                RecreateSwapchain();
-                return;
             }
         }
 
@@ -1911,10 +1915,6 @@ namespace KalaGraphics::Core
         }
 
         //drain the gpu before freeing its context resources
-        //TODO: keep track of device lost errors originating from here,
-        //      if they occur too often for reasons other than agressive reszing
-        //      then come up with a proper fix for this problem,
-        //      otherwise treat as rare driver-level error for now
         VkResult vkResult = vkDeviceWaitIdle(logicalDevice);
         if (vkResult != VK_SUCCESS)
         {

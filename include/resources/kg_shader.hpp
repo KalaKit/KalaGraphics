@@ -24,9 +24,6 @@ using VkShaderModule = VkShaderModule_T*;
 struct VkDescriptorSetLayout_T;
 using VkDescriptorSetLayout = VkDescriptorSetLayout_T*;
 
-struct VkDescriptorSet_T;
-using VkDescriptorSet = VkDescriptorSet_T*;
-
 struct VkPipelineLayout_T;
 using VkPipelineLayout = VkPipelineLayout_T*;
 
@@ -142,7 +139,6 @@ namespace KalaGraphics::Resources
             vector<DescriptorBinding>&& bindings = {});
 
         VkDescriptorSetLayout GetDescriptorSetLayout();
-        VkDescriptorSet GetDescriptorSet();
 
         VkPipelineLayout GetPipelineLayout();
         VkPipeline GetPipeline();
@@ -172,7 +168,6 @@ namespace KalaGraphics::Resources
         unique_ptr<ShaderPipelineRecreateData> recreateData;
 
         VkDescriptorSetLayout descriptorSetLayout{};
-        VkDescriptorSet descriptorSet{};
 
         VkPipelineLayout pipelineLayout{};
         VkPipeline pipeline{};

@@ -595,21 +595,20 @@ namespace KalaGraphics::Resources
 
             VkDescriptorSetLayoutBinding bindings[] = 
             {
-                //32-bit uniform buffer
+                //transform UBO
                 { 
                     0,
                     VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                     1,
-                    VK_SHADER_STAGE_VERTEX_BIT
-                    | VK_SHADER_STAGE_FRAGMENT_BIT,
+                    VK_SHADER_STAGE_VERTEX_BIT,
                     nullptr
                 },
-                //16-bit color texture (R8G8B8A8)
+                //camera UBO
                 { 
                     1,
                     VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     1,
-                    VK_SHADER_STAGE_FRAGMENT_BIT,
+                    VK_SHADER_STAGE_VERTEX_BIT,
                     nullptr
                 }
             };
@@ -668,7 +667,7 @@ namespace KalaGraphics::Resources
 
             VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
             pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-            pipelineLayoutInfo.setLayoutCount         = 0; //TODO: update dynamically for descriptor set count
+            pipelineLayoutInfo.setLayoutCount         = 1; //TODO: update dynamically for descriptor set count
             pipelineLayoutInfo.pSetLayouts            = &newDescriptorSetLayout;
             pipelineLayoutInfo.pushConstantRangeCount = 1; //TODO: update dynamically for push constant count
             pipelineLayoutInfo.pPushConstantRanges = &pcRange;
@@ -907,28 +906,6 @@ namespace KalaGraphics::Resources
 
         if (vkResult != VK_SUCCESS)
         {
-            vector<VkShaderModule> badShaders = 
-                {
-                    module_vert.module,
-                    module_frag.module
-                };
-
-            if (!shaderData.shader_geom.empty())      badShaders.push_back(module_geom.module);
-            if (!shaderData.shader_tess_cont.empty()) badShaders.push_back(module_tess_cont.module);
-            if (!shaderData.shader_tess_eval.empty()) badShaders.push_back(module_tess_eval.module);
-
-            destroy_shaders(badShaders);
-
-            vkDestroyDescriptorSetLayout(
-                logicalDevice,
-                descriptorSetLayout,
-                nullptr);
-
-            vkDestroyPipelineLayout(
-                logicalDevice,
-                pipelineLayout,
-                nullptr);
-
             string message = 
                 "Failed to create new pipeline when assigning new shader data for shader '" + to_string(ID) 
                 + "' under graphics context '" + to_string(contextID) + "'! Reason: " 
@@ -953,45 +930,6 @@ namespace KalaGraphics::Resources
         }
 
         //
-        // DESCRIPTOR SET
-        //
-
-        VkDescriptorSet newDescriptorSet{};
-        if (recreate)
-        {
-            VkDescriptorPoolCreateInfo poolInfo{};
-            poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-            poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-            poolInfo.maxSets = 1;
-            poolInfo.poolSizeCount = descriptorBindings.size();
-            //TODO: assign correctly
-            //poolInfo.pPoolSizes = descriptorBindings.data();
-
-            VkDescriptorPool descriptorPool;
-            vkCreateDescriptorPool(
-                logicalDevice,
-                &poolInfo,
-                nullptr,
-                &descriptorPool);
-
-            VkDescriptorSetAllocateInfo allocInfo{};
-            allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-            allocInfo.descriptorPool = descriptorPool;
-            allocInfo.descriptorSetCount = 1;
-            allocInfo.pSetLayouts = &descriptorSetLayout;
-
-            VkDescriptorSet descriptorSet;
-            vkAllocateDescriptorSets(
-                logicalDevice,
-                &allocInfo,
-                &descriptorSet);
-
-            //TODO: bind data here...
-
-            newDescriptorSet = descriptorSet;
-        }
-
-        //
         // FINISH
         //
 
@@ -1005,7 +943,6 @@ namespace KalaGraphics::Resources
         }
 
         pipeline = newPipeline;
-        if (recreate) descriptorSet = newDescriptorSet;
         shaderModuleData = std::move(newShaderModuleData);
 
         Log::Print(
@@ -1016,7 +953,6 @@ namespace KalaGraphics::Resources
     }
 
     VkDescriptorSetLayout Shader::GetDescriptorSetLayout() { return descriptorSetLayout; }
-    VkDescriptorSet Shader::GetDescriptorSet() { return descriptorSet; }
     VkPipelineLayout Shader::GetPipelineLayout() { return pipelineLayout; }
     VkPipeline Shader::GetPipeline() { return pipeline; }
 
@@ -1075,19 +1011,6 @@ namespace KalaGraphics::Resources
             sizeof(pc),
             &pc);
 
-        if (descriptorSet != VK_NULL_HANDLE)
-        {
-            vkCmdBindDescriptorSets(
-                cmdBuffer,
-                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                pipelineLayout,
-                0,
-                1,
-                &descriptorSet,
-                0,
-                nullptr);
-        }
-
         for (u32 meshID : meshIDs)
         {
             Mesh* mesh = Mesh::GetRegistry().GetContent(meshID);
@@ -1098,6 +1021,18 @@ namespace KalaGraphics::Resources
                     "Failed to update shader '" + to_string(ID) 
                     + "' because its mesh '" + to_string(meshID) + "' was invalid!");
             }
+
+            if (mesh->vkDescriptorSet == VK_NULL_HANDLE) continue;
+
+            vkCmdBindDescriptorSets(
+                cmdBuffer,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipelineLayout,
+                0,
+                1,
+                &mesh->vkDescriptorSet,
+                0,
+                nullptr);
 
             if (mesh->vkVertexBuffer == VK_NULL_HANDLE)
             {
