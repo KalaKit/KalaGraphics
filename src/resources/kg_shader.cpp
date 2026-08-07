@@ -789,7 +789,7 @@ namespace KalaGraphics::Resources
 
             rcData->rasterization.sType       = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
             rcData->rasterization.polygonMode = VK_POLYGON_MODE_FILL;
-            rcData->rasterization.cullMode    = VK_CULL_MODE_NONE; //TODO: use correctly as VK_CULL_MODE_BACK_BIT once Y is flipped correctly;
+            rcData->rasterization.cullMode    = VK_CULL_MODE_BACK_BIT;
             rcData->rasterization.frontFace   = VK_FRONT_FACE_CLOCKWISE;
             rcData->rasterization.lineWidth   = 1.0f;
 

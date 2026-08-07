@@ -31,6 +31,7 @@ using KalaHeaders::KalaMath::getdirright;
 using KalaHeaders::KalaMath::view;
 using KalaHeaders::KalaMath::ortho;
 using KalaHeaders::KalaMath::perspective;
+using KalaHeaders::KalaMath::isnear;
 
 using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Core::GraphicsContext;
@@ -38,6 +39,7 @@ using KalaGraphics::Core::GraphicsContext;
 using std::unique_ptr;
 using std::make_unique;
 using std::to_string;
+using std::clamp;
 
 namespace KalaGraphics::Resources
 {
@@ -97,12 +99,6 @@ namespace KalaGraphics::Resources
 
         //shader references this camera
         shader->cameraIDs.push_back(newID);
-
-        setroteuler(
-            cameraPtr->transform,
-            {},
-            ROT_WORLD,
-            { 0.0f, -90.0f, 0.0f });
 
         cameraPtr->viewport = gctx->GetExtent();
 
@@ -340,18 +336,24 @@ namespace KalaGraphics::Resources
 
     void Camera::Move(
         vec2 mouse,
-        vec2 keyboard)
+        vec2 keyboard,
+        f32 vertical,
+        f32 deltaTime)
     {
-        vec2 kmouse = kclamp(mouse, 0, 1);
-        vec2 kkb = kclamp(keyboard, 0, 1);
+        mouse = kclamp(mouse, -MOUSE_MAX, MOUSE_MAX);
+        keyboard = kclamp(keyboard, -1, 1);
 
         if (type == CameraType::C_ORTHOGRAPHIC)
         {
+            vec3 move = vec2(
+                keyboard.x * speedMultiplier,
+                keyboard.y * speedMultiplier);
+
             addpos3d(
                 transform,
                 {},
                 POS_WORLD,
-                vec2(kmouse + kkb));
+                move);
 
             orthographicMatrix = ortho(
                 viewport,
@@ -360,21 +362,38 @@ namespace KalaGraphics::Resources
         }
         else
         {
-            addyaw(
-                transform,
-                {},
-                ROT_WORLD,
-                kmouse.x);
-            addpitch(
-                transform,
-                {},
-                ROT_WORLD,
-                kmouse.y);
+            if (!isnear(mouse.x)
+                || !isnear(mouse.y))
+            {
+                addyaw(
+                    transform,
+                    {},
+                    ROT_WORLD,
+                    -mouse.x * sensitivityMultiplier);
+                addpitch(
+                    transform,
+                    {},
+                    ROT_WORLD,
+                    -mouse.y * sensitivityMultiplier);
+            }
+
+            vec3 kb3{keyboard.x, vertical, keyboard.y};
+            if (kb3.x != 0
+                || kb3.y != 0
+                || kb3.z != 0)
+            {
+                f32 len = sqrt(kb3.x * kb3.x + kb3.y * kb3.y + kb3.z * kb3.z);
+                kb3 /= len;
+            }
 
             vec3 move = getdirfront(transform)
-                * kkb.y
+                * kb3.z
                 + getdirright(transform)
-                * kkb.x;
+                * kb3.x;
+
+            move += DIR_UP * kb3.y;
+
+            move *= speedMultiplier * deltaTime;
 
             addpos3d(
                 transform,
@@ -384,8 +403,10 @@ namespace KalaGraphics::Resources
 
             mat4 viewMatrix = view(
                 transform.pos_world,
-                getdirfront(transform),
+                transform.pos_world + getdirfront(transform),
                 DIR_UP);
+
+            //Log::Print("@@@@@ viewport: " + to_string(viewport.x) + ", " + to_string(viewport.y));
 
             mat4 perspectiveMatrix = perspective(
                 viewport,
@@ -394,6 +415,21 @@ namespace KalaGraphics::Resources
                 drawDistance.y);
 
             projectionMatrix = perspectiveMatrix * viewMatrix;
+
+            /*
+            string pmStr = "projection matrix:\n" +
+                to_string(projectionMatrix.m00) + " " + to_string(projectionMatrix.m10) + " " + to_string(projectionMatrix.m20) + " " + to_string(projectionMatrix.m30) + "\n" +
+                to_string(projectionMatrix.m01) + " " + to_string(projectionMatrix.m11) + " " + to_string(projectionMatrix.m21) + " " + to_string(projectionMatrix.m31) + "\n" +
+                to_string(projectionMatrix.m02) + " " + to_string(projectionMatrix.m12) + " " + to_string(projectionMatrix.m22) + " " + to_string(projectionMatrix.m32) + "\n" +
+                to_string(projectionMatrix.m03) + " " + to_string(projectionMatrix.m13) + " " + to_string(projectionMatrix.m23) + " " + to_string(projectionMatrix.m33) + "\n";
+
+            string tpos = "transform world pos:\n" + 
+                to_string(transform.pos_world.x) + ", " +
+                to_string(transform.pos_world.y) + ", " +
+                to_string(transform.pos_world.z);
+
+            Log::Print(pmStr + ", " + tpos);
+            */
         }
 
         UpdateCameraData();
@@ -495,6 +531,42 @@ namespace KalaGraphics::Resources
     }
 
     Transform3D& Camera::GetTransform() { return transform; }
+
+    f32 Camera::GetSpeedMultiplier() const { return speedMultiplier; }
+    void Camera::SetSpeedMultiplier(f32 newValue)
+    {
+        if (newValue < SPEED_MIN
+            || newValue > SPEED_MAX)
+        {
+            Log::Print(
+                "Failed to set camera '" + to_string(ID) + "' speed multiplier because new value is out of allowed range!",
+                "KG_CAMERA",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        speedMultiplier = newValue;
+    }
+
+    f32 Camera::GetSensitivityMultiplier() const { return sensitivityMultiplier; }
+    void Camera::SetSensitivityMultiplier(f32 newValue)
+    {
+        if (newValue < SENS_MIN
+            || newValue > SENS_MAX)
+        {
+            Log::Print(
+                "Failed to set camera '" + to_string(ID) + "' sensitivity multiplier because new value is out of allowed range!",
+                "KG_CAMERA",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        sensitivityMultiplier = newValue;
+    }
 
     f32 Camera::GetFOV() const { return fov; }
     void Camera::SetFOV(f32 newValue)

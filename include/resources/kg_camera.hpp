@@ -26,6 +26,15 @@ namespace KalaGraphics::Core
 
 namespace KalaGraphics::Resources
 {
+    //min and max allowed raw deltatime for mouse
+    constexpr f32 MOUSE_MAX = 100.0f;
+
+    constexpr f32 SENS_MIN = 0.1f;
+    constexpr f32 SENS_MAX = 10.0f;
+
+    constexpr f32 SPEED_MIN = 0.1f;
+    constexpr f32 SPEED_MAX = 10.0f;
+
     constexpr f32 FOV_MIN = 30.0f;
     constexpr f32 FOV_MAX = 180.0f;
 
@@ -74,16 +83,27 @@ namespace KalaGraphics::Resources
         void SetCameraType(CameraType type);
 
         //Pass mouse and keyboard input to this camera,
-        //all values are internally clamped to 0, 1.
+        //Keyboard is internally clamped to -1, 1,
+        //Mouse is clamped to MOUSE_MAX,
+        //Vertical is global up-down movement, optional.
+        //Pass deltaTime if you wish to also modify camera by that, optional.
         //Calls UpdateCameraData internally, no need to call it separately.
         void Move(
             vec2 mouse,
-            vec2 keyboard);
+            vec2 keyboard,
+            f32 vertical = {},
+            f32 deltaTime = {});
 
         //Call after updating camera transform manually to ensure camera UBO buffer is up to date
         void UpdateCameraData();
 
         Transform3D& GetTransform();
+
+        f32 GetSpeedMultiplier() const;
+        void SetSpeedMultiplier(f32 newSpeed);
+
+        f32 GetSensitivityMultiplier() const;
+        void SetSensitivityMultiplier(f32 newSens);
 
         f32 GetFOV() const;
         void SetFOV(f32 newFOV);
@@ -115,8 +135,9 @@ namespace KalaGraphics::Resources
 
         Transform3D transform{};
 
+        f32 speedMultiplier = 1.0f;
+        f32 sensitivityMultiplier = 1.0f;
         f32 fov = 90.0f;
-        f32 aspect{};
         vec2 drawDistance = { 0.001f, 1000.0f };
 
         //internal viewport size value that comes from graphics context

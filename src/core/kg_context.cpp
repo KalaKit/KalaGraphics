@@ -63,6 +63,7 @@ using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
 
 using KalaHeaders::KalaMath::vec2;
+using KalaHeaders::KalaMath::mat4;
 
 using KalaGraphics::Core::ViewportSize;
 using KalaGraphics::Core::Severity;
@@ -2391,6 +2392,9 @@ namespace KalaGraphics::Core
             }
 
             c->viewport = extent;
+
+            //enforce camera update with no data so orthographic/projection is updated correctly
+            c->Move({}, {});
         }
 
         if (isVerboseLoggingEnabled)
