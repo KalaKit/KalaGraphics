@@ -14,6 +14,7 @@
 
 #include "resources/kg_shader.hpp"
 #include "resources/kg_mesh.hpp"
+#include "resources/kg_camera.hpp"
 #include "core/kg_context.hpp"
 #include "core/kg_core.hpp"
 
@@ -238,6 +239,9 @@ namespace KalaGraphics::Resources
             "KG_SHADER",
             LogType::LOG_SUCCESS);
     }
+
+    const vector<u32>& Shader::GetMeshIDs() const { return meshIDs; }
+    const vector<u32>& Shader::GetCameraIDs() const { return cameraIDs; }
 
     void Shader::SetShaderData(
         ShaderData&& shaderData,
@@ -584,38 +588,31 @@ namespace KalaGraphics::Resources
 
             //TODO: use spirv reflection
 
-            VkPushConstantRange pcRange{};
-            pcRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-            pcRange.offset = 0;
-            pcRange.size = sizeof(REPLACE_ME_TEST_SHADER_DATA);
+            VkPushConstantRange pushConstantRanges[1]{};
+
+            pushConstantRanges[0].stageFlags = 
+                VK_SHADER_STAGE_VERTEX_BIT 
+                | VK_SHADER_STAGE_FRAGMENT_BIT;
+            pushConstantRanges[0].offset = 0;
+            pushConstantRanges[0].size = 
+                sizeof(REPLACE_ME_TEST_SHADER_DATA);
 
             //
             // DESCRIPTOR SET LAYOUT
             //
 
-            VkDescriptorSetLayoutBinding bindings[] = 
-            {
-                //transform UBO
-                { 
-                    0,
-                    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    1,
-                    VK_SHADER_STAGE_VERTEX_BIT,
-                    nullptr
-                },
-                //camera UBO
-                { 
-                    1,
-                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    1,
-                    VK_SHADER_STAGE_VERTEX_BIT,
-                    nullptr
-                }
-            };
+            VkDescriptorSetLayoutBinding bindings[1]{};
+
+            //camera UBO
+            bindings[0].binding = 0;
+            bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            bindings[0].descriptorCount = 1;
+            bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+            bindings[0].pImmutableSamplers = nullptr;
 
             VkDescriptorSetLayoutCreateInfo descriptorLayoutInfo{};
             descriptorLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-            descriptorLayoutInfo.bindingCount = 2;
+            descriptorLayoutInfo.bindingCount = 1;
             descriptorLayoutInfo.pBindings = bindings;
 
             VkResult vkResult = vkCreateDescriptorSetLayout(
@@ -670,7 +667,7 @@ namespace KalaGraphics::Resources
             pipelineLayoutInfo.setLayoutCount         = 1; //TODO: update dynamically for descriptor set count
             pipelineLayoutInfo.pSetLayouts            = &newDescriptorSetLayout;
             pipelineLayoutInfo.pushConstantRangeCount = 1; //TODO: update dynamically for push constant count
-            pipelineLayoutInfo.pPushConstantRanges = &pcRange;
+            pipelineLayoutInfo.pPushConstantRanges = pushConstantRanges;
 
             vkResult = vkCreatePipelineLayout(
                 logicalDevice,
@@ -997,19 +994,27 @@ namespace KalaGraphics::Resources
             VK_PIPELINE_BIND_POINT_GRAPHICS,
             pipeline);
 
-        //TODO: use spriv-reflection
-        
-        REPLACE_ME_TEST_SHADER_DATA pc{};
-        pc.color = { 1.0f, 0.8f, 0.6f, 1.0f };
-        pc.debugMode = 1;
+        for (u32 cameraID : cameraIDs)
+        {
+            Camera* camera = Camera::GetRegistry().GetContent(cameraID);
+            if (!camera)
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics shader error",
+                    "Failed to update shader '" + to_string(ID) 
+                    + "' because its camera '" + to_string(cameraID) + "' was invalid!");
+            }
 
-        vkCmdPushConstants(
-            cmdBuffer,
-            pipelineLayout,
-            VK_SHADER_STAGE_FRAGMENT_BIT,
-            0,
-            sizeof(pc),
-            &pc);
+            vkCmdBindDescriptorSets(
+                cmdBuffer,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipelineLayout,
+                0,
+                1,
+                &camera->vkCameraDescriptorSet,
+                0,
+                nullptr);
+        }
 
         for (u32 meshID : meshIDs)
         {
@@ -1021,18 +1026,6 @@ namespace KalaGraphics::Resources
                     "Failed to update shader '" + to_string(ID) 
                     + "' because its mesh '" + to_string(meshID) + "' was invalid!");
             }
-
-            if (mesh->vkDescriptorSet == VK_NULL_HANDLE) continue;
-
-            vkCmdBindDescriptorSets(
-                cmdBuffer,
-                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                pipelineLayout,
-                0,
-                1,
-                &mesh->vkDescriptorSet,
-                0,
-                nullptr);
 
             if (mesh->vkVertexBuffer == VK_NULL_HANDLE)
             {
@@ -1060,6 +1053,16 @@ namespace KalaGraphics::Resources
                     "doesn't have vertex buffer data!");
             }
 
+            //TODO: use spriv-reflection
+
+            vkCmdPushConstants(
+                cmdBuffer,
+                pipelineLayout,
+                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                0,
+                sizeof(REPLACE_ME_TEST_SHADER_DATA),
+                &mesh->testShaderData);
+
             VkDeviceSize offset{};
             vkCmdBindVertexBuffers(
                 cmdBuffer,
@@ -1070,57 +1073,53 @@ namespace KalaGraphics::Resources
 
             if (mesh->vkIndexBuffer == VK_NULL_HANDLE)
             {
-                //skip mesh if it has no index buffer data
-                if (mesh->vkIndexBuffer == 0)
-                {
-                    vkCmdDraw(
-                        cmdBuffer,
-                        mesh->vertices.size(),
-                        1,
-                        0,
-                        0);
-                }
-                //invalid mesh, index buffer was removed for calculated mesh data
-                else
+                vkCmdDraw(
+                    cmdBuffer,
+                    mesh->vertices.size(),
+                    1,
+                    0,
+                    0);
+            }
+            else
+            {
+                //vertex buffer was added but its data was not assigned
+                if (mesh->indexBufferSize == 0)
                 {
                     KalaGraphicsCore::ForceClose(
                         "KalaGraphics shader error",
                         "Failed to render mesh '" + to_string(meshID) 
                         + "' on shader '" + to_string(ID) 
-                        + "' because its index buffer size is more than 0 but it "
-                        "doesn't have a valid index buffer");
+                        + "' because its index buffer is valid but it "
+                        "doesn't have index buffer data!");
                 }
-            }
-            //vertex buffer was added but its data was not assigned
-            else if (mesh->indexBufferSize == 0)
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics shader error",
-                    "Failed to render mesh '" + to_string(meshID) 
-                    + "' on shader '" + to_string(ID) 
-                    + "' because its index buffer is valid but it "
-                    "doesn't have index buffer data!");
-            }
-            else
-            {
-                vkCmdBindIndexBuffer(
-                    cmdBuffer,
-                    mesh->vkIndexBuffer,
-                    0,
-                    VK_INDEX_TYPE_UINT32);
-                vkCmdDrawIndexed(
-                    cmdBuffer,
-                    mesh->indices.size(),
-                    1,
-                    0,
-                    0,
-                    0);
+                else
+                {
+                    vkCmdBindIndexBuffer(
+                        cmdBuffer,
+                        mesh->vkIndexBuffer,
+                        0,
+                        VK_INDEX_TYPE_UINT32);
+                    vkCmdDrawIndexed(
+                        cmdBuffer,
+                        mesh->indices.size(),
+                        1,
+                        0,
+                        0,
+                        0);
+                }
             }
         }
     }
 
     void Shader::Destroy()
     {
+        for (u32 cID : cameraIDs)
+        {
+            Camera* c = Camera::GetRegistry().GetContent(cID);
+            if (c) c->shaderID = 0;
+        }
+        cameraIDs.clear();
+
         for (u32 mID : meshIDs)
         {
             Mesh* m = Mesh::GetRegistry().GetContent(mID);

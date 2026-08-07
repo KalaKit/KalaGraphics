@@ -2404,6 +2404,21 @@ namespace KalaGraphics::Core
 
     void GraphicsContext::Destroy()
     { 
+        for (u32 cID : cameraIDs)
+        {
+            Camera* c = Camera::GetRegistry().GetContent(cID);
+            if (!c)
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics context error",
+                    "Failed to destroy graphics context '" + to_string(ID) + "' because "
+                    "camera '" + to_string(cID) + "' was invalid!");
+            }
+
+            c->isDestroyingGraphicsContext = true;
+            c->Destroy();
+        }
+
         for (u32 sID : shaderIDs)
         {
             Shader* s = Shader::GetRegistry().GetContent(sID);

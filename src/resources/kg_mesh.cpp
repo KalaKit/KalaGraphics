@@ -20,7 +20,7 @@ using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
 
 using KalaHeaders::KalaMath::mat4;
-using KalaHeaders::KalaMath::createumodel;
+using KalaHeaders::KalaMath::createmodelmatrix;
 
 using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Core::GraphicsContext;
@@ -73,7 +73,6 @@ namespace KalaGraphics::Resources
     }
 
     u32 Mesh::GetID() const { return ID; }
-
     u32 Mesh::GetCameraID() const { return cameraID; }
 
     u32 Mesh::GetShaderID() const { return shaderID; }
@@ -124,25 +123,7 @@ namespace KalaGraphics::Resources
 
     void Mesh::UpdateMeshData()
     {
-        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
-        if (logicalDevice == VK_NULL_HANDLE)
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics mesh error",
-                "Failed to update mesh '" + to_string(ID) 
-                + "' vertices because the logical device was invalid!");
-        }
-
-        VmaAllocator allocator = GraphicsContext::GetVmaAllocator();
-        if (!allocator)
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics mesh error",
-                "Failed to update mesh data for mesh '" + to_string(ID) + "' because vma allocator was invalid!");
-        }
-
-        Shader* shader = Shader::GetRegistry().GetContent(shaderID);
-        if (!shader)
+        if (!Shader::GetRegistry().GetContent(shaderID))
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics mesh error",
@@ -150,180 +131,10 @@ namespace KalaGraphics::Resources
                 + "' because its shader '" + to_string(shaderID) + "' was invalid!");
         }
 
-        if (vkDescriptorSet == VK_NULL_HANDLE)
-        {
-            VkDescriptorSetAllocateInfo descriptorSetAllocateInfo{};
-            descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-            descriptorSetAllocateInfo.descriptorPool = GraphicsContext::GetDescriptorPool();
-            descriptorSetAllocateInfo.descriptorSetCount = 1;
-            descriptorSetAllocateInfo.pSetLayouts = &shader->descriptorSetLayout;
-
-            VkDescriptorSet newDescriptorSet;
-            VkResult vkResult = vkAllocateDescriptorSets(
-                logicalDevice,
-                &descriptorSetAllocateInfo,
-                &newDescriptorSet);
-
-            if (vkResult != VK_SUCCESS)
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics mesh error",
-                    "Failed to update mesh data for mesh '" + to_string(ID) 
-                    + "' and shader '" + to_string(shaderID) + "' because descriptor set init failed! Reason: " 
-                    + GraphicsContext::GetVkResultMessage(vkResult));
-            }
-
-            vkDescriptorSet = newDescriptorSet;
-        }
-
-        //create new transform data if it doesnt exist yet
-        if (vkTransformUBOBuffer == VK_NULL_HANDLE)
-        {
-            size_t bufferSize = sizeof(mat4);
-
-            VkBufferCreateInfo bufferInfo{};
-            bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            bufferInfo.size = bufferSize;
-            bufferInfo.usage = 
-                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
-                | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-            bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-            VmaAllocationCreateInfo allocInfo{};
-            allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-            allocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-            allocInfo.flags = 
-                VMA_ALLOCATION_CREATE_MAPPED_BIT
-                | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
-
-            VkBuffer vkBuffer = VK_NULL_HANDLE;
-            VmaAllocation vmaAllocation = VK_NULL_HANDLE;
-            VmaAllocationInfo allocResult{};
-
-            VkResult result = vmaCreateBuffer(
-                allocator,
-                &bufferInfo,
-                &allocInfo,
-                &vkBuffer,
-                &vmaAllocation,
-                &allocResult);
-
-            if (result != VK_SUCCESS)
-            {
-                Log::Print(
-                    "Failed to update mesh data for mesh '" + to_string(ID) 
-                    + "' because transform UBO vk buffer creation failed!",
-                    "KG_MESH",
-                    LogType::LOG_ERROR,
-                    2);
-
-                return;
-            }
-
-            //upload initial vertex data via pre-mappped pointer
-            memcpy(allocResult.pMappedData, vertices.data(), bufferSize);
-
-            vkTransformUBOBuffer = vkBuffer;
-            vmaTransformUBOAllocation = vmaAllocation;
-            transformUBOMappedPtr = allocResult.pMappedData;
-        }
-
-        //destroy unused camera data
-        if (cameraID == 0
-            && vkCameraUBOBuffer != VK_NULL_HANDLE)
-        {
-            vmaDestroyBuffer(
-                allocator,
-                vkCameraUBOBuffer,
-                vmaCameraUBOAllocation);
-
-            vkCameraUBOBuffer = VK_NULL_HANDLE;
-            vmaCameraUBOAllocation = VK_NULL_HANDLE;
-            cameraUBOMappedPtr = nullptr;
-        }
-        //create new camera data if it doesnt exist yet
-        if (cameraID != 0
-            && vkCameraUBOBuffer == VK_NULL_HANDLE)
-        {
-            size_t bufferSize = sizeof(mat4);
-
-            VkBufferCreateInfo bufferInfo{};
-            bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            bufferInfo.size = bufferSize;
-            bufferInfo.usage = 
-                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
-                | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-            bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-            VmaAllocationCreateInfo allocInfo{};
-            allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-            allocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-            allocInfo.flags = 
-                VMA_ALLOCATION_CREATE_MAPPED_BIT
-                | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
-
-            VkBuffer vkBuffer = VK_NULL_HANDLE;
-            VmaAllocation vmaAllocation = VK_NULL_HANDLE;
-            VmaAllocationInfo allocResult{};
-
-            VkResult result = vmaCreateBuffer(
-                allocator,
-                &bufferInfo,
-                &allocInfo,
-                &vkBuffer,
-                &vmaAllocation,
-                &allocResult);
-
-            if (result != VK_SUCCESS)
-            {
-                Log::Print(
-                    "Failed to update mesh data for mesh '" + to_string(ID) 
-                    + "' because transform UBO vk buffer creation failed!",
-                    "KG_MESH",
-                    LogType::LOG_ERROR,
-                    2);
-
-                return;
-            }
-
-            //upload initial vertex data via pre-mappped pointer
-            memcpy(allocResult.pMappedData, vertices.data(), bufferSize);
-
-            vkCameraUBOBuffer = vkBuffer;
-            vmaCameraUBOAllocation = vmaAllocation;
-            cameraUBOMappedPtr = allocResult.pMappedData;
-        }
-
-        mat4 modelMatrix = createumodel(
-            50.0f, 
-            {}, 
-            100.0f);
-        memcpy(
-            transformUBOMappedPtr, 
-            &modelMatrix, 
-            sizeof(mat4));
-
-        VkDescriptorBufferInfo transformInfo{};
-        transformInfo.buffer = vkTransformUBOBuffer;
-        transformInfo.offset = 0;
-        transformInfo.range = sizeof(mat4);
-
-        //TODO: add camera info and write for camera too
-
-        VkWriteDescriptorSet writes[1]{};
-        writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        writes[0].dstSet = vkDescriptorSet;
-        writes[0].dstBinding = 0;
-        writes[0].descriptorCount = 1;
-        writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        writes[0].pBufferInfo = &transformInfo;
-
-        vkUpdateDescriptorSets(
-            logicalDevice,
-            1,
-            writes,
-            0,
-            nullptr);
+        mat4 modelMatrix = createmodelmatrix(
+            transform.pos_world, 
+            transform.rot_world, 
+            transform.size_world);
 
         UpdateVertices();
         UpdateIndices();
@@ -340,7 +151,7 @@ namespace KalaGraphics::Resources
                 || transform.size_world.z != 0)
             {
                 Log::Print(
-                        "Failed to set mesh 2D state because 2D state was requested "
+                        "Failed to set mesh '" + to_string(ID) + "' 2D state because 2D state was requested "
                         "but 3D values were assigned to transform pos, rot or size!",
                     "KG_MESH",
                     LogType::LOG_ERROR,
@@ -354,7 +165,7 @@ namespace KalaGraphics::Resources
                 if (v.pos.z != 0)
                 {
                     Log::Print(
-                        "Failed to set mesh 2D state because 2D state was requested "
+                        "Failed to set mesh '" + to_string(ID) + "' 2D state because 2D state was requested "
                         "but 3D values were assigned to one of the vertice positions!",
                         "KG_MESH",
                         LogType::LOG_ERROR,
@@ -370,10 +181,10 @@ namespace KalaGraphics::Resources
 
     Transform3D& Mesh::GetTransform() { return transform; }
 
+    const mat4& Mesh::GetModelMatrix() const { return testShaderData.mesh; }
+
     vector<Vertex>& Mesh::GetVertices() { return vertices; }
     vector<u32>& Mesh::GetIndices() { return indices; }
-
-    VkDescriptorSet Mesh::GetVkDescriptorSet() { return vkDescriptorSet; }
 
     void Mesh::UpdateVertices()
     {
@@ -624,41 +435,5 @@ namespace KalaGraphics::Resources
             vkIndexBuffer = VK_NULL_HANDLE;
             indexMappedPtr = nullptr;
         }
-
-        if (vmaTransformUBOAllocation)
-        {
-            vmaDestroyBuffer(
-                allocator,
-                vkTransformUBOBuffer,
-                vmaTransformUBOAllocation);
-
-            vmaTransformUBOAllocation = VK_NULL_HANDLE;
-            vkTransformUBOBuffer = VK_NULL_HANDLE;
-            transformUBOMappedPtr = nullptr;
-        }
-        if (vmaCameraUBOAllocation)
-        {
-            vmaDestroyBuffer(
-                allocator,
-                vkCameraUBOBuffer,
-                vmaCameraUBOAllocation);
-
-            vmaCameraUBOAllocation = VK_NULL_HANDLE;
-            vkCameraUBOBuffer = VK_NULL_HANDLE;
-            cameraUBOMappedPtr = nullptr;
-        }
-
-        if (vkDescriptorSet != VK_NULL_HANDLE)
-        {
-            vkFreeDescriptorSets(
-                logicalDevice,
-                GraphicsContext::GetDescriptorPool(),
-                1,
-                &vkDescriptorSet);
-
-            vkDescriptorSet = VK_NULL_HANDLE;
-        }
-
-        //TODO: destroy transform UBO?
     }
 }

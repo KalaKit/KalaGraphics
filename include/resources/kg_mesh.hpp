@@ -13,12 +13,10 @@
 #include "math_utils.hpp"
 
 #include "core/kg_registry.hpp"
+#include "resources/kg_shader.hpp"
 
 struct VkBuffer_T;
 using VkBuffer = VkBuffer_T*;
-
-struct VkDescriptorSet_T;
-using VkDescriptorSet = VkDescriptorSet_T*;
 
 struct VmaAllocation_T;
 using VmaAllocation = VmaAllocation_T*;
@@ -26,6 +24,7 @@ using VmaAllocation = VmaAllocation_T*;
 namespace KalaGraphics::Resources
 {
     using KalaHeaders::KalaMath::Transform3D;
+    using KalaHeaders::KalaMath::mat4;
     using KalaHeaders::KalaMath::vec3;
     using KalaHeaders::KalaMath::vec2;
 
@@ -140,10 +139,13 @@ namespace KalaGraphics::Resources
 
         Transform3D& GetTransform();
 
+        const mat4& GetModelMatrix() const;
+
         vector<Vertex>& GetVertices();
         vector<u32>& GetIndices();
 
-        VkDescriptorSet GetVkDescriptorSet();
+        VkBuffer GetBuffer(bool vertexBuffer);
+        VmaAllocation GetAllocation(bool vertexAllocation);
 
         void Destroy();
 
@@ -160,6 +162,8 @@ namespace KalaGraphics::Resources
 
         bool is2D{};
 
+        Transform3D transform{};
+
         vector<Vertex> vertices{};
         VkBuffer vkVertexBuffer{};
         VmaAllocation vmaVertexAllocation{};
@@ -172,16 +176,6 @@ namespace KalaGraphics::Resources
         size_t indexBufferSize{}; //required because indices size may change
         void* indexMappedPtr{};
 
-        VkBuffer vkTransformUBOBuffer{};
-        VmaAllocation vmaTransformUBOAllocation{};
-        void* transformUBOMappedPtr{};
-
-        VkBuffer vkCameraUBOBuffer{};
-        VmaAllocation vmaCameraUBOAllocation{};
-        void* cameraUBOMappedPtr{};
-
-        VkDescriptorSet vkDescriptorSet{};
-
-        Transform3D transform{};
+        REPLACE_ME_TEST_SHADER_DATA testShaderData{};
     };
 }

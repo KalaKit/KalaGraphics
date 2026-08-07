@@ -37,6 +37,7 @@ namespace KalaGraphics::Core
 
 namespace KalaGraphics::Resources
 {
+    using KalaHeaders::KalaMath::mat4;
     using KalaHeaders::KalaMath::vec4;
 
     using KalaGraphics::Core::KalaGraphicsRegistry;
@@ -112,14 +113,21 @@ namespace KalaGraphics::Resources
     //TODO: replace with spirv-reflection logic later
     struct REPLACE_ME_TEST_SHADER_DATA
     {
-        vec4 color{};    //offset 0
-        u32 debugMode{}; //offset 16, value should be 0 or 1
+        //offset 0
+        mat4 mesh{};     
+
+        //offset 64
+        vec4 color = { 1.0f, 0.8f, 0.6f, 1.0f };    
+
+        //offset 80, value should be 0 or 1
+        u32 debugMode = 1; 
     };
 
     class LIB_API Shader
     {
     friend class KalaGraphics::Core::GraphicsContext;
     friend class Mesh;
+    friend class Camera;
     public:
         static KalaGraphicsRegistry<Shader>& GetRegistry();
 
@@ -132,6 +140,9 @@ namespace KalaGraphics::Resources
 
         u32 GetGraphicsContextID() const;
         void SetGraphicsContextID(u32 newValue);
+
+        const vector<u32>& GetMeshIDs() const;
+        const vector<u32>& GetCameraIDs() const;
 
         //First time init or hot-reload shaders and their descriptor binding data
         void SetShaderData(
@@ -150,7 +161,7 @@ namespace KalaGraphics::Resources
         void Update(VkCommandBuffer buffer);
 
         //used only to prevent shader from removing its ID from
-        //graphics context camera IDs list if the graphics context
+        //graphics context shader IDs list if the graphics context
         //destroy function called the destroy function of this shader 
         bool isDestroyingGraphicsContext{};
 
@@ -158,6 +169,7 @@ namespace KalaGraphics::Resources
         u32 contextID{};
 
         vector<u32> meshIDs{};
+        vector<u32> cameraIDs{};
 
         u8 missingPipelineWarningCount{};
         u8 missingMeshWarningCount{};
