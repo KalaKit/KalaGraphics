@@ -49,6 +49,14 @@ namespace KalaGraphics::Resources
         u32 contextID,
         u32 shaderID)
     {
+        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
+        if (logicalDevice == VK_NULL_HANDLE)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics camera error",
+                "Failed to create camera because the logical device was invalid!");
+        }
+
         GraphicsContext* gctx = GraphicsContext::GetRegistry().GetContent(contextID);
         if (!gctx)
         {
@@ -82,6 +90,13 @@ namespace KalaGraphics::Resources
         KalaGraphicsCore::SetGlobalID(newID);
 
         cameraPtr->ID = newID;
+        cameraPtr->shaderID = shaderID;
+
+        //graphics context references this camera
+        gctx->cameraIDs.push_back(newID);
+
+        //shader references this camera
+        shader->cameraIDs.push_back(newID);
 
         setroteuler(
             cameraPtr->transform,
@@ -91,8 +106,37 @@ namespace KalaGraphics::Resources
 
         cameraPtr->viewport = gctx->GetExtent();
 
-        //graphics context references this camera
-        gctx->cameraIDs.push_back(newID);
+        //assign descriptor set for camera
+        {
+            VkDescriptorSetAllocateInfo descriptorSetAllocateInfo{};
+            descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+            descriptorSetAllocateInfo.descriptorPool = GraphicsContext::GetDescriptorPool();
+            descriptorSetAllocateInfo.descriptorSetCount = 1;
+            descriptorSetAllocateInfo.pSetLayouts = &shader->descriptorSetLayout;
+
+            VkDescriptorSet newDescriptorSet;
+            VkResult vkResult = vkAllocateDescriptorSets(
+                logicalDevice,
+                &descriptorSetAllocateInfo,
+                &newDescriptorSet);
+
+            if (vkResult != VK_SUCCESS)
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics camera error",
+                    "Failed to create camera because descriptor set init failed! Reason: " 
+                    + GraphicsContext::GetVkResultMessage(vkResult));
+            }
+
+            cameraPtr->vkCameraDescriptorSet = newDescriptorSet;
+
+            //always assign descriptor set data at camera init
+            cameraPtr->reassign = true;
+        }
+
+        //blank data for empty camera,
+        //move also calls UpdateCameraData
+        cameraPtr->Move({}, {});
 
         registry.AddContent(newID, std::move(newCamera));
 
@@ -122,7 +166,7 @@ namespace KalaGraphics::Resources
             return;
         }
 
-        GraphicsContext* oldContext = GraphicsContext::GetRegistry().GetContent(meshID);
+        GraphicsContext* oldContext = GraphicsContext::GetRegistry().GetContent(contextID);
         GraphicsContext* gctx = GraphicsContext::GetRegistry().GetContent(newValue);
         if (!gctx)
         {
@@ -160,7 +204,7 @@ namespace KalaGraphics::Resources
         if (logicalDevice == VK_NULL_HANDLE)
         {
             KalaGraphicsCore::ForceClose(
-                "KalaGraphics mesh error",
+                "KalaGraphics camera error",
                 "Failed to set camera '" + to_string(ID) 
                 + "' mesh ID because the logical device was invalid!");
         }
@@ -169,7 +213,7 @@ namespace KalaGraphics::Resources
         if (!allocator)
         {
             KalaGraphicsCore::ForceClose(
-                "KalaGraphics mesh error",
+                "KalaGraphics camera error",
                 "Failed to set camera '" + to_string(ID) + "' mesh ID "
                 "because vma allocator was invalid!");
         }
@@ -247,7 +291,7 @@ namespace KalaGraphics::Resources
             if (vkResult != VK_SUCCESS)
             {
                 KalaGraphicsCore::ForceClose(
-                    "KalaGraphics mesh error",
+                    "KalaGraphics camera error",
                     "Failed to set camera '" + to_string(ID) 
                     + "' mesh ID because descriptor set init failed! Reason: " 
                     + GraphicsContext::GetVkResultMessage(vkResult));
@@ -255,7 +299,9 @@ namespace KalaGraphics::Resources
 
             vkCameraDescriptorSet = newDescriptorSet;
 
-            recreateBuffer = true;
+            //reassign descriptor set data because we have a new mesh
+            reassign = true;
+
             UpdateCameraData();
 
             Log::Print(
@@ -422,7 +468,7 @@ namespace KalaGraphics::Resources
             &GetCameraMatrix(),
             sizeof(mat4));
 
-        if (recreateBuffer)
+        if (reassign)
         {
             VkDescriptorBufferInfo transformInfo{};
             transformInfo.buffer = vkCameraUBOBuffer;
@@ -444,7 +490,7 @@ namespace KalaGraphics::Resources
                 0,
                 nullptr);
 
-            recreateBuffer = false;
+            reassign = false;
         }
     }
 
@@ -538,7 +584,7 @@ namespace KalaGraphics::Resources
             if (vkResult != VK_SUCCESS)
             {
                 GraphicsContext::ForceClose(
-                    "KalaGraphics mesh error",
+                    "KalaGraphics camera error",
                     "Failed to destroy camera '" 
                     + to_string(ID) + "' because vkDeviceWaitIdle did not succeed!",
                     vkResult);

@@ -126,7 +126,7 @@ namespace KalaGraphics::Resources
         mat4 projectionMatrix{};
         mat4 orthographicMatrix{};
 
-        bool recreateBuffer{};
+        bool reassign{};
         VkBuffer vkCameraUBOBuffer{};
         VmaAllocation vmaCameraUBOAllocation{};
         void* cameraUBOMappedPtr{};

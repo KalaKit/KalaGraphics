@@ -131,7 +131,7 @@ namespace KalaGraphics::Resources
                 + "' because its shader '" + to_string(shaderID) + "' was invalid!");
         }
 
-        mat4 modelMatrix = createmodelmatrix(
+        testShaderData.mesh = createmodelmatrix(
             transform.pos_world, 
             transform.rot_world, 
             transform.size_world);
