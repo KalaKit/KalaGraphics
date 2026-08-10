@@ -52,7 +52,6 @@ struct VmaStdRWMutex
 #include "resources/kg_texture.hpp"
 #include "resources/kg_mesh.hpp"
 #include "resources/kg_camera.hpp"
-#include "resources/kg_text.hpp"
 
 using KalaHeaders::KalaCore::ToVar;
 using KalaHeaders::KalaCore::EnumHash;
@@ -71,7 +70,6 @@ using KalaGraphics::Resources::Shader;
 using KalaGraphics::Resources::Texture;
 using KalaGraphics::Resources::Mesh;
 using KalaGraphics::Resources::Camera;
-using KalaGraphics::Resources::Text;
 
 using std::string;
 using std::string_view;
@@ -2586,7 +2584,6 @@ namespace KalaGraphics::Core
 				"KG_CONTEXT",
 				LogType::LOG_INFO);
                 
-            Text::GetRegistry().RemoveAllContent();
             Texture::GetRegistry().RemoveAllContent();
             Camera::GetRegistry().RemoveAllContent();
             Mesh::GetRegistry().RemoveAllContent();

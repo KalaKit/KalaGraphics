@@ -40,6 +40,38 @@ This project relies on several [external dependencies](https://github.com/greeen
 
 ---
 
+## Import/Export
+
+KalaGraphics supports (or plans to support) the following formats for its import and export pipeline. Formats prefixed with `k` are created and maintained by KalaKit.
+
+The archive format is what the `k` prefixed formats can be imported or exported as, other external formats cannot be passed inside it.
+
+textures:
+import: png, ktex
+export: ktex
+
+meshes:
+- import: gltf, kmod
+- export: kmod
+
+materials:
+- import: kmat
+- export: kmat
+
+shaders:
+- import: glsl, spv, ksha
+- export: ksha
+
+animations:
+- import: kani
+- export: kani
+
+archive:
+- import: kdat
+- export: kdat
+
+---
+
 ## Links
 
 [Donate on PayPal](https://www.paypal.com/donate/?hosted_button_id=QWG8SAYX5TTP6)
