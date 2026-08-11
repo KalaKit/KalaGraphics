@@ -49,6 +49,19 @@ namespace KalaGraphics::Resources
             return nullptr;
         }
 
+        //TODO: replace with better idea
+        if (shader->descriptorSetLayout == VK_NULL_HANDLE)
+        {
+            Log::Print(
+                "Failed to create camera because the shader '" 
+                + to_string(shaderID) + "' had no valid descriptor set!",
+                "KG_CAMERA",
+                LogType::LOG_ERROR,
+                2);
+
+            return nullptr;
+        }
+
         unique_ptr<Mesh> newMesh = make_unique<Mesh>();
         Mesh* meshPtr = newMesh.get();
 

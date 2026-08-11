@@ -85,6 +85,19 @@ namespace KalaGraphics::Resources
             return nullptr;
         }
 
+        //TODO: replace with better idea
+        if (shader->descriptorSetLayout == VK_NULL_HANDLE)
+        {
+            Log::Print(
+                "Failed to create camera because the shader '" 
+                + to_string(shaderID) + "' had no valid descriptor set!",
+                "KG_CAMERA",
+                LogType::LOG_ERROR,
+                2);
+
+            return nullptr;
+        }
+
         unique_ptr<Camera> newCamera = make_unique<Camera>();
         Camera* cameraPtr = newCamera.get();
 
@@ -356,6 +369,7 @@ namespace KalaGraphics::Resources
                 move);
 
             orthographicMatrix = ortho(
+                true,
                 viewport,
                 drawDistance.x,
                 drawDistance.y);
@@ -409,6 +423,7 @@ namespace KalaGraphics::Resources
             //Log::Print("@@@@@ viewport: " + to_string(viewport.x) + ", " + to_string(viewport.y));
 
             mat4 perspectiveMatrix = perspective(
+                true,
                 viewport,
                 fov,
                 drawDistance.x,

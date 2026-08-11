@@ -263,30 +263,30 @@ namespace KalaGraphics::Resources
                 "Failed to set shader '" + to_string(ID) + "' data because the graphics context '" + to_string(contextID) + "' was invalid!");
         }
 
-        auto empty_path = [](string_view shaderType) -> void
+        auto empty_path = [this](string_view shaderType) -> void
             {
                 Log::Print(
-                    "Failed to initialize shader because it did not contain a " 
+                    "Failed to set shader '" + to_string(ID) + "' data because it did not contain a " 
                     + string(shaderType) + " shader file!", 
                     "KG_SHADER",
                     LogType::LOG_ERROR,
                     2);
             };
-        auto bad_ext = [](string_view shaderType) -> void
+        auto bad_ext = [this](string_view shaderType) -> void
             {
                 Log::Print(
-                    "Failed to initialize shader because its " + string(shaderType) 
+                    "Failed to set shader '" + to_string(ID) + "' data because its " + string(shaderType) 
                     + " shader had a missing or incorrect extension!", 
                     "KG_SHADER",
                     LogType::LOG_ERROR,
                     2);
             };
-        auto invalid_path = [](
+        auto invalid_path = [this](
             string_view shaderType,
             string_view shaderPath) -> void
             {
                 Log::Print(
-                    "Failed to initialize shader because its " + string(shaderType) 
+                    "Failed to set shader '" + to_string(ID) + "' data because its " + string(shaderType) 
                     + " shader path '" + string(shaderPath) + "' was invalid!", 
                     "KG_SHADER",
                     LogType::LOG_ERROR,

@@ -1030,6 +1030,19 @@ namespace KalaGraphics::Core
                 0);
         }
 
+        //ignore if minimized
+        VkSurfaceCapabilitiesKHR caps;
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+            physicalDevice,
+            contextData.context_vk_surface,
+            &caps);
+
+        if (caps.currentExtent.width == 0
+            || caps.currentExtent.height == 0)
+        {
+            return;
+        }
+
         vkWaitForFences(
             logicalDevice,
             1,

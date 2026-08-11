@@ -41,6 +41,7 @@ mf --o --f README.md --t "${LIB_DEST}/README.md"
 mf --o --f LICENSE.md --t "${LIB_DEST}/LICENSE.md"
 mf --o --f include --t "${LIB_DEST}"
 mf --o --f docs --t "${LIB_DEST}"
+mf --o --f files --t "${LIB_DEST}"
 
 #
 # Binaries
