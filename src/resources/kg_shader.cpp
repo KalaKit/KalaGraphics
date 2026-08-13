@@ -8,6 +8,7 @@
 #include <unordered_map>
 
 #include "vulkan/vulkan_core.h"
+#include "spirv_reflect.h"
 
 #include "log_utils.hpp"
 #include "file_utils.hpp"
@@ -18,6 +19,9 @@
 #include "core/kg_context.hpp"
 #include "core/kg_core.hpp"
 
+using KalaHeaders::KalaCore::ToVar;
+using KalaHeaders::KalaCore::FromVar;
+
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
 
@@ -27,6 +31,9 @@ using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Core::GraphicsContext;
 using KalaGraphics::Core::Severity;
 
+using KalaGraphics::Resources::Vertex;
+using KalaGraphics::Resources::Vertex2D;
+
 using std::unique_ptr;
 using std::make_unique;
 using std::to_string;
@@ -35,42 +42,222 @@ using std::unordered_map;
 using std::string;
 using std::string_view;
 using std::array;
+using std::map;
+using std::pair;
+using std::make_pair;
 
 using u8 = uint8_t;
 
 struct ShaderModule
 {
     bool success{};
-    VkShaderModule module{};
+    VkShaderModule vkModule{};
+    SpvReflectShaderModule spvModule{};
+};
+
+static VkPipelineVertexInputStateCreateInfo GetVertexData()
+{
+    static VkVertexInputBindingDescription bindingDescription{};
+
+    bindingDescription.binding   = 0;
+    bindingDescription.stride    = sizeof(Vertex);
+    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+    static vector<VkVertexInputAttributeDescription> attributeDescriptions{};
+    attributeDescriptions.clear();
+
+    attributeDescriptions.push_back(
+        {
+            0,
+            0,
+            VK_FORMAT_R32G32B32_SFLOAT,
+            offsetof(Vertex, pos)
+        });
+    attributeDescriptions.push_back(
+        {
+            1,
+            0,
+            VK_FORMAT_R32G32B32_SFLOAT,
+            offsetof(Vertex, normal)
+        });
+    attributeDescriptions.push_back(
+        {
+            2,
+            0,
+            VK_FORMAT_R32G32_SFLOAT,
+            offsetof(Vertex, uv)
+        });
+    attributeDescriptions.push_back(
+        {
+            3,
+            0,
+            VK_FORMAT_R32G32B32A32_SFLOAT,
+            offsetof(Vertex, color)
+        });
+
+    static VkPipelineVertexInputStateCreateInfo vi{};
+
+    vi.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vi.vertexBindingDescriptionCount   = 1;
+    vi.pVertexBindingDescriptions      = &bindingDescription;
+    vi.vertexAttributeDescriptionCount = scast<u32>(attributeDescriptions.size());
+    vi.pVertexAttributeDescriptions    = attributeDescriptions.data();
+
+    return vi;
+}
+static VkPipelineVertexInputStateCreateInfo Get2DVertexData()
+{
+    static VkVertexInputBindingDescription bindingDescription{};
+
+    bindingDescription.binding   = 0;
+    bindingDescription.stride    = sizeof(Vertex2D);
+    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+    static vector<VkVertexInputAttributeDescription> attributeDescriptions{};
+    attributeDescriptions.clear();
+
+    attributeDescriptions.push_back(
+        {
+            0,
+            0,
+            VK_FORMAT_R32G32_SFLOAT,
+            offsetof(Vertex2D, pos)
+        });
+    attributeDescriptions.push_back(
+        {
+            1,
+            0,
+            VK_FORMAT_R32G32_SFLOAT,
+            offsetof(Vertex2D, uv)
+        });
+    attributeDescriptions.push_back(
+        {
+            2,
+            0,
+            VK_FORMAT_R32G32B32A32_SFLOAT,
+            offsetof(Vertex2D, color)
+        });
+
+    static VkPipelineVertexInputStateCreateInfo vi{};
+
+    vi.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vi.vertexBindingDescriptionCount   = 1;
+    vi.pVertexBindingDescriptions      = &bindingDescription;
+    vi.vertexAttributeDescriptionCount = scast<u32>(attributeDescriptions.size());
+    vi.pVertexAttributeDescriptions    = attributeDescriptions.data();
+
+    return vi;
+}
+
+static VkGraphicsPipelineCreateInfo GetPipelineInfo(
+    bool is2D,
+    vector<VkPipelineShaderStageCreateInfo> stages,
+    VkPipelineLayout pipelineLayout,
+    VkRenderPass renderPass)
+{
+    VkPipelineVertexInputStateCreateInfo vi = !is2D 
+        ? GetVertexData() 
+        : Get2DVertexData();
+
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+
+    inputAssembly.sType    = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+    VkPipelineDynamicStateCreateInfo dynamicState{};
+
+    vector<VkDynamicState> dynamicStates = 
+    {
+        VK_DYNAMIC_STATE_VIEWPORT,
+        VK_DYNAMIC_STATE_SCISSOR
+    };
+    dynamicState.sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicState.dynamicStateCount = scast<u32>(dynamicStates.size());
+    dynamicState.pDynamicStates    = dynamicStates.data();
+
+    VkPipelineViewportStateCreateInfo viewportState{};
+
+    viewportState.sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportState.viewportCount = 1;
+    viewportState.scissorCount  = 1;
+
+    VkPipelineRasterizationStateCreateInfo rasterization{};
+
+    rasterization.sType       = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    rasterization.polygonMode = VK_POLYGON_MODE_FILL;
+    rasterization.cullMode    = VK_CULL_MODE_BACK_BIT;
+    rasterization.frontFace   = VK_FRONT_FACE_CLOCKWISE;
+    rasterization.lineWidth   = 1.0f;
+
+    VkPipelineMultisampleStateCreateInfo multisampling{};
+
+    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+    VkPipelineDepthStencilStateCreateInfo depthStencil{};
+
+    depthStencil.sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.depthTestEnable  = VK_TRUE;
+    depthStencil.depthWriteEnable = VK_TRUE;
+    depthStencil.depthCompareOp   = VK_COMPARE_OP_LESS;
+
+    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+
+    colorBlendAttachment.colorWriteMask =
+        VK_COLOR_COMPONENT_R_BIT
+        | VK_COLOR_COMPONENT_G_BIT
+        | VK_COLOR_COMPONENT_B_BIT
+        | VK_COLOR_COMPONENT_A_BIT;
+    colorBlendAttachment.blendEnable = VK_FALSE;
+
+    VkPipelineColorBlendStateCreateInfo colorBlend{};
+
+    colorBlend.sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    colorBlend.attachmentCount = 1;
+    colorBlend.pAttachments    = &colorBlendAttachment;
+
+    VkGraphicsPipelineCreateInfo newPipelineInfo{};
+
+    newPipelineInfo.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    newPipelineInfo.stageCount          = scast<u32>(stages.size());
+    newPipelineInfo.pStages             = stages.data();
+    newPipelineInfo.pVertexInputState   = &vi;
+    newPipelineInfo.pInputAssemblyState = &inputAssembly;
+    newPipelineInfo.pViewportState      = &viewportState;
+    newPipelineInfo.pRasterizationState = &rasterization;
+    newPipelineInfo.pMultisampleState   = &multisampling;
+    newPipelineInfo.pDepthStencilState  = &depthStencil;
+    newPipelineInfo.pColorBlendState    = &colorBlend;
+    newPipelineInfo.pDynamicState       = &dynamicState;
+    newPipelineInfo.layout              = pipelineLayout;
+    newPipelineInfo.renderPass          = renderPass;
+    newPipelineInfo.subpass             = 0;
+
+    return newPipelineInfo;
+}
+
+static void DestroyVkShaderModules(vector<VkShaderModule> modules)
+{
+    VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
+
+    for (const auto& m : modules)
+    {
+        vkDestroyShaderModule(
+            logicalDevice,
+            m,
+            nullptr);
+    }
+};
+static void DestroySpvShaderModules(vector<SpvReflectShaderModule*> modules)
+{
+    for (const auto& m : modules)
+    {
+        spvReflectDestroyShaderModule(m);
+    }
 };
 
 namespace KalaGraphics::Resources
 {
-    struct ShaderPipelineRecreateData
-    {
-        //the template - render pass is patched when recreating
-        VkGraphicsPipelineCreateInfo pipelineInfo{};
-
-        //owned arrays/structs that pipelineInfo pointers reference
-
-        vector<VkPipelineShaderStageCreateInfo> stages{};
-        VkPipelineVertexInputStateCreateInfo vertexInput{};
-        VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-        VkPipelineDynamicStateCreateInfo dynamicState{};
-        VkPipelineViewportStateCreateInfo viewportState{};
-        VkPipelineRasterizationStateCreateInfo rasterization{};
-        VkPipelineMultisampleStateCreateInfo multisampling{};
-        VkPipelineDepthStencilStateCreateInfo depthStencil{};
-        VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-        VkPipelineColorBlendStateCreateInfo colorBlend{};
-
-        //backing storage for pointer members within the above structs
-
-        vector<VkDynamicState> dynamicStates{};
-        VkVertexInputBindingDescription bindingDescription{};
-        array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
-    };
-
     static KalaGraphicsRegistry<Shader> registry{};
 
     KalaGraphicsRegistry<Shader>& Shader::GetRegistry() { return registry; }
@@ -160,68 +347,95 @@ namespace KalaGraphics::Resources
             return;
         }
 
-        recreateData->pipelineInfo.renderPass = newContext->GetRenderPass();
-
-        VkGraphicsPipelineCreateInfo newPipelineInfo{};
-        newPipelineInfo.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        newPipelineInfo.stageCount          = scast<u32>(recreateData->stages.size());
-        newPipelineInfo.pStages             = recreateData->stages.data();
-        newPipelineInfo.pVertexInputState   = &recreateData->vertexInput;
-        newPipelineInfo.pInputAssemblyState = &recreateData->inputAssembly;
-        newPipelineInfo.pViewportState      = &recreateData->viewportState;
-        newPipelineInfo.pRasterizationState = &recreateData->rasterization;
-        newPipelineInfo.pMultisampleState   = &recreateData->multisampling;
-        newPipelineInfo.pDepthStencilState  = &recreateData->depthStencil;
-        newPipelineInfo.pColorBlendState    = &recreateData->colorBlend;
-        newPipelineInfo.pDynamicState       = &recreateData->dynamicState;
-        newPipelineInfo.layout              = pipelineLayout;
-        newPipelineInfo.renderPass          = newContext->GetRenderPass();
-        newPipelineInfo.subpass             = 0;
-
-        VkPipeline newPipeline{};
-        VkResult vkResult = vkCreateGraphicsPipelines(
-            logicalDevice,
-            VK_NULL_HANDLE,
-            1,
-            &newPipelineInfo,
-            nullptr,
-            &newPipeline);
-
-        if (vkResult != VK_SUCCESS)
+        //can still switch graphics context even if there is no pipeline or shader data
+        if (pipeline != VK_NULL_HANDLE)
         {
-            string message = 
-                "Failed to set shader '" + to_string(ID) + "' graphics context "
-                "to new value '" + to_string(newValue) + "'! Reason: " 
-                + GraphicsContext::GetVkResultMessage(vkResult);
+            auto add_stage = [](
+                vector<VkPipelineShaderStageCreateInfo>& stages,
+                VkShaderStageFlagBits flag,
+                VkShaderModule module) -> void
+                {
+                    VkPipelineShaderStageCreateInfo stage{};
+                    stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+                    stage.stage = flag;
+                    stage.module = module;
+                    stage.pName = "main";
+                    stages.push_back(stage);
+                };
 
-            if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
+            vector<VkPipelineShaderStageCreateInfo> stages{};
+
+            add_stage(
+                stages,
+                VK_SHADER_STAGE_VERTEX_BIT,
+                shaderModuleData.vkModule_vert);
+            add_stage(
+                stages,
+                VK_SHADER_STAGE_FRAGMENT_BIT,
+                shaderModuleData.vkModule_frag);
+
+            if (shaderModuleData.usingGeom)
             {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics shader error",
-                    std::move(message));
-            }
-            else
-            {
-                Log::Print(
-                    message,
-                    "KG_SHADER",
-                    LogType::LOG_ERROR,
-                    2);
+                add_stage(
+                    stages,
+                    VK_SHADER_STAGE_GEOMETRY_BIT,
+                    shaderModuleData.vkModule_geom);
             }
 
-            return;
+            VkGraphicsPipelineCreateInfo newPipelineInfo = GetPipelineInfo(
+                is2D,
+                stages,
+                pipelineLayout,
+                newContext->GetRenderPass());
+
+            VkPipeline newPipeline{};
+            VkResult vkResult = vkCreateGraphicsPipelines(
+                logicalDevice,
+                VK_NULL_HANDLE,
+                1,
+                &newPipelineInfo,
+                nullptr,
+                &newPipeline);
+
+            if (vkResult != VK_SUCCESS)
+            {
+                string message = 
+                    "Failed to set shader '" + to_string(ID) + "' graphics context "
+                    "to new value '" + to_string(newValue) + "'! Reason: " 
+                    + GraphicsContext::GetVkResultMessage(vkResult);
+
+                if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
+                {
+                    KalaGraphicsCore::ForceClose(
+                        "KalaGraphics shader error",
+                        std::move(message));
+                }
+                else
+                {
+                    Log::Print(
+                        message,
+                        "KG_SHADER",
+                        LogType::LOG_ERROR,
+                        2);
+                }
+
+                return;
+            }
+
+            if (pipeline != VK_NULL_HANDLE)
+            {
+                vkDestroyPipeline(
+                    logicalDevice,
+                    pipeline,
+                    nullptr);
+            }
+
+            pipeline = newPipeline;
         }
 
         //
         // FINISH
         //
-
-        vkDestroyPipeline(
-            logicalDevice,
-            pipeline,
-            nullptr);
-
-        pipeline = newPipeline;
 
         if (oldContext)
         {
@@ -244,8 +458,10 @@ namespace KalaGraphics::Resources
     const vector<u32>& Shader::GetCameraIDs() const { return cameraIDs; }
 
     void Shader::SetShaderData(
-        ShaderData&& shaderData,
-        vector<DescriptorBinding>&& descriptorBindings)
+        bool is2D,
+        path&& vertPath,
+        path&& fragPath,
+        path&& geomPath)
     {
         VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
         if (logicalDevice == VK_NULL_HANDLE)
@@ -293,90 +509,60 @@ namespace KalaGraphics::Resources
                     2);
             };
 
-        if (shaderData.shader_vert.empty())
+        if (vertPath.empty())
         {
             empty_path("vertex");
             return;
         }
-        if (!shaderData.shader_vert.has_extension()
-            || shaderData.shader_vert.extension() != ".spv")
+        if (!vertPath.has_extension()
+            || vertPath.extension() != ".spv")
         {
             bad_ext("vertex");
             return;
         }
-        if (!exists(shaderData.shader_vert))
+        if (!exists(vertPath))
         {
-            invalid_path("vertex", shaderData.shader_vert.string());
+            invalid_path("vertex", vertPath.string());
             return;
         }
 
-        if (shaderData.shader_frag.empty())
+        if (fragPath.empty())
         {
             empty_path("fragment");
             return;
         }
-        if (!shaderData.shader_frag.has_extension()
-            || shaderData.shader_frag.extension() != ".spv")
+        if (!fragPath.has_extension()
+            || fragPath.extension() != ".spv")
         {
             bad_ext("fragment");
             return;
         }
-        if (!exists(shaderData.shader_frag))
+        if (!exists(fragPath))
         {
-            invalid_path("fragment", shaderData.shader_frag.string());
+            invalid_path("fragment", fragPath.string());
             return;
         }
 
-        if (!shaderData.shader_geom.empty())
+        if (!geomPath.empty())
         {
-            if (!shaderData.shader_geom.has_extension()
-                || shaderData.shader_geom.extension() != ".spv")
+            if (!geomPath.has_extension()
+                || geomPath.extension() != ".spv")
             {
                 bad_ext("geometry");
                 return;
             }
-            if (!exists(shaderData.shader_geom))
+            if (!exists(geomPath))
             {
-                invalid_path("geometry", shaderData.shader_geom.string());
-                return;
-            }
-        }
-        if (!shaderData.shader_tess_cont.empty())
-        {
-            if (!shaderData.shader_tess_cont.has_extension()
-                || shaderData.shader_tess_cont.extension() != ".spv")
-            {
-                bad_ext("tesselation control");
-                return;
-            }
-            if (!exists(shaderData.shader_tess_cont))
-            {
-                invalid_path("tesselation control", shaderData.shader_tess_cont.string());
-                return;
-            }
-        }
-        if (!shaderData.shader_tess_eval.empty())
-        {
-            if (!shaderData.shader_tess_eval.has_extension()
-                || shaderData.shader_tess_eval.extension() != ".spv")
-            {
-                bad_ext("tesselation evaluation");
-                return;
-            }
-            if (!exists(shaderData.shader_tess_eval))
-            {
-                invalid_path("tesselation evaluation", shaderData.shader_tess_eval.string());
+                invalid_path("geometry", geomPath.string());
                 return;
             }
         }
 
         unordered_map<string, string> shaderPaths =
         {
-            { "vertex",                 shaderData.shader_vert.string() },
-            { "fragment",               shaderData.shader_frag.string() },
-            { "geometry",               shaderData.shader_geom.string() },
-            { "tesselation control",    shaderData.shader_tess_cont.string() },
-            { "tesselation evaulation", shaderData.shader_tess_eval.string() }
+            { "vertex",   vertPath.string() },
+            { "fragment", fragPath.string() },
+            { "geometry", geomPath.string() }
         };
         unordered_map<string, string> seen{};
 
@@ -432,9 +618,9 @@ namespace KalaGraphics::Resources
                 if (vkResult != VK_SUCCESS)
                 {
                     string message = 
-                        "Failed to create shader '" + string(shaderType) 
-                        + "' when assigning new shader data for shader '" + to_string(ID) 
-                        + "' under graphics context '" + to_string(contextID) + "'! Reason: " 
+                        "Failed to set shader '" + to_string(ID) + "' data when creating module '" 
+                        + string(shaderType) + "' for shader '" + to_string(ID)
+                        + "' under graphics context '" + to_string(contextID) + "! Reason: " 
                         + GraphicsContext::GetVkResultMessage(vkResult);
 
                     if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
@@ -455,18 +641,27 @@ namespace KalaGraphics::Resources
                     return { false };
                 }
 
-                return { true, shaderModule};
-            };
+                SpvReflectShaderModule reflectModule{};
+                SpvReflectResult reflResult = spvReflectCreateShaderModule(
+                    outData.size(),
+                    outData.data(),
+                    &reflectModule);
 
-        auto destroy_shaders = [&logicalDevice](vector<VkShaderModule> modules) -> void
-            {
-                for (const auto& m : modules)
+                if (reflResult != SPV_REFLECT_RESULT_SUCCESS)
                 {
-                    vkDestroyShaderModule(
-                        logicalDevice,
-                        m,
-                        nullptr);
+                    Log::Print(
+                        "Failed to set shader '" + to_string(ID) + "' data when creating module '" 
+                        + string(shaderType) + "' for shader '" + to_string(ID)
+                        + "' under graphics context '" + to_string(contextID)
+                        + "'! Reflect result error code: " + to_string(static_cast<int>(reflResult)),
+                        "KG_SHADER",
+                        LogType::LOG_ERROR,
+                        2);
+
+                    return { false };
                 }
+
+                return { true, shaderModule};
             };
 
         //
@@ -475,29 +670,44 @@ namespace KalaGraphics::Resources
 
         ShaderModuleData newShaderModuleData{};
 
-        ShaderModule module_vert = create_shader_module("vertex", shaderData.shader_vert);
+        ShaderModule module_vert = create_shader_module("vertex", vertPath);
         if (!module_vert.success) return;
-        else newShaderModuleData.module_vert = module_vert.module;
+        else
+        {
+            newShaderModuleData.vkModule_vert = module_vert.vkModule;
+            newShaderModuleData.spvModule_vert = FromVar(&module_vert.spvModule);
+        }
 
-        ShaderModule module_frag = create_shader_module("fragment", shaderData.shader_frag);
+        ShaderModule module_frag = create_shader_module("fragment", fragPath);
         if (!module_frag.success)
         {
-            destroy_shaders({ module_vert.module });
+            DestroyVkShaderModules({ module_vert.vkModule });
+            DestroySpvShaderModules({ &module_vert.spvModule });
 
             return;
         }
-        else newShaderModuleData.module_frag = module_frag.module;
+        else
+        {
+            newShaderModuleData.vkModule_frag = module_frag.vkModule;
+            newShaderModuleData.spvModule_frag = FromVar(&module_frag.spvModule);
+        }
 
         ShaderModule module_geom{};
-        if (!shaderData.shader_geom.empty())
+        if (!geomPath.empty())
         {
-            module_geom = create_shader_module("geometry", shaderData.shader_geom);
+            module_geom = create_shader_module("geometry", geomPath);
             if (!module_geom.success)
             {
-                destroy_shaders(
+                DestroyVkShaderModules(
                     { 
-                        module_vert.module,
-                        module_frag.module
+                        module_vert.vkModule,
+                        module_frag.vkModule
+                    });
+
+                DestroySpvShaderModules(
+                    {
+                        &module_vert.spvModule,
+                        &module_frag.spvModule
                     });
 
                 return;
@@ -505,56 +715,9 @@ namespace KalaGraphics::Resources
             else
             {
                 newShaderModuleData.usingGeom = true;
-                newShaderModuleData.module_geom = module_geom.module;
-            }
-        }
-        ShaderModule module_tess_cont{};
-        if (!shaderData.shader_tess_cont.empty())
-        {
-            module_tess_cont = create_shader_module("tesselation control", shaderData.shader_tess_cont);
-            if (!module_tess_cont.success)
-            {
-                vector<VkShaderModule> badShaders = 
-                    {
-                        module_vert.module,
-                        module_frag.module
-                    };
 
-                if (!shaderData.shader_geom.empty()) badShaders.push_back(module_geom.module);
-
-                destroy_shaders(badShaders);
-
-                return;
-            }
-            else
-            {
-                newShaderModuleData.usingTessCont = true;
-                newShaderModuleData.module_tess_cont = module_tess_cont.module;
-            }
-        }
-        ShaderModule module_tess_eval{};
-        if (!shaderData.shader_tess_eval.empty())
-        {
-            module_tess_eval = create_shader_module("tesselation evaluation", shaderData.shader_tess_eval);
-            if (!module_tess_eval.success)
-            {
-                vector<VkShaderModule> badShaders = 
-                    {
-                        module_vert.module,
-                        module_frag.module
-                    };
-
-                if (!shaderData.shader_geom.empty())      badShaders.push_back(module_geom.module);
-                if (!shaderData.shader_tess_cont.empty()) badShaders.push_back(module_tess_cont.module);
-
-                destroy_shaders(badShaders);
-
-                return;
-            }
-            else
-            {
-                newShaderModuleData.usingTessEval = true;
-                newShaderModuleData.module_tess_eval = module_tess_eval.module;
+                newShaderModuleData.vkModule_geom = module_geom.vkModule;
+                newShaderModuleData.spvModule_geom = FromVar(&module_geom.spvModule);
             }
         }
 
@@ -571,329 +734,298 @@ namespace KalaGraphics::Resources
                 stages.push_back(stage);
             };
 
-        VkDescriptorSetLayout newDescriptorSetLayout{};
-        VkPipelineLayout newPipelineLayout{};
-        VkGraphicsPipelineCreateInfo newPipelineInfo{};
-
         //
-        // RECREATE DATA DOESNT EXIST, START FROM SCRATCH
+        // PUSH CONSTANT LAYOUT
         //
 
-        bool recreate = !recreateData;
-        if (recreate)
+        VkPushConstantRange pushConstantRange{};
+        pushConstantRange.stageFlags = 0;
+        pushConstantRange.offset = UINT32_MAX;
+        pushConstantRange.size = 0;
+
+        vector<SpvReflectShaderModule*> modules{};
+        
+        modules.push_back(ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_vert));
+        modules.push_back(ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_frag));
+
+        if (newShaderModuleData.usingGeom)
         {
-            //
-            // PUSH CONSTANT LAYOUT
-            //
+            modules.push_back(ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_geom));
+        }
 
-            //TODO: use spirv reflection
+        for (auto* mod : modules)
+        {
+            u32 count{};
+            spvReflectEnumeratePushConstantBlocks(
+                mod,
+                &count,
+                nullptr);
 
-            VkPushConstantRange pushConstantRanges[1]{};
+            for (u32 i = 0; i < count; ++i)
+            {
+                SpvReflectResult result{};
+                const SpvReflectBlockVariable* pBlock = spvReflectGetPushConstantBlock(
+                    mod,
+                    i,
+                    &result); 
+                    
+                if (result != SPV_REFLECT_RESULT_SUCCESS
+                    || pBlock == nullptr)
+                {
+                    Log::Print(
+                        "Failed to get push constant block '" + to_string(i) + "' "
+                        "for shader stage " + to_string(scast<int>(mod->shader_stage))
+                        + " in shader '" + to_string(ID) + "' "
+                        " under graphics context '" + to_string(contextID) + "'!"
+                        " SpvReflectResult: " + to_string(scast<int>(result)),
+                        "KG_SHADER",
+                        LogType::LOG_WARNING);
 
-            pushConstantRanges[0].stageFlags = 
-                VK_SHADER_STAGE_VERTEX_BIT 
-                | VK_SHADER_STAGE_FRAGMENT_BIT;
-            pushConstantRanges[0].offset = 0;
-            pushConstantRanges[0].size = 
-                sizeof(REPLACE_ME_TEST_SHADER_DATA);
+                    continue;
+                }
 
-            //
-            // DESCRIPTOR SET LAYOUT
-            //
+                pushConstantRange.stageFlags |= scast<VkShaderStageFlags>(mod->shader_stage);
 
-            VkDescriptorSetLayoutBinding bindings[1]{};
+                u32 blockEnd = pBlock->offset + pBlock->size;
+                pushConstantRange.offset = std::min(
+                    pushConstantRange.offset,
+                    pBlock->offset);
 
-            //camera UBO
-            bindings[0].binding = 0;
-            bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            bindings[0].descriptorCount = 1;
-            bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-            bindings[0].pImmutableSamplers = nullptr;
+                u32 currentEnd = pushConstantRange.offset + pushConstantRange.size;
+                pushConstantRange.size = 
+                    std::max(currentEnd, blockEnd)
+                    - pushConstantRange.offset;
+            }
+        }
 
-            VkDescriptorSetLayoutCreateInfo descriptorLayoutInfo{};
-            descriptorLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-            descriptorLayoutInfo.bindingCount = 1;
-            descriptorLayoutInfo.pBindings = bindings;
+        if (pushConstantRange.stageFlags == 0)
+        {
+            pushConstantRange.offset = 0;
+            pushConstantRange.size = 0;
+        }
+
+        //
+        // DESCRIPTOR SET LAYOUT
+        //
+
+        map<pair<u32, u32>, VkDescriptorSetLayoutBinding> bindingMap{};
+
+        for (auto* mod : modules)
+        {
+            u32 bindingCount{};
+            spvReflectEnumerateDescriptorBindings(
+                mod,
+                &bindingCount,
+                nullptr);
+
+            vector<SpvReflectDescriptorBinding*> reflBindings(bindingCount);
+            spvReflectEnumerateDescriptorBindings(
+                mod,
+                &bindingCount,
+                reflBindings.data());
+
+            for (u32 i = 0; i < bindingCount; ++i)
+            {
+                auto* refl = reflBindings[i];
+                auto key = make_pair(refl->set, refl->binding);
+
+                auto& layoutBinding = bindingMap[key];
+                layoutBinding.binding = refl->binding;
+                layoutBinding.descriptorType = scast<VkDescriptorType>(refl->descriptor_type);
+                layoutBinding.descriptorCount = std::max(
+                    layoutBinding.descriptorCount,
+                    refl->count);
+                layoutBinding.stageFlags |= scast<VkShaderStageFlags>(refl->accessed);
+                layoutBinding.pImmutableSamplers = nullptr;
+            }
+        }
+
+        map<u32, vector<VkDescriptorSetLayoutBinding>> bindingsBySet{};
+        for (const auto& [key, layoutBinding] : bindingMap)
+        {
+            bindingsBySet[key.first].push_back(layoutBinding);
+        }
+    
+        vector<VkDescriptorSetLayout> newDescriptorSetLayouts(bindingsBySet.size());
+        u32 setIndex{};
+        for (const auto& [set, setBindings] : bindingsBySet)
+        {
+            VkDescriptorSetLayoutCreateInfo setLayoutInfo{};
+            setLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+            setLayoutInfo.bindingCount = scast<u32>(setBindings.size());
+            setLayoutInfo.pBindings = setBindings.data();
 
             VkResult vkResult = vkCreateDescriptorSetLayout(
                 logicalDevice,
-                &descriptorLayoutInfo,
+                &setLayoutInfo,
                 nullptr,
-                &newDescriptorSetLayout);
+                &newDescriptorSetLayouts[setIndex]);
 
             if (vkResult != VK_SUCCESS)
             {
-                vector<VkShaderModule> badShaders = 
-                    {
-                        module_vert.module,
-                        module_frag.module
-                    };
+                //destroy already created descriptor set layouts
+                for (u32 i = 0; i < setIndex; ++i)
+                {
+                    vkDestroyDescriptorSetLayout(
+                        logicalDevice,
+                        newDescriptorSetLayouts[i],
+                        nullptr);
+                }
 
-                if (!shaderData.shader_geom.empty())      badShaders.push_back(module_geom.module);
-                if (!shaderData.shader_tess_cont.empty()) badShaders.push_back(module_tess_cont.module);
-                if (!shaderData.shader_tess_eval.empty()) badShaders.push_back(module_tess_eval.module);
+                vector<VkShaderModule> badVkShaders = 
+                {
+                    newShaderModuleData.vkModule_vert,
+                    newShaderModuleData.vkModule_frag
+                };
+                if (newShaderModuleData.usingGeom)
+                {
+                    badVkShaders.push_back(newShaderModuleData.vkModule_geom);
+                }
 
-                destroy_shaders(badShaders);
+                vector<SpvReflectShaderModule*> badSpvShaders =
+                {
+                    ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_vert),
+                    ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_frag)
+                };
+                if (newShaderModuleData.usingGeom)
+                {
+                    badSpvShaders.push_back(ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_geom));
+                }
 
-                string message = 
-                    "Failed to create descriptor set layout when assigning new shader data for shader '" + to_string(ID) 
-                    + "' under graphics context '" + to_string(contextID) + "'! Reason: " 
+                DestroyVkShaderModules(badVkShaders);
+                DestroySpvShaderModules(badSpvShaders);
+
+                string message =
+                    "Failed to create descriptor set layout for set " + to_string(set)
+                    + " when assigning new shader data for shader '" + to_string(ID)
+                    + "' under graphics context '" + to_string(contextID) + "'! Reason: "
                     + GraphicsContext::GetVkResultMessage(vkResult);
 
                 if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
                 {
                     KalaGraphicsCore::ForceClose(
-                        "KalaGraphics shader error",
+                        "KalaGraphics shader error", 
                         std::move(message));
                 }
                 else
                 {
                     Log::Print(
-                        message,
-                        "KG_SHADER",
-                        LogType::LOG_ERROR,
+                        message, 
+                        "KG_SHADER", 
+                        LogType::LOG_ERROR, 
                         2);
                 }
 
                 return;
             }
-            
-            //
-            // PIPELINE LAYOUT
-            //
+            ++setIndex;
+        }
+        
+        //
+        // PIPELINE LAYOUT
+        //
 
-            VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-            pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-            pipelineLayoutInfo.setLayoutCount         = 1; //TODO: update dynamically for descriptor set count
-            pipelineLayoutInfo.pSetLayouts            = &newDescriptorSetLayout;
-            pipelineLayoutInfo.pushConstantRangeCount = 1; //TODO: update dynamically for push constant count
-            pipelineLayoutInfo.pPushConstantRanges = pushConstantRanges;
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+        pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutInfo.setLayoutCount         = scast<u32>(newDescriptorSetLayouts.size());
+        pipelineLayoutInfo.pSetLayouts            = newDescriptorSetLayouts.data();
+        pipelineLayoutInfo.pushConstantRangeCount = (pushConstantRange.size > 0) ? 1u : 0u;
+        pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
-            vkResult = vkCreatePipelineLayout(
-                logicalDevice,
-                &pipelineLayoutInfo,
-                nullptr,
-                &newPipelineLayout);
+        VkPipelineLayout newPipelineLayout{};
+        VkResult vkResult = vkCreatePipelineLayout(
+            logicalDevice,
+            &pipelineLayoutInfo,
+            nullptr,
+            &newPipelineLayout);
 
-            if (vkResult != VK_SUCCESS)
+        if (vkResult != VK_SUCCESS)
+        {
+            for (auto& sl : newDescriptorSetLayouts)
             {
-                vector<VkShaderModule> badShaders = 
-                    {
-                        module_vert.module,
-                        module_frag.module
-                    };
-
-                if (!shaderData.shader_geom.empty())      badShaders.push_back(module_geom.module);
-                if (!shaderData.shader_tess_cont.empty()) badShaders.push_back(module_tess_cont.module);
-                if (!shaderData.shader_tess_eval.empty()) badShaders.push_back(module_tess_eval.module);
-
-                destroy_shaders(badShaders);
-
                 vkDestroyDescriptorSetLayout(
                     logicalDevice,
-                    newDescriptorSetLayout,
+                    sl,
                     nullptr);
-
-                string message = 
-                    "Failed to create pipeline layout when assigning new shader data for shader '" + to_string(ID) 
-                    + "' under graphics context '" + to_string(contextID) + "'! Reason: " 
-                    + GraphicsContext::GetVkResultMessage(vkResult);
-
-                if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
-                {
-                    KalaGraphicsCore::ForceClose(
-                        "KalaGraphics shader error",
-                        std::move(message));
-                }
-                else
-                {
-                    Log::Print(
-                        message,
-                        "KG_SHADER",
-                        LogType::LOG_ERROR,
-                        2);
-                }
-
-                return;
             }
 
-            //
-            // PIPELINE
-            //
-
-            unique_ptr<ShaderPipelineRecreateData> rcData = make_unique<ShaderPipelineRecreateData>();
-
-            add_stage(
-                rcData->stages,
-                VK_SHADER_STAGE_VERTEX_BIT,
-                newShaderModuleData.module_vert);
-            add_stage(
-                rcData->stages,
-                VK_SHADER_STAGE_FRAGMENT_BIT,
-                newShaderModuleData.module_frag);
-
-            if (newShaderModuleData.usingGeom)
+            vector<VkShaderModule> badVkShaders = 
             {
-                add_stage(
-                    rcData->stages,
-                    VK_SHADER_STAGE_GEOMETRY_BIT,
-                    newShaderModuleData.module_geom);
-            }
-            if (newShaderModuleData.usingTessCont)
-            {
-                add_stage(
-                    rcData->stages,
-                    VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
-                    newShaderModuleData.module_tess_cont);
-            }
-            if (newShaderModuleData.usingTessEval)
-            {
-                add_stage(
-                    rcData->stages,
-                    VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
-                    newShaderModuleData.module_tess_eval);
-            }
-
-            rcData->bindingDescription.binding   = 0;
-            rcData->bindingDescription.stride    = sizeof(Vertex);
-            rcData->bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-            rcData->attributeDescriptions = array<VkVertexInputAttributeDescription, 3>{
-            {
-                { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos) },
-                { 1, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal) },
-                { 2, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv) }
-            }};
-
-            rcData->vertexInput.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-            rcData->vertexInput.vertexBindingDescriptionCount   = 1;
-            rcData->vertexInput.pVertexBindingDescriptions      = &rcData->bindingDescription;
-            rcData->vertexInput.vertexAttributeDescriptionCount = 3;
-            rcData->vertexInput.pVertexAttributeDescriptions    = rcData->attributeDescriptions.data();
-
-            rcData->inputAssembly.sType    = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-            rcData->inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-
-            rcData->dynamicStates = 
-            {
-                VK_DYNAMIC_STATE_VIEWPORT,
-                VK_DYNAMIC_STATE_SCISSOR
+                newShaderModuleData.vkModule_vert,
+                newShaderModuleData.vkModule_frag
             };
-            rcData->dynamicState.sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-            rcData->dynamicState.dynamicStateCount = scast<u32>(rcData->dynamicStates.size());
-            rcData->dynamicState.pDynamicStates    = rcData->dynamicStates.data();
-
-            rcData->viewportState.sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-            rcData->viewportState.viewportCount = 1;
-            rcData->viewportState.scissorCount  = 1;
-
-            rcData->rasterization.sType       = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-            rcData->rasterization.polygonMode = VK_POLYGON_MODE_FILL;
-            rcData->rasterization.cullMode    = VK_CULL_MODE_BACK_BIT;
-            rcData->rasterization.frontFace   = VK_FRONT_FACE_CLOCKWISE;
-            rcData->rasterization.lineWidth   = 1.0f;
-
-            rcData->multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-            rcData->multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-            rcData->depthStencil.sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-            rcData->depthStencil.depthTestEnable  = VK_TRUE;
-            rcData->depthStencil.depthWriteEnable = VK_TRUE;
-            rcData->depthStencil.depthCompareOp   = VK_COMPARE_OP_LESS;
-
-            rcData->colorBlendAttachment.colorWriteMask =
-                VK_COLOR_COMPONENT_R_BIT
-                | VK_COLOR_COMPONENT_G_BIT
-                | VK_COLOR_COMPONENT_B_BIT
-                | VK_COLOR_COMPONENT_A_BIT;
-            rcData->colorBlendAttachment.blendEnable = VK_FALSE;
-
-            rcData->colorBlend.sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-            rcData->colorBlend.attachmentCount = 1;
-            rcData->colorBlend.pAttachments    = &rcData->colorBlendAttachment;
-
-            newPipelineInfo.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-            newPipelineInfo.stageCount          = scast<u32>(rcData->stages.size());
-            newPipelineInfo.pStages             = rcData->stages.data();
-            newPipelineInfo.pVertexInputState   = &rcData->vertexInput;
-            newPipelineInfo.pInputAssemblyState = &rcData->inputAssembly;
-            newPipelineInfo.pViewportState      = &rcData->viewportState;
-            newPipelineInfo.pRasterizationState = &rcData->rasterization;
-            newPipelineInfo.pMultisampleState   = &rcData->multisampling;
-            newPipelineInfo.pDepthStencilState  = &rcData->depthStencil;
-            newPipelineInfo.pColorBlendState    = &rcData->colorBlend;
-            newPipelineInfo.pDynamicState       = &rcData->dynamicState;
-            newPipelineInfo.layout              = newPipelineLayout;
-            newPipelineInfo.renderPass          = gctx->GetRenderPass();
-            newPipelineInfo.subpass             = 0;
-
-            recreateData = std::move(rcData);
-        }
-
-        //
-        // RECREATE DATA EXISTS, DONT RECREATE EVERYTHING
-        //
-
-        else
-        {
-            //clear old data before assigning new stages data
-            recreateData->stages.clear();
-
-            add_stage(
-                recreateData->stages,
-                VK_SHADER_STAGE_VERTEX_BIT,
-                newShaderModuleData.module_vert);
-            add_stage(
-                recreateData->stages,
-                VK_SHADER_STAGE_FRAGMENT_BIT,
-                newShaderModuleData.module_frag);
-
             if (newShaderModuleData.usingGeom)
             {
-                add_stage(
-                    recreateData->stages,
-                    VK_SHADER_STAGE_GEOMETRY_BIT,
-                    newShaderModuleData.module_geom);
-            }
-            if (newShaderModuleData.usingTessCont)
-            {
-                add_stage(
-                    recreateData->stages,
-                    VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
-                    newShaderModuleData.module_tess_cont);
-            }
-            if (newShaderModuleData.usingTessEval)
-            {
-                add_stage(
-                    recreateData->stages,
-                    VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,
-                    newShaderModuleData.module_tess_eval);
+                badVkShaders.push_back(newShaderModuleData.vkModule_geom);
             }
 
-            newPipelineInfo.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-            newPipelineInfo.stageCount          = scast<u32>(recreateData->stages.size()); // < new data from this re-import
-            newPipelineInfo.pStages             = recreateData->stages.data();             // < new data from this re-import
-            newPipelineInfo.pVertexInputState   = &recreateData->vertexInput;
-            newPipelineInfo.pInputAssemblyState = &recreateData->inputAssembly;
-            newPipelineInfo.pViewportState      = &recreateData->viewportState;
-            newPipelineInfo.pRasterizationState = &recreateData->rasterization;
-            newPipelineInfo.pMultisampleState   = &recreateData->multisampling;
-            newPipelineInfo.pDepthStencilState  = &recreateData->depthStencil;
-            newPipelineInfo.pColorBlendState    = &recreateData->colorBlend;
-            newPipelineInfo.pDynamicState       = &recreateData->dynamicState;
-            newPipelineInfo.layout              = newPipelineLayout;
-            newPipelineInfo.renderPass          = gctx->GetRenderPass();
-            newPipelineInfo.subpass             = 0;
+            vector<SpvReflectShaderModule*> badSpvShaders =
+            {
+                ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_vert),
+                ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_frag)
+            };
+            if (newShaderModuleData.usingGeom)
+            {
+                badSpvShaders.push_back(ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_geom));
+            }
+
+            DestroyVkShaderModules(badVkShaders);
+            DestroySpvShaderModules(badSpvShaders);
+
+            string message = 
+                "Failed to create pipeline layout when assigning new shader data for shader '" + to_string(ID) 
+                + "' under graphics context '" + to_string(contextID) + "'! Reason: " 
+                + GraphicsContext::GetVkResultMessage(vkResult);
+
+            if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics shader error",
+                    std::move(message));
+            }
+            else
+            {
+                Log::Print(
+                    message,
+                    "KG_SHADER",
+                    LogType::LOG_ERROR,
+                    2);
+            }
+
+            return;
         }
 
-        if (recreate)
+        //
+        // PIPELINE
+        //
+
+        vector<VkPipelineShaderStageCreateInfo> stages{};
+
+        add_stage(
+            stages,
+            VK_SHADER_STAGE_VERTEX_BIT,
+            newShaderModuleData.vkModule_vert);
+        add_stage(
+            stages,
+            VK_SHADER_STAGE_FRAGMENT_BIT,
+            newShaderModuleData.vkModule_frag);
+
+        if (newShaderModuleData.usingGeom)
         {
-            descriptorSetLayout = newDescriptorSetLayout;
-            pipelineLayout = newPipelineLayout;
+            add_stage(
+                stages,
+                VK_SHADER_STAGE_GEOMETRY_BIT,
+                newShaderModuleData.vkModule_geom);
         }
+
+        VkGraphicsPipelineCreateInfo newPipelineInfo = GetPipelineInfo(
+            is2D,
+            stages,
+            newPipelineLayout,
+            gctx->GetRenderPass());
 
         VkPipeline newPipeline{};
-        VkResult vkResult = vkCreateGraphicsPipelines(
+        vkResult = vkCreateGraphicsPipelines(
             logicalDevice,
             VK_NULL_HANDLE,
             1,
@@ -903,6 +1035,42 @@ namespace KalaGraphics::Resources
 
         if (vkResult != VK_SUCCESS)
         {
+            vkDestroyPipelineLayout(
+                logicalDevice,
+                newPipelineLayout,
+                nullptr);
+
+            for (auto& sl : newDescriptorSetLayouts)
+            {
+                vkDestroyDescriptorSetLayout(
+                    logicalDevice,
+                    sl,
+                    nullptr);
+            }
+
+            vector<VkShaderModule> badVkShaders = 
+            {
+                newShaderModuleData.vkModule_vert,
+                newShaderModuleData.vkModule_frag
+            };
+            if (newShaderModuleData.usingGeom)
+            {
+                badVkShaders.push_back(newShaderModuleData.vkModule_geom);
+            }
+
+            vector<SpvReflectShaderModule*> badSpvShaders =
+            {
+                ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_vert),
+                ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_frag)
+            };
+            if (newShaderModuleData.usingGeom)
+            {
+                badSpvShaders.push_back(ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_geom));
+            }
+
+            DestroyVkShaderModules(badVkShaders);
+            DestroySpvShaderModules(badSpvShaders);
+
             string message = 
                 "Failed to create new pipeline when assigning new shader data for shader '" + to_string(ID) 
                 + "' under graphics context '" + to_string(contextID) + "'! Reason: " 
@@ -927,10 +1095,9 @@ namespace KalaGraphics::Resources
         }
 
         //
-        // FINISH
+        // DELETE OLD DATA
         //
 
-        //delete old pipeline if it exists
         if (pipeline != VK_NULL_HANDLE)
         {
             vkDestroyPipeline(
@@ -938,8 +1105,57 @@ namespace KalaGraphics::Resources
                 pipeline,
                 nullptr);
         }
+        if (pipelineLayout != VK_NULL_HANDLE)
+        {
+            vkDestroyPipelineLayout(
+                logicalDevice,
+                pipelineLayout,
+                nullptr);
+        }
+        if (!descriptorSetLayouts.empty())
+        {
+            for (auto& sl : descriptorSetLayouts)
+            {
+                vkDestroyDescriptorSetLayout(
+                    logicalDevice,
+                    sl,
+                    nullptr);
+            }
+        }
+
+        if (shaderModuleData.vkModule_vert != VK_NULL_HANDLE)
+        {
+            vector<VkShaderModule> oldVkShaders = 
+            {
+                shaderModuleData.vkModule_vert,
+                shaderModuleData.vkModule_frag
+            };
+            if (shaderModuleData.usingGeom)
+            {
+                oldVkShaders.push_back(shaderModuleData.vkModule_geom);
+            }
+
+            vector<SpvReflectShaderModule*> oldSpvShaders =
+            {
+                ToVar<SpvReflectShaderModule*>(shaderModuleData.spvModule_vert),
+                ToVar<SpvReflectShaderModule*>(shaderModuleData.spvModule_frag)
+            };
+            if (shaderModuleData.usingGeom)
+            {
+                oldSpvShaders.push_back(ToVar<SpvReflectShaderModule*>(shaderModuleData.spvModule_geom));
+            }
+
+            DestroyVkShaderModules(oldVkShaders);
+            DestroySpvShaderModules(oldSpvShaders);
+        }
+
+        //
+        // FINISH
+        //
 
         pipeline = newPipeline;
+        pipelineLayout = newPipelineLayout;
+        descriptorSetLayouts = std::move(newDescriptorSetLayouts);
         shaderModuleData = std::move(newShaderModuleData);
 
         Log::Print(
@@ -949,7 +1165,7 @@ namespace KalaGraphics::Resources
             LogType::LOG_SUCCESS);
     }
 
-    VkDescriptorSetLayout Shader::GetDescriptorSetLayout() { return descriptorSetLayout; }
+    vector<VkDescriptorSetLayout> Shader::GetDescriptorSetLayouts() { return descriptorSetLayouts; }
     VkPipelineLayout Shader::GetPipelineLayout() { return pipelineLayout; }
     VkPipeline Shader::GetPipeline() { return pipeline; }
 
@@ -1005,15 +1221,20 @@ namespace KalaGraphics::Resources
                     + "' because its camera '" + to_string(cameraID) + "' was invalid!");
             }
 
-            vkCmdBindDescriptorSets(
-                cmdBuffer,
-                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                pipelineLayout,
-                0,
-                1,
-                &camera->vkCameraDescriptorSet,
-                0,
-                nullptr);
+            if (camera->isActiveCamera)
+            {
+                vkCmdBindDescriptorSets(
+                    cmdBuffer,
+                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    pipelineLayout,
+                    0,
+                    1,
+                    &camera->vkCameraDescriptorSet,
+                    0,
+                    nullptr);
+
+                break;
+            }
         }
 
         for (u32 meshID : meshIDs)
@@ -1058,10 +1279,10 @@ namespace KalaGraphics::Resources
             vkCmdPushConstants(
                 cmdBuffer,
                 pipelineLayout,
-                VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                VK_SHADER_STAGE_VERTEX_BIT,
                 0,
-                sizeof(REPLACE_ME_TEST_SHADER_DATA),
-                &mesh->testShaderData);
+                sizeof(REPLACE_ME_MESH_TEST_DATA),
+                &mesh->testMeshData);
 
             VkDeviceSize offset{};
             vkCmdBindVertexBuffers(
@@ -1171,40 +1392,38 @@ namespace KalaGraphics::Resources
             pipelineLayout,
             nullptr);
 
-        vkDestroyDescriptorSetLayout(
-            logicalDevice,
-            descriptorSetLayout,
-            nullptr);
-
-        vkDestroyShaderModule(
-            logicalDevice,
-            shaderModuleData.module_vert,
-            nullptr);
-        vkDestroyShaderModule(
-            logicalDevice,
-            shaderModuleData.module_frag,
-            nullptr);
-
-        if (shaderModuleData.usingGeom)
+        for (auto& sl : descriptorSetLayouts)
         {
-            vkDestroyShaderModule(
+            vkDestroyDescriptorSetLayout(
                 logicalDevice,
-                shaderModuleData.module_geom,
+                sl,
                 nullptr);
         }
-        if (shaderModuleData.usingTessCont)
+
+        if (shaderModuleData.vkModule_vert != VK_NULL_HANDLE)
         {
-            vkDestroyShaderModule(
-                logicalDevice,
-                shaderModuleData.module_tess_cont,
-                nullptr);
-        }
-        if (shaderModuleData.usingTessEval)
-        {
-            vkDestroyShaderModule(
-                logicalDevice,
-                shaderModuleData.module_tess_eval,
-                nullptr);
+            vector<VkShaderModule> oldVkShaders = 
+            {
+                shaderModuleData.vkModule_vert,
+                shaderModuleData.vkModule_frag
+            };
+            if (shaderModuleData.usingGeom)
+            {
+                oldVkShaders.push_back(shaderModuleData.vkModule_geom);
+            }
+
+            vector<SpvReflectShaderModule*> oldSpvShaders =
+            {
+                ToVar<SpvReflectShaderModule*>(shaderModuleData.spvModule_vert),
+                ToVar<SpvReflectShaderModule*>(shaderModuleData.spvModule_frag)
+            };
+            if (shaderModuleData.usingGeom)
+            {
+                oldSpvShaders.push_back(ToVar<SpvReflectShaderModule*>(shaderModuleData.spvModule_geom));
+            }
+
+            DestroyVkShaderModules(oldVkShaders);
+            DestroySpvShaderModules(oldSpvShaders);
         }
     }
 }

@@ -18,7 +18,7 @@ namespace KalaGraphics::Resources
 
     KalaGraphicsRegistry<Texture>& Texture::GetRegistry() { return registry; }
 
-    Texture* Texture::Initialize()
+    Texture* Texture::Initialize(TextureData&& textureData)
     {
         /*TODO: fill*/
 

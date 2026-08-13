@@ -2391,21 +2391,18 @@ namespace KalaGraphics::Core
                 VK_NULL_HANDLE);
         }
 
-        for (u32 cid : cameraIDs)
+        Camera* activeCamera = Camera::GetActiveCamera();
+        if (activeCamera)
         {
-            Camera* c = Camera::GetRegistry().GetContent(cid);
-            if (!c)
+            u32 sid = activeCamera->shaderID;
+
+            if (ContainsValue(shaderIDs, sid))
             {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics context error",
-                    "Failed to recreate swapchain because "
-                    "camera '" + to_string(cid) + "' was invalid!");
+                activeCamera->viewport = extent;
+
+                //enforce camera update with no data so orthographic/projection is updated correctly
+                activeCamera->Move({}, {});
             }
-
-            c->viewport = extent;
-
-            //enforce camera update with no data so orthographic/projection is updated correctly
-            c->Move({}, {});
         }
 
         if (isVerboseLoggingEnabled)
@@ -2418,22 +2415,7 @@ namespace KalaGraphics::Core
     }
 
     void GraphicsContext::Destroy()
-    { 
-        for (u32 cID : cameraIDs)
-        {
-            Camera* c = Camera::GetRegistry().GetContent(cID);
-            if (!c)
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics context error",
-                    "Failed to destroy graphics context '" + to_string(ID) + "' because "
-                    "camera '" + to_string(cID) + "' was invalid!");
-            }
-
-            c->isDestroyingGraphicsContext = true;
-            c->Destroy();
-        }
-
+    {
         for (u32 sID : shaderIDs)
         {
             Shader* s = Shader::GetRegistry().GetContent(sID);

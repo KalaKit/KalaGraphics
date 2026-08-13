@@ -51,67 +51,21 @@ namespace KalaGraphics::Resources
     using u8 = uint8_t;
     using u32 = uint32_t;
 
-    enum class DescriptorBindingType : u8
-    {
-        D_INVALID = 0u,
-
-        //read-only structured data (material params, camera matrices, lighting constants).
-        //small, frequently updated, cached aggressively by GPU, most common binding type
-        D_UNIFORM_BUFFER = 1u,
-        //texture + sampler fused into one binding. shader samples it directly.
-        //used for albedo, normal, roughness maps, the most common texture binding type
-        D_COMBINED_IMAGE_SAMPLER = 2u,
-        //read/write buffer for larger or compute-style data. less cache-friendly than UBOs
-        //but supports arbitrary sizes and write access. used for particle data, bone matrices, SSBO-based materials
-        D_STORAGE_BUFFER = 3u,
-        //image view without an embedded sampler. sampler is bound separately via D_SAMPLER.
-        //useful when multiple textures share the same sampler state, reducing descriptor count
-        D_SAMPLED_IMAGE = 4u,
-        //standalone sampler object, paired with D_SAMPLER_IMAGE when you want to
-        //decouple texture content from filtering/wrapping state.
-        D_SAMPLER = 5u
-    };
-
-    struct DescriptorBinding
-    {
-        u8 slot{};
-        DescriptorBindingType type{};
-    };
-
-    struct ShaderData
-    {
-        //transforms and vertices, required
-        path shader_vert{};
-        //outputs pixel colors, required
-        path shader_frag{};
-        //generates/discards primitives
-        path shader_geom{};
-        //controls tesselation patches
-        path shader_tess_cont{};
-        //generates/discards primitives
-        path shader_tess_eval{};
-    };
-
-    //forward declaration, defined in kg_shader.cpp
-    struct ShaderPipelineRecreateData;
-
     struct ShaderModuleData
     {
-        VkShaderModule module_vert{};
-        VkShaderModule module_frag{};
+        VkShaderModule vkModule_vert{};
+        uintptr_t spvModule_vert{};
+
+        VkShaderModule vkModule_frag{};
+        uintptr_t spvModule_frag{};
 
         bool usingGeom{};
-        VkShaderModule module_geom{};
-
-        bool usingTessCont{};
-        VkShaderModule module_tess_cont{};
-
-        bool usingTessEval{};
-        VkShaderModule module_tess_eval{};
+        VkShaderModule vkModule_geom{};
+        uintptr_t spvModule_geom{};
     };
 
     //TODO: replace with spirv-reflection logic later
-    struct REPLACE_ME_TEST_SHADER_DATA
+    struct REPLACE_ME_MESH_TEST_DATA
     {
         //offset 0
         mat4 mesh{};     
@@ -141,15 +95,19 @@ namespace KalaGraphics::Resources
         u32 GetGraphicsContextID() const;
         void SetGraphicsContextID(u32 newValue);
 
+        bool Is2D() const;
+
         const vector<u32>& GetMeshIDs() const;
         const vector<u32>& GetCameraIDs() const;
 
-        //First time init or hot-reload shaders and their descriptor binding data
+        //First time init or hot-reload shaders
         void SetShaderData(
-            ShaderData&& shaderData,
-            vector<DescriptorBinding>&& bindings = {});
+            bool is2D,
+            path&& vertPath,
+            path&& fragPath,
+            path&& geomPath = {});
 
-        VkDescriptorSetLayout GetDescriptorSetLayout();
+        vector<VkDescriptorSetLayout> GetDescriptorSetLayouts();
 
         VkPipelineLayout GetPipelineLayout();
         VkPipeline GetPipeline();
@@ -171,16 +129,13 @@ namespace KalaGraphics::Resources
         vector<u32> meshIDs{};
         vector<u32> cameraIDs{};
 
+        bool is2D{};
+
         u8 missingPipelineWarningCount{};
         u8 missingMeshWarningCount{};
 
-        ShaderData shaderData{};
         ShaderModuleData shaderModuleData{};
-
-        unique_ptr<ShaderPipelineRecreateData> recreateData;
-
-        VkDescriptorSetLayout descriptorSetLayout{};
-
+        vector<VkDescriptorSetLayout> descriptorSetLayouts{};
         VkPipelineLayout pipelineLayout{};
         VkPipeline pipeline{};
     };

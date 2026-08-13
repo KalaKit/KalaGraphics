@@ -87,12 +87,23 @@ namespace KalaGraphics::Resources
 
     struct LIB_API Vertex
     {
-        //X, Y, Z, (Z is unused for 2D)
+        //X, Y, Z
         vec3 pos{};
-        //X, Y, Z (Z is unused for 2D)
+        //X, Y, Z
         vec3 normal{};
         //U, V texture coordinates
         vec2 uv{};
+        //RGBA color
+        vec4 color{};
+    };
+    struct LIB_API Vertex2D
+    {
+        //X, Y
+        vec2 pos{};
+        //U, V texture coordinates
+        vec2 uv{};
+        //RGBA color
+        vec4 color{};
     };
 
     //Output after generating a meshes data
@@ -130,8 +141,7 @@ namespace KalaGraphics::Resources
         u32 GetShaderID() const;
         void SetShaderID(u32 newID);
 
-        //Should be called after manually updating mesh shader data,
-        //vertices, indices or attached camera data
+        //Should be called after updating any mesh data
         void UpdateMeshData();
 
         bool Is2D() const;
@@ -176,6 +186,6 @@ namespace KalaGraphics::Resources
         size_t indexBufferSize{}; //required because indices size may change
         void* indexMappedPtr{};
 
-        REPLACE_ME_TEST_SHADER_DATA testShaderData{};
+        REPLACE_ME_MESH_TEST_DATA testMeshData{};
     };
 }

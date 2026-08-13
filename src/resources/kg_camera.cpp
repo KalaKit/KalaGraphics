@@ -39,7 +39,6 @@ using KalaGraphics::Core::GraphicsContext;
 using std::unique_ptr;
 using std::make_unique;
 using std::to_string;
-using std::clamp;
 
 namespace KalaGraphics::Resources
 {
@@ -47,9 +46,40 @@ namespace KalaGraphics::Resources
 
     KalaGraphicsRegistry<Camera>& Camera::GetRegistry() { return registry; }
 
-    Camera* Camera::Initialize(
-        u32 contextID,
-        u32 shaderID)
+    Camera* Camera::GetActiveCamera()
+    {
+        if (registry.GetAllContent().empty())
+        {
+            Log::Print(
+                "Failed to get active camera because there are no cameras!",
+                "KG_CAMERA",
+                LogType::LOG_WARNING);
+
+            return nullptr;
+        }
+
+        for (Camera* c : registry.GetAllContent())
+        {
+            if (!c)
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics camera error",
+                    "Failed to get active camera "
+                    "because an invalid camera was found!");
+            }
+
+            if (c->isActiveCamera) return c;
+        }
+
+        KalaGraphicsCore::ForceClose(
+            "KalaGraphics camera error",
+            "No active camera was found when searching for camera!");
+
+        //not that we will ever reach here, but it shuts up a dumb compiler warning
+        return nullptr;
+    }
+
+    Camera* Camera::Initialize(u32 shaderID)
     {
         VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
         if (logicalDevice == VK_NULL_HANDLE)
@@ -59,12 +89,12 @@ namespace KalaGraphics::Resources
                 "Failed to create camera because the logical device was invalid!");
         }
 
-        GraphicsContext* gctx = GraphicsContext::GetRegistry().GetContent(contextID);
-        if (!gctx)
+        Shader* shader = Shader::GetRegistry().GetContent(shaderID);
+        if (!shader)
         {
             Log::Print(
-                "Failed to create camera because the graphics context '" 
-                + to_string(contextID) + "' was invalid!",
+                "Failed to create camera because the shader '" 
+                + to_string(shaderID) + "' was invalid!",
                 "KG_CAMERA",
                 LogType::LOG_ERROR,
                 2);
@@ -72,12 +102,12 @@ namespace KalaGraphics::Resources
             return nullptr;
         }
 
-        Shader* shader = Shader::GetRegistry().GetContent(shaderID);
-        if (!shader)
+        GraphicsContext* gctx = GraphicsContext::GetRegistry().GetContent(shader->contextID);
+        if (!gctx)
         {
             Log::Print(
                 "Failed to create camera because the shader '" 
-                + to_string(shaderID) + "' was invalid!",
+                + to_string(shaderID) + "' graphics context '" + to_string(shader->contextID) + "' was invalid!",
                 "KG_CAMERA",
                 LogType::LOG_ERROR,
                 2);
@@ -106,9 +136,6 @@ namespace KalaGraphics::Resources
 
         cameraPtr->ID = newID;
         cameraPtr->shaderID = shaderID;
-
-        //graphics context references this camera
-        gctx->cameraIDs.push_back(newID);
 
         //shader references this camera
         shader->cameraIDs.push_back(newID);
@@ -147,11 +174,13 @@ namespace KalaGraphics::Resources
         //move also calls UpdateCameraData
         cameraPtr->Move({}, {});
 
+        if (registry.GetAllContent().empty()) cameraPtr->isActiveCamera = true;
+
         registry.AddContent(newID, std::move(newCamera));
 
         Log::Print(
 			"Created new camera '" + to_string(newID) 
-            + "' for graphics context '" + to_string(contextID) + "'!",
+            + "' for shader '" + to_string(shaderID) + "'!",
 			"KG_CAMERA",
 			LogType::LOG_SUCCESS);
 
@@ -160,13 +189,14 @@ namespace KalaGraphics::Resources
 
     u32 Camera::GetID() const { return ID; }
 
-    u32 Camera::GetGraphicsContextID() const { return contextID; }
-    void Camera::SetGraphicsContextID(u32 newValue)
+    u32 Camera::GetShaderId() const { return shaderID; }
+    void Camera::SetShaderID(u32 newValue)
     {
-        if (contextID == newValue)
+        if (shaderID == newValue)
         {
-            Log::Print("Failed to set camera '" + to_string(ID) 
-                + "' graphics context ID to '" + to_string(newValue) 
+            Log::Print(
+                "Failed to set camera '" + to_string(ID) 
+                + "' shader ID to '" + to_string(newValue) 
                 + "' because it already is that value!",
                 "KG_CAMERA",
                 LogType::LOG_ERROR,
@@ -175,12 +205,13 @@ namespace KalaGraphics::Resources
             return;
         }
 
-        GraphicsContext* oldContext = GraphicsContext::GetRegistry().GetContent(contextID);
-        GraphicsContext* gctx = GraphicsContext::GetRegistry().GetContent(newValue);
-        if (!gctx)
+        Shader* oldShader = Shader::GetRegistry().GetContent(shaderID);
+        Shader* shader = Shader::GetRegistry().GetContent(newValue);
+        if (!shader)
         {
-            Log::Print("Failed to set camera '" + to_string(ID) 
-                + "' graphics context ID to '" + to_string(newValue) 
+            Log::Print(
+                "Failed to set camera '" + to_string(ID) 
+                + "' shader ID to '" + to_string(newValue) 
                 + "' because it was invalid!",
                 "KG_CAMERA",
                 LogType::LOG_ERROR,
@@ -189,19 +220,19 @@ namespace KalaGraphics::Resources
             return;
         }
 
-        contextID = newValue;
+        shaderID = newValue;
 
-        if (oldContext)
+        if (oldShader)
         {
             erase(
-                oldContext->cameraIDs,
+                oldShader->cameraIDs,
                 ID);
         }
-        gctx->cameraIDs.push_back(ID);
+        shader->cameraIDs.push_back(ID);
 
         Log::Print(
             "Set camera '" + to_string(ID) 
-            + "' graphics context ID to '" + to_string(contextID) + "'!",
+            + "' shader9 ID to '" + to_string(shaderID) + "'!",
             "KG_CAMERA",
             LogType::LOG_SUCCESS);
     }
@@ -229,7 +260,8 @@ namespace KalaGraphics::Resources
 
         if (meshID == newValue)
         {
-            Log::Print("Failed to set camera '" + to_string(ID) 
+            Log::Print(
+                "Failed to set camera '" + to_string(ID) 
                 + "' mesh ID to '" + to_string(newValue) 
                 + "' because it already is that value!",
                 "KG_CAMERA",
@@ -243,7 +275,8 @@ namespace KalaGraphics::Resources
         Mesh* mesh = Mesh::GetRegistry().GetContent(newValue);
         if (!mesh)
         {
-            Log::Print("Failed to set camera '" + to_string(ID) 
+            Log::Print(
+                "Failed to set camera '" + to_string(ID) 
                 + "' mesh ID to '" + to_string(newValue) 
                 + "' because it was invalid!",
                 "KG_CAMERA",
@@ -326,6 +359,41 @@ namespace KalaGraphics::Resources
                 "KG_CAMERA",
                 LogType::LOG_INFO);
         }
+    }
+
+    bool Camera::IsActiveCamera() const { return isActiveCamera; }
+    void Camera::SetAsActiveCamera()
+    {
+        if (isActiveCamera)
+        {
+            Log::Print(
+                "Failed to set camera '" + to_string(ID) 
+                + "' as active because it already is active!",
+                "KG_CAMERA",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        for (Camera* c : registry.GetAllContent())
+        {
+            if (!c)
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics camera error",
+                    "Failed to set camera '" + to_string(ID) + "' active state "
+                    "because an invalid camera was found!");
+            }
+
+            if (c->isActiveCamera)
+            {
+                c->isActiveCamera = false;
+                break;
+            }
+        }
+
+        isActiveCamera = true;
     }
 
     CameraType Camera::GetCameraType() const { return type; }
@@ -643,15 +711,6 @@ namespace KalaGraphics::Resources
                 ID);
         }
 
-        GraphicsContext* gctx = GraphicsContext::GetRegistry().GetContent(contextID);
-        if (gctx
-            && !isDestroyingGraphicsContext)
-        {
-            erase(
-                gctx->cameraIDs, 
-                ID);
-        }
-
         registry.RemoveContent(ID);
     }
 
@@ -661,6 +720,15 @@ namespace KalaGraphics::Resources
             "Destroying camera '" + to_string(ID) + "'.",
             "KG_CAMERA",
             LogType::LOG_INFO);
+
+        if (!registry.GetAllContent().empty()
+            && isActiveCamera)
+        {
+            Log::Print(
+                "Active camera was destroyed! You must assign a new active camera or else nothing can be drawn on screen.",
+                "KG_CAMERA",
+                LogType::LOG_WARNING);
+        }
 
         VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
 

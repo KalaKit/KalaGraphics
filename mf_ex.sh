@@ -42,6 +42,7 @@ OUT_DIR=out/${OUT_NAME}-${OUT_VER}
 README=README.md
 LICENSE=LICENSE.md
 INCLUDE=include
+FILES=files
 DOCS=docs
 
 DIR_ES=../external-shared
@@ -62,6 +63,7 @@ mkdir "${OUT_DIR}/${OUT_KH_NAME}"
 mf --f "${README}" --t "${OUT_DIR}/${README}"
 mf --f "${LICENSE}" --t "${OUT_DIR}/${LICENSE}"
 mf --f "${INCLUDE}" --t "${OUT_DIR}"
+mf --f "${FILES}" --t "${OUT_DIR}"
 mf --f "${DOCS}" --t "${OUT_DIR}"
 
 # The binary

@@ -64,20 +64,23 @@ namespace KalaGraphics::Resources
     public:
         static KalaGraphicsRegistry<Camera>& GetRegistry();
 
-        static Camera* Initialize(
-            u32 contextID,
-            u32 shaderID);
+        //Return whatever the current active camera is
+        static Camera* GetActiveCamera();
+
+        static Camera* Initialize(u32 shaderID);
 
         u32 GetID() const;
-
-        u32 GetGraphicsContextID() const;
-        void SetGraphicsContextID(u32 newValue);
 
         u32 GetShaderId() const;
         void SetShaderID(u32 newValue);
 
         u32 GetMeshID() const;
         void SetMeshID(u32 newValue);
+
+        bool IsActiveCamera() const;
+        //Assign this camera as the active camera,
+        //only one camera is allowed to draw across all shaders
+        void SetAsActiveCamera();
 
         CameraType GetCameraType() const;
         void SetCameraType(CameraType type);
@@ -94,7 +97,7 @@ namespace KalaGraphics::Resources
             f32 vertical = {},
             f32 deltaTime = {});
 
-        //Call after updating camera transform manually to ensure camera UBO buffer is up to date
+        //Should be called after updating any texture data, unless Move is called
         void UpdateCameraData();
 
         Transform3D& GetTransform();
@@ -120,16 +123,12 @@ namespace KalaGraphics::Resources
         void Destroy();
 
         ~Camera();
-    private: 
-        //used only to prevent camera from removing its ID from
-        //graphics context camera IDs list if the graphics context
-        //destroy function called the destroy function of this camera 
-        bool isDestroyingGraphicsContext{};
-
+    private:
         u32 ID{};
-        u32 contextID{};
         u32 shaderID{};
         u32 meshID{};
+
+        bool isActiveCamera{};
 
         CameraType type = CameraType::C_PERSPECTIVE;
 

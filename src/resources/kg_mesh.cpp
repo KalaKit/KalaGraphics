@@ -144,7 +144,7 @@ namespace KalaGraphics::Resources
                 + "' because its shader '" + to_string(shaderID) + "' was invalid!");
         }
 
-        testShaderData.mesh = createmodelmatrix(
+        testMeshData.mesh = createmodelmatrix(
             transform.pos_world, 
             transform.rot_world, 
             transform.size_world);
@@ -194,7 +194,7 @@ namespace KalaGraphics::Resources
 
     Transform3D& Mesh::GetTransform() { return transform; }
 
-    const mat4& Mesh::GetModelMatrix() const { return testShaderData.mesh; }
+    const mat4& Mesh::GetModelMatrix() const { return testMeshData.mesh; }
 
     vector<Vertex>& Mesh::GetVertices() { return vertices; }
     vector<u32>& Mesh::GetIndices() { return indices; }

@@ -228,7 +228,6 @@ namespace KalaGraphics::Core
 
         u32 GetID() const;
         const vector<u32>& GetShaderIDs() const;
-        const vector<u32>& GetCameraIDs() const;
 
         VSyncState GetVSyncState() const;
         void SetVSyncState(VSyncState newValue);
@@ -286,8 +285,6 @@ namespace KalaGraphics::Core
 
         //shaders that use this graphics context
         vector<u32> shaderIDs{};
-        //cameras that use this graphics context
-        vector<u32> cameraIDs{};
 
         u8 missingShaderWarningCount{};
 
