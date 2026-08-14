@@ -37,6 +37,14 @@ namespace KalaGraphics::Resources
 
     Mesh* Mesh::Initialize(u32 shaderID)
     {
+        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
+        if (logicalDevice == VK_NULL_HANDLE)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to create mesh because the logical device was invalid!");
+        }
+
         Shader* shader = Shader::GetRegistry().GetContent(shaderID);
         if (!shader)
         {
@@ -49,13 +57,12 @@ namespace KalaGraphics::Resources
             return nullptr;
         }
 
-        //TODO: replace with better idea
-        if (shader->descriptorSetLayout == VK_NULL_HANDLE)
+        if (shader->descriptorSetLayouts.empty())
         {
             Log::Print(
-                "Failed to create camera because the shader '" 
-                + to_string(shaderID) + "' had no valid descriptor set!",
-                "KG_CAMERA",
+                "Failed to create mesh because the shader '" 
+                + to_string(shaderID) + "' had no shader data!",
+                "KG_MESH",
                 LogType::LOG_ERROR,
                 2);
 
@@ -73,6 +80,34 @@ namespace KalaGraphics::Resources
 
         //shader references this mesh
         shader->meshIDs.push_back(newID);
+
+        //assign descriptor set for camera
+        {
+            VkDescriptorSetAllocateInfo descriptorSetAllocateInfo{};
+            descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+            descriptorSetAllocateInfo.descriptorPool = GraphicsContext::GetDescriptorPool();
+            descriptorSetAllocateInfo.descriptorSetCount = 1;
+            descriptorSetAllocateInfo.pSetLayouts = &shader->descriptorSetLayouts[1];
+
+            VkDescriptorSet newDescriptorSet;
+            VkResult vkResult = vkAllocateDescriptorSets(
+                logicalDevice,
+                &descriptorSetAllocateInfo,
+                &newDescriptorSet);
+
+            if (vkResult != VK_SUCCESS)
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics camera error",
+                    "Failed to create camera because descriptor set init failed! Reason: " 
+                    + GraphicsContext::GetVkResultMessage(vkResult));
+            }
+
+            meshPtr->vkDescriptorSet = newDescriptorSet;
+
+            //always assign descriptor set data at mesh init
+            //meshPtr->reassign = true;
+        }
 
         registry.AddContent(newID, std::move(newMesh));
 
@@ -144,7 +179,7 @@ namespace KalaGraphics::Resources
                 + "' because its shader '" + to_string(shaderID) + "' was invalid!");
         }
 
-        testMeshData.mesh = createmodelmatrix(
+        meshMatrix = createmodelmatrix(
             transform.pos_world, 
             transform.rot_world, 
             transform.size_world);
@@ -194,7 +229,7 @@ namespace KalaGraphics::Resources
 
     Transform3D& Mesh::GetTransform() { return transform; }
 
-    const mat4& Mesh::GetModelMatrix() const { return testMeshData.mesh; }
+    const mat4& Mesh::GetModelMatrix() const { return meshMatrix; }
 
     vector<Vertex>& Mesh::GetVertices() { return vertices; }
     vector<u32>& Mesh::GetIndices() { return indices; }

@@ -21,6 +21,9 @@ using VkBuffer = VkBuffer_T*;
 struct VmaAllocation_T;
 using VmaAllocation = VmaAllocation_T*;
 
+struct VkDescriptorSet_T;
+using VkDescriptorSet = VkDescriptorSet_T*;
+
 namespace KalaGraphics::Resources
 {
     using KalaHeaders::KalaMath::Transform3D;
@@ -33,6 +36,7 @@ namespace KalaGraphics::Resources
     using std::vector;
     using std::string;
     using std::filesystem::path;
+    using std::default_delete;
 
     using u8 = uint8_t;
     using f32 = float;
@@ -117,6 +121,7 @@ namespace KalaGraphics::Resources
     {
     friend class Shader;
     friend class Camera;
+    friend struct default_delete<Mesh>;
     public:
         static KalaGraphicsRegistry<Mesh>& GetRegistry();
 
@@ -158,9 +163,9 @@ namespace KalaGraphics::Resources
         VmaAllocation GetAllocation(bool vertexAllocation);
 
         void Destroy();
-
-        ~Mesh();
     private:
+        ~Mesh();
+
         void UpdateVertices();
         void UpdateIndices();
 
@@ -186,6 +191,13 @@ namespace KalaGraphics::Resources
         size_t indexBufferSize{}; //required because indices size may change
         void* indexMappedPtr{};
 
-        REPLACE_ME_MESH_TEST_DATA testMeshData{};
+        mat4 meshMatrix{};
+
+        bool reassign{};
+        VkBuffer vkMeshUBOBuffer{};
+        VmaAllocation vmaMeshUBOAllocation{};
+        void* meshUBOMappedPtr{};
+
+        VkDescriptorSet vkDescriptorSet{};
     };
 }

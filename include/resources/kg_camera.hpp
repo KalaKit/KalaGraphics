@@ -48,6 +48,8 @@ namespace KalaGraphics::Resources
 
     using KalaGraphics::Core::KalaGraphicsRegistry;
 
+    using std::default_delete;
+
     enum class CameraType : u8
     {
         C_INVALID = 0u,
@@ -61,6 +63,7 @@ namespace KalaGraphics::Resources
     friend class KalaGraphics::Core::GraphicsContext;
     friend class Mesh;
     friend class Shader;
+    friend struct default_delete<Camera>;
     public:
         static KalaGraphicsRegistry<Camera>& GetRegistry();
 
@@ -121,9 +124,9 @@ namespace KalaGraphics::Resources
         VkDescriptorSet GetDescriptorSet();
 
         void Destroy();
-
-        ~Camera();
     private:
+        ~Camera();
+
         u32 ID{};
         u32 shaderID{};
         u32 meshID{};
@@ -151,6 +154,6 @@ namespace KalaGraphics::Resources
         VmaAllocation vmaCameraUBOAllocation{};
         void* cameraUBOMappedPtr{};
 
-        VkDescriptorSet vkCameraDescriptorSet{};
+        VkDescriptorSet vkDescriptorSet{};
     };
 }

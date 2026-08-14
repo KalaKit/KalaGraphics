@@ -41,7 +41,6 @@ using std::vector;
 using std::unordered_map;
 using std::string;
 using std::string_view;
-using std::array;
 using std::map;
 using std::pair;
 using std::make_pair;
@@ -55,185 +54,161 @@ struct ShaderModule
     SpvReflectShaderModule spvModule{};
 };
 
-static VkPipelineVertexInputStateCreateInfo GetVertexData()
+struct PipelineInfo
 {
-    static VkVertexInputBindingDescription bindingDescription{};
+    vector<VkPipelineShaderStageCreateInfo> stages{};
 
-    bindingDescription.binding   = 0;
-    bindingDescription.stride    = sizeof(Vertex);
-    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    VkVertexInputBindingDescription bindingDescription{};
+    vector<VkVertexInputAttributeDescription> attributeDescriptions{};
+    VkPipelineVertexInputStateCreateInfo vertexInput{};
 
-    static vector<VkVertexInputAttributeDescription> attributeDescriptions{};
-    attributeDescriptions.clear();
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+    VkPipelineDynamicStateCreateInfo dynamicState{};
+    vector<VkDynamicState> dynamicStates{};
+    VkPipelineViewportStateCreateInfo viewportState{};
+    VkPipelineRasterizationStateCreateInfo rasterization{};
+    VkPipelineMultisampleStateCreateInfo multisampling{};
+    VkPipelineDepthStencilStateCreateInfo depthStencil{};
+    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+    VkPipelineColorBlendStateCreateInfo colorBlend{};
 
-    attributeDescriptions.push_back(
-        {
-            0,
-            0,
-            VK_FORMAT_R32G32B32_SFLOAT,
-            offsetof(Vertex, pos)
-        });
-    attributeDescriptions.push_back(
-        {
-            1,
-            0,
-            VK_FORMAT_R32G32B32_SFLOAT,
-            offsetof(Vertex, normal)
-        });
-    attributeDescriptions.push_back(
-        {
-            2,
-            0,
-            VK_FORMAT_R32G32_SFLOAT,
-            offsetof(Vertex, uv)
-        });
-    attributeDescriptions.push_back(
-        {
-            3,
-            0,
-            VK_FORMAT_R32G32B32A32_SFLOAT,
-            offsetof(Vertex, color)
-        });
+    VkGraphicsPipelineCreateInfo pipelineInfo{};
+};
 
-    static VkPipelineVertexInputStateCreateInfo vi{};
-
-    vi.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vi.vertexBindingDescriptionCount   = 1;
-    vi.pVertexBindingDescriptions      = &bindingDescription;
-    vi.vertexAttributeDescriptionCount = scast<u32>(attributeDescriptions.size());
-    vi.pVertexAttributeDescriptions    = attributeDescriptions.data();
-
-    return vi;
-}
-static VkPipelineVertexInputStateCreateInfo Get2DVertexData()
-{
-    static VkVertexInputBindingDescription bindingDescription{};
-
-    bindingDescription.binding   = 0;
-    bindingDescription.stride    = sizeof(Vertex2D);
-    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-    static vector<VkVertexInputAttributeDescription> attributeDescriptions{};
-    attributeDescriptions.clear();
-
-    attributeDescriptions.push_back(
-        {
-            0,
-            0,
-            VK_FORMAT_R32G32_SFLOAT,
-            offsetof(Vertex2D, pos)
-        });
-    attributeDescriptions.push_back(
-        {
-            1,
-            0,
-            VK_FORMAT_R32G32_SFLOAT,
-            offsetof(Vertex2D, uv)
-        });
-    attributeDescriptions.push_back(
-        {
-            2,
-            0,
-            VK_FORMAT_R32G32B32A32_SFLOAT,
-            offsetof(Vertex2D, color)
-        });
-
-    static VkPipelineVertexInputStateCreateInfo vi{};
-
-    vi.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vi.vertexBindingDescriptionCount   = 1;
-    vi.pVertexBindingDescriptions      = &bindingDescription;
-    vi.vertexAttributeDescriptionCount = scast<u32>(attributeDescriptions.size());
-    vi.pVertexAttributeDescriptions    = attributeDescriptions.data();
-
-    return vi;
-}
-
-static VkGraphicsPipelineCreateInfo GetPipelineInfo(
+static unique_ptr<PipelineInfo> GetPipelineInfo(
     bool is2D,
     vector<VkPipelineShaderStageCreateInfo> stages,
     VkPipelineLayout pipelineLayout,
     VkRenderPass renderPass)
 {
-    VkPipelineVertexInputStateCreateInfo vi = !is2D 
-        ? GetVertexData() 
-        : Get2DVertexData();
+    unique_ptr<PipelineInfo> pi = make_unique<PipelineInfo>();
 
-    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+    pi->stages = std::move(stages);
 
-    inputAssembly.sType    = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
-    VkPipelineDynamicStateCreateInfo dynamicState{};
+    pi->bindingDescription.binding   = 0;
+    pi->bindingDescription.stride    = is2D ? sizeof(Vertex2D) : sizeof(Vertex);
+    pi->bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-    vector<VkDynamicState> dynamicStates = 
+    if (is2D)
+    {
+        pi->attributeDescriptions.push_back(
+            {
+                0,
+                0,
+                VK_FORMAT_R32G32_SFLOAT,
+                offsetof(Vertex2D, pos)
+            });
+        pi->attributeDescriptions.push_back(
+            {
+                1,
+                0,
+                VK_FORMAT_R32G32_SFLOAT,
+                offsetof(Vertex2D, uv)
+            });
+        pi->attributeDescriptions.push_back(
+            {
+                2,
+                0,
+                VK_FORMAT_R32G32B32A32_SFLOAT,
+                offsetof(Vertex2D, color)
+            });
+    }
+    else
+    {
+        pi->attributeDescriptions.push_back(
+            {
+                0,
+                0,
+                VK_FORMAT_R32G32B32_SFLOAT,
+                offsetof(Vertex, pos)
+            });
+        pi->attributeDescriptions.push_back(
+            {
+                1,
+                0,
+                VK_FORMAT_R32G32B32_SFLOAT,
+                offsetof(Vertex, normal)
+            });
+        pi->attributeDescriptions.push_back(
+            {
+                2,
+                0,
+                VK_FORMAT_R32G32_SFLOAT,
+                offsetof(Vertex, uv)
+            });
+        pi->attributeDescriptions.push_back(
+            {
+                3,
+                0,
+                VK_FORMAT_R32G32B32A32_SFLOAT,
+                offsetof(Vertex, color)
+            });
+    }
+
+    pi->vertexInput.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    pi->vertexInput.vertexBindingDescriptionCount   = 1;
+    pi->vertexInput.pVertexBindingDescriptions      = &pi->bindingDescription;
+    pi->vertexInput.vertexAttributeDescriptionCount = scast<u32>(pi->attributeDescriptions.size());
+    pi->vertexInput.pVertexAttributeDescriptions    = pi->attributeDescriptions.data();
+
+    pi->inputAssembly.sType    = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    pi->inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+    pi->dynamicStates = 
     {
         VK_DYNAMIC_STATE_VIEWPORT,
         VK_DYNAMIC_STATE_SCISSOR
     };
-    dynamicState.sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamicState.dynamicStateCount = scast<u32>(dynamicStates.size());
-    dynamicState.pDynamicStates    = dynamicStates.data();
+    pi->dynamicState.sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    pi->dynamicState.dynamicStateCount = scast<u32>(pi->dynamicStates.size());
+    pi->dynamicState.pDynamicStates    = pi->dynamicStates.data();
 
-    VkPipelineViewportStateCreateInfo viewportState{};
+    pi->viewportState.sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    pi->viewportState.viewportCount = 1;
+    pi->viewportState.scissorCount  = 1;
 
-    viewportState.sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    viewportState.viewportCount = 1;
-    viewportState.scissorCount  = 1;
+    pi->rasterization.sType       = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    pi->rasterization.polygonMode = VK_POLYGON_MODE_FILL;
+    pi->rasterization.cullMode    = VK_CULL_MODE_BACK_BIT;
+    pi->rasterization.frontFace   = VK_FRONT_FACE_CLOCKWISE;
+    pi->rasterization.lineWidth   = 1.0f;
 
-    VkPipelineRasterizationStateCreateInfo rasterization{};
+    pi->multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    pi->multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-    rasterization.sType       = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    rasterization.polygonMode = VK_POLYGON_MODE_FILL;
-    rasterization.cullMode    = VK_CULL_MODE_BACK_BIT;
-    rasterization.frontFace   = VK_FRONT_FACE_CLOCKWISE;
-    rasterization.lineWidth   = 1.0f;
+    pi->depthStencil.sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    pi->depthStencil.depthTestEnable  = VK_TRUE;
+    pi->depthStencil.depthWriteEnable = VK_TRUE;
+    pi->depthStencil.depthCompareOp   = VK_COMPARE_OP_LESS;
 
-    VkPipelineMultisampleStateCreateInfo multisampling{};
-
-    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-    VkPipelineDepthStencilStateCreateInfo depthStencil{};
-
-    depthStencil.sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    depthStencil.depthTestEnable  = VK_TRUE;
-    depthStencil.depthWriteEnable = VK_TRUE;
-    depthStencil.depthCompareOp   = VK_COMPARE_OP_LESS;
-
-    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
-
-    colorBlendAttachment.colorWriteMask =
+    pi->colorBlendAttachment.colorWriteMask =
         VK_COLOR_COMPONENT_R_BIT
         | VK_COLOR_COMPONENT_G_BIT
         | VK_COLOR_COMPONENT_B_BIT
         | VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachment.blendEnable = VK_FALSE;
+    pi->colorBlendAttachment.blendEnable = VK_FALSE;
 
-    VkPipelineColorBlendStateCreateInfo colorBlend{};
+    pi->colorBlend.sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    pi->colorBlend.attachmentCount = 1;
+    pi->colorBlend.pAttachments    = &pi->colorBlendAttachment;
 
-    colorBlend.sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    colorBlend.attachmentCount = 1;
-    colorBlend.pAttachments    = &colorBlendAttachment;
+    pi->pipelineInfo.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pi->pipelineInfo.stageCount          = scast<u32>(pi->stages.size());
+    pi->pipelineInfo.pStages             = pi->stages.data();
+    pi->pipelineInfo.pVertexInputState   = &pi->vertexInput;
+    pi->pipelineInfo.pInputAssemblyState = &pi->inputAssembly;
+    pi->pipelineInfo.pViewportState      = &pi->viewportState;
+    pi->pipelineInfo.pRasterizationState = &pi->rasterization;
+    pi->pipelineInfo.pMultisampleState   = &pi->multisampling;
+    pi->pipelineInfo.pDepthStencilState  = &pi->depthStencil;
+    pi->pipelineInfo.pColorBlendState    = &pi->colorBlend;
+    pi->pipelineInfo.pDynamicState       = &pi->dynamicState;
+    pi->pipelineInfo.layout              = pipelineLayout;
+    pi->pipelineInfo.renderPass          = renderPass;
+    pi->pipelineInfo.subpass             = 0;
 
-    VkGraphicsPipelineCreateInfo newPipelineInfo{};
-
-    newPipelineInfo.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    newPipelineInfo.stageCount          = scast<u32>(stages.size());
-    newPipelineInfo.pStages             = stages.data();
-    newPipelineInfo.pVertexInputState   = &vi;
-    newPipelineInfo.pInputAssemblyState = &inputAssembly;
-    newPipelineInfo.pViewportState      = &viewportState;
-    newPipelineInfo.pRasterizationState = &rasterization;
-    newPipelineInfo.pMultisampleState   = &multisampling;
-    newPipelineInfo.pDepthStencilState  = &depthStencil;
-    newPipelineInfo.pColorBlendState    = &colorBlend;
-    newPipelineInfo.pDynamicState       = &dynamicState;
-    newPipelineInfo.layout              = pipelineLayout;
-    newPipelineInfo.renderPass          = renderPass;
-    newPipelineInfo.subpass             = 0;
-
-    return newPipelineInfo;
+    return pi;
 }
 
 static void DestroyVkShaderModules(vector<VkShaderModule> modules)
@@ -382,9 +357,9 @@ namespace KalaGraphics::Resources
                     shaderModuleData.vkModule_geom);
             }
 
-            VkGraphicsPipelineCreateInfo newPipelineInfo = GetPipelineInfo(
+            unique_ptr<PipelineInfo> newPipelineInfo = GetPipelineInfo(
                 is2D,
-                stages,
+                std::move(stages),
                 pipelineLayout,
                 newContext->GetRenderPass());
 
@@ -393,7 +368,7 @@ namespace KalaGraphics::Resources
                 logicalDevice,
                 VK_NULL_HANDLE,
                 1,
-                &newPipelineInfo,
+                &newPipelineInfo->pipelineInfo,
                 nullptr,
                 &newPipeline);
 
@@ -1018,9 +993,9 @@ namespace KalaGraphics::Resources
                 newShaderModuleData.vkModule_geom);
         }
 
-        VkGraphicsPipelineCreateInfo newPipelineInfo = GetPipelineInfo(
+        unique_ptr<PipelineInfo> newPipelineInfo = GetPipelineInfo(
             is2D,
-            stages,
+            std::move(stages),
             newPipelineLayout,
             gctx->GetRenderPass());
 
@@ -1029,7 +1004,7 @@ namespace KalaGraphics::Resources
             logicalDevice,
             VK_NULL_HANDLE,
             1,
-            &newPipelineInfo,
+            &newPipelineInfo->pipelineInfo,
             nullptr,
             &newPipeline);
 
@@ -1227,9 +1202,9 @@ namespace KalaGraphics::Resources
                     cmdBuffer,
                     VK_PIPELINE_BIND_POINT_GRAPHICS,
                     pipelineLayout,
-                    0,
+                    0, // <<<<< - camera must always be set 0
                     1,
-                    &camera->vkCameraDescriptorSet,
+                    &camera->vkDescriptorSet,
                     0,
                     nullptr);
 
@@ -1274,15 +1249,15 @@ namespace KalaGraphics::Resources
                     "doesn't have vertex buffer data!");
             }
 
-            //TODO: use spriv-reflection
-
-            vkCmdPushConstants(
+            vkCmdBindDescriptorSets(
                 cmdBuffer,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
                 pipelineLayout,
-                VK_SHADER_STAGE_VERTEX_BIT,
+                1, // <<<<< - mesh must always be set 1
+                1,
+                &mesh->vkDescriptorSet,
                 0,
-                sizeof(REPLACE_ME_MESH_TEST_DATA),
-                &mesh->testMeshData);
+                nullptr);
 
             VkDeviceSize offset{};
             vkCmdBindVertexBuffers(

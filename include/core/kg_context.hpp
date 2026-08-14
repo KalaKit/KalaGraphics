@@ -82,6 +82,7 @@ namespace KalaGraphics::Core
     using std::string_view;
     using std::vector;
     using std::array;
+    using std::default_delete;
 
     using u8 = uint8_t;
     using u32 = uint32_t;
@@ -189,6 +190,7 @@ namespace KalaGraphics::Core
     friend class KalaGraphics::Resources::Mesh;
     friend class KalaGraphics::Resources::Camera;
     friend class KalaGraphics::Resources::Shader;
+    friend struct default_delete<GraphicsContext>;
     public:
         static KalaGraphicsRegistry<GraphicsContext>& GetRegistry();
 
@@ -274,9 +276,9 @@ namespace KalaGraphics::Core
         void RecreateSwapchain();
 
         void Destroy();
-
-        ~GraphicsContext();
     private:
+        ~GraphicsContext();
+
         void InitializeVulkanContext();
 
         void UpdateInstance();

@@ -19,6 +19,7 @@ namespace KalaGraphics::Import
     using std::vector;
     using std::string;
     using std::string_view;
+    using std::default_delete;
 
     using u8 = uint8_t;
     using u32 = uint32_t;
@@ -36,6 +37,7 @@ namespace KalaGraphics::Import
 
     class LIB_API ImportShader
     {
+    friend struct default_delete<ImportShader>;
     public:
         static KalaGraphicsRegistry<ImportShader>& GetRegistry();
 
@@ -49,9 +51,9 @@ namespace KalaGraphics::Import
         u32 GetID() const;
 
         void Destroy();
-
-        ~ImportShader();
     private:
+        ~ImportShader();
+
         static string Init_SPV(
             vector<u8>&& binaryData,
             ShaderData& outShaderData);

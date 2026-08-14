@@ -22,6 +22,7 @@ namespace KalaGraphics::Import
     using std::array;
     using std::string;
     using std::string_view;
+    using std::default_delete;
 
     using u8 = uint8_t;
     using u32 = uint32_t;
@@ -62,6 +63,7 @@ namespace KalaGraphics::Import
 
     class LIB_API ImportTexture
     {
+    friend struct default_delete<ImportTexture>;
     public:
         static KalaGraphicsRegistry<ImportTexture>& GetRegistry();
 
@@ -73,9 +75,9 @@ namespace KalaGraphics::Import
         const TextureData& GetTextureData() const;
 
         void Destroy();
-
-        ~ImportTexture();
     private:
+        ~ImportTexture();
+
         static string Init_PNG(
             vector<u8>&& binaryData,
             TextureData& outTextureData);

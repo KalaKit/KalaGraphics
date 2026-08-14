@@ -47,6 +47,7 @@ namespace KalaGraphics::Resources
     using std::string_view;
     using std::vector;
     using std::unique_ptr;
+    using std::default_delete;
 
     using u8 = uint8_t;
     using u32 = uint32_t;
@@ -64,24 +65,12 @@ namespace KalaGraphics::Resources
         uintptr_t spvModule_geom{};
     };
 
-    //TODO: replace with spirv-reflection logic later
-    struct REPLACE_ME_MESH_TEST_DATA
-    {
-        //offset 0
-        mat4 mesh{};     
-
-        //offset 64
-        vec4 color = { 1.0f, 0.8f, 0.6f, 1.0f };    
-
-        //offset 80, value should be 0 or 1
-        u32 debugMode = 1; 
-    };
-
     class LIB_API Shader
     {
     friend class KalaGraphics::Core::GraphicsContext;
     friend class Mesh;
     friend class Camera;
+    friend default_delete<Shader>;
     public:
         static KalaGraphicsRegistry<Shader>& GetRegistry();
 
@@ -113,9 +102,9 @@ namespace KalaGraphics::Resources
         VkPipeline GetPipeline();
 
         void Destroy();
-
-        ~Shader();
     private:
+        ~Shader();
+
         void Update(VkCommandBuffer buffer);
 
         //used only to prevent shader from removing its ID from

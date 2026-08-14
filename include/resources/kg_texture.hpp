@@ -19,6 +19,7 @@ namespace KalaGraphics::Resources
     using KalaGraphics::Core::KalaGraphicsRegistry;
 
     using std::vector;
+    using std::default_delete;
 
     using u8 = uint8_t;
     using u32 = uint32_t;
@@ -67,6 +68,7 @@ namespace KalaGraphics::Resources
 
     class LIB_API Texture
     {
+    friend struct default_delete<Texture>;
     public:
         static KalaGraphicsRegistry<Texture>& GetRegistry();
 
@@ -85,9 +87,9 @@ namespace KalaGraphics::Resources
         void UpdateTextureData();
 
         void Destroy();
-
-        ~Texture();
     private:
+        ~Texture();
+
         u32 ID{};
 
         vector<u8> pixelData{};

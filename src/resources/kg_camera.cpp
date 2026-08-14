@@ -115,12 +115,11 @@ namespace KalaGraphics::Resources
             return nullptr;
         }
 
-        //TODO: replace with better idea
-        if (shader->descriptorSetLayout == VK_NULL_HANDLE)
+        if (shader->descriptorSetLayouts.empty())
         {
             Log::Print(
                 "Failed to create camera because the shader '" 
-                + to_string(shaderID) + "' had no valid descriptor set!",
+                + to_string(shaderID) + "' had no shader data!",
                 "KG_CAMERA",
                 LogType::LOG_ERROR,
                 2);
@@ -148,7 +147,7 @@ namespace KalaGraphics::Resources
             descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
             descriptorSetAllocateInfo.descriptorPool = GraphicsContext::GetDescriptorPool();
             descriptorSetAllocateInfo.descriptorSetCount = 1;
-            descriptorSetAllocateInfo.pSetLayouts = &shader->descriptorSetLayout;
+            descriptorSetAllocateInfo.pSetLayouts = &shader->descriptorSetLayouts[1];
 
             VkDescriptorSet newDescriptorSet;
             VkResult vkResult = vkAllocateDescriptorSets(
@@ -164,7 +163,7 @@ namespace KalaGraphics::Resources
                     + GraphicsContext::GetVkResultMessage(vkResult));
             }
 
-            cameraPtr->vkCameraDescriptorSet = newDescriptorSet;
+            cameraPtr->vkDescriptorSet = newDescriptorSet;
 
             //always assign descriptor set data at camera init
             cameraPtr->reassign = true;
@@ -293,15 +292,15 @@ namespace KalaGraphics::Resources
 
         Shader* shader = Shader::GetRegistry().GetContent(mesh->shaderID);
 
-        if (vkCameraDescriptorSet != VK_NULL_HANDLE)
+        if (vkDescriptorSet != VK_NULL_HANDLE)
         {
             vkFreeDescriptorSets(
                 logicalDevice,
                 GraphicsContext::GetDescriptorPool(),
                 1,
-                &vkCameraDescriptorSet);
+                &vkDescriptorSet);
 
-            vkCameraDescriptorSet = VK_NULL_HANDLE;
+            vkDescriptorSet = VK_NULL_HANDLE;
         }
 
         if (vmaCameraUBOAllocation != VK_NULL_HANDLE)
@@ -322,7 +321,7 @@ namespace KalaGraphics::Resources
             descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
             descriptorSetAllocateInfo.descriptorPool = GraphicsContext::GetDescriptorPool();
             descriptorSetAllocateInfo.descriptorSetCount = 1;
-            descriptorSetAllocateInfo.pSetLayouts = &shader->descriptorSetLayout;
+            descriptorSetAllocateInfo.pSetLayouts = &shader->descriptorSetLayouts[1];
 
             VkDescriptorSet newDescriptorSet;
             VkResult vkResult = vkAllocateDescriptorSets(
@@ -339,7 +338,7 @@ namespace KalaGraphics::Resources
                     + GraphicsContext::GetVkResultMessage(vkResult));
             }
 
-            vkCameraDescriptorSet = newDescriptorSet;
+            vkDescriptorSet = newDescriptorSet;
 
             //reassign descriptor set data because we have a new mesh
             reassign = true;
@@ -596,7 +595,7 @@ namespace KalaGraphics::Resources
 
             VkWriteDescriptorSet writes[1]{};
             writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            writes[0].dstSet = vkCameraDescriptorSet;
+            writes[0].dstSet = vkDescriptorSet;
             writes[0].dstBinding = 0;
             writes[0].descriptorCount = 1;
             writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -696,7 +695,7 @@ namespace KalaGraphics::Resources
 
     VkBuffer Camera::GetBuffer() { return vkCameraUBOBuffer; }
     VmaAllocation Camera::GetAllocation() { return vmaCameraUBOAllocation; }
-    VkDescriptorSet Camera::GetDescriptorSet() { return vkCameraDescriptorSet; }
+    VkDescriptorSet Camera::GetDescriptorSet() { return vkDescriptorSet; }
 
     void Camera::Destroy()
     {
@@ -760,15 +759,15 @@ namespace KalaGraphics::Resources
             cameraUBOMappedPtr = nullptr;
         }
 
-        if (vkCameraDescriptorSet != VK_NULL_HANDLE)
+        if (vkDescriptorSet != VK_NULL_HANDLE)
         {
             vkFreeDescriptorSets(
                 logicalDevice,
                 GraphicsContext::GetDescriptorPool(),
                 1,
-                &vkCameraDescriptorSet);
+                &vkDescriptorSet);
 
-            vkCameraDescriptorSet = VK_NULL_HANDLE;
+            vkDescriptorSet = VK_NULL_HANDLE;
         }
     }
 }

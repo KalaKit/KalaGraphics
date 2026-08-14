@@ -20,6 +20,7 @@ namespace KalaGraphics::Import
     using std::vector;
     using std::string;
     using std::string_view;
+    using std::default_delete;
 
     using u8 = uint8_t;
     using u32 = uint32_t;
@@ -34,6 +35,7 @@ namespace KalaGraphics::Import
 
     class LIB_API ImportMesh
     {
+    friend struct default_delete<ImportMesh>;
     public:
         static KalaGraphicsRegistry<ImportMesh>& GetRegistry();
 
@@ -45,9 +47,9 @@ namespace KalaGraphics::Import
         const MeshData& GetMeshData() const;
 
         void Destroy();
-
-        ~ImportMesh();
     private:
+        ~ImportMesh();
+
         static string Init_GLTF(
             vector<u8>&& binaryData,
             MeshData& outMeshData);
