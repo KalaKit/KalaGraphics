@@ -69,6 +69,7 @@ namespace KalaGraphics::Resources
     {
     friend class KalaGraphics::Core::GraphicsContext;
     friend class Mesh;
+    friend class Texture;
     friend class Camera;
     friend default_delete<Shader>;
     public:
@@ -87,6 +88,7 @@ namespace KalaGraphics::Resources
         bool Is2D() const;
 
         const vector<u32>& GetMeshIDs() const;
+        const vector<u32>& GetTextureIDs() const;
         const vector<u32>& GetCameraIDs() const;
 
         //First time init or hot-reload shaders
@@ -96,14 +98,13 @@ namespace KalaGraphics::Resources
             path&& fragPath,
             path&& geomPath = {});
 
-        vector<VkDescriptorSetLayout> GetDescriptorSetLayouts();
-
-        VkPipelineLayout GetPipelineLayout();
-        VkPipeline GetPipeline();
+        const vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts();
 
         void Destroy();
     private:
         ~Shader();
+
+        static void DestroyVkShaderModules(vector<VkShaderModule> modules);
 
         void Update(VkCommandBuffer buffer);
 
@@ -116,6 +117,7 @@ namespace KalaGraphics::Resources
         u32 contextID{};
 
         vector<u32> meshIDs{};
+        vector<u32> textureIDs{};
         vector<u32> cameraIDs{};
 
         bool is2D{};

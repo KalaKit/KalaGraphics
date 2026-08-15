@@ -26,6 +26,15 @@ namespace KalaGraphics::Core
 
 namespace KalaGraphics::Resources
 {
+    using KalaHeaders::KalaMath::Transform3D;
+    using KalaHeaders::KalaMath::vec2;
+    using KalaHeaders::KalaMath::vec3;
+    using KalaHeaders::KalaMath::mat4;
+
+    using KalaGraphics::Core::KalaGraphicsRegistry;
+
+    using std::default_delete;
+
     //min and max allowed raw deltatime for mouse
     constexpr f32 MOUSE_MAX = 100.0f;
 
@@ -40,15 +49,6 @@ namespace KalaGraphics::Resources
 
     constexpr f32 DRAW_DISTANCE_MIN = 0.001f;
     constexpr f32 DRAW_DISTANCE_MAX = 10000.0f;
-
-    using KalaHeaders::KalaMath::Transform3D;
-    using KalaHeaders::KalaMath::vec2;
-    using KalaHeaders::KalaMath::vec3;
-    using KalaHeaders::KalaMath::mat4;
-
-    using KalaGraphics::Core::KalaGraphicsRegistry;
-
-    using std::default_delete;
 
     enum class CameraType : u8
     {
@@ -80,14 +80,6 @@ namespace KalaGraphics::Resources
         u32 GetMeshID() const;
         void SetMeshID(u32 newValue);
 
-        bool IsActiveCamera() const;
-        //Assign this camera as the active camera,
-        //only one camera is allowed to draw across all shaders
-        void SetAsActiveCamera();
-
-        CameraType GetCameraType() const;
-        void SetCameraType(CameraType type);
-
         //Pass mouse and keyboard input to this camera,
         //Keyboard is internally clamped to -1, 1,
         //Mouse is clamped to MOUSE_MAX,
@@ -100,10 +92,16 @@ namespace KalaGraphics::Resources
             f32 vertical = {},
             f32 deltaTime = {});
 
-        //Should be called after updating any texture data, unless Move is called
-        void UpdateCameraData();
+        const Transform3D& GetTransform() const;
+        void SetTransform(Transform3D&& newTransform);
 
-        Transform3D& GetTransform();
+        bool IsActiveCamera() const;
+        //Assign this camera as the active camera,
+        //only one camera is allowed to draw across all shaders
+        void SetAsActiveCamera();
+
+        CameraType GetCameraType() const;
+        void SetCameraType(CameraType type);
 
         f32 GetSpeedMultiplier() const;
         void SetSpeedMultiplier(f32 newSpeed);
@@ -117,11 +115,11 @@ namespace KalaGraphics::Resources
         vec2 GetDrawDistance() const;
         void SetDrawDistance(vec2 newDraw);
 
-        const mat4& GetCameraMatrix() const;
+        const mat4& GetMatrix() const;
 
-        VkBuffer GetBuffer();
-        VmaAllocation GetAllocation();
-        VkDescriptorSet GetDescriptorSet();
+        //Should be called after updating any camera data,
+        //move already calls this function
+        void UpdateCameraData();
 
         void Destroy();
     private:
@@ -149,7 +147,8 @@ namespace KalaGraphics::Resources
         mat4 projectionMatrix{};
         mat4 orthographicMatrix{};
 
-        bool reassign{};
+        bool isDirty{};
+
         VkBuffer vkCameraUBOBuffer{};
         VmaAllocation vmaCameraUBOAllocation{};
         void* cameraUBOMappedPtr{};

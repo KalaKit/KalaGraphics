@@ -81,14 +81,6 @@ namespace KalaGraphics::Resources
 
     Camera* Camera::Initialize(u32 shaderID)
     {
-        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
-        if (logicalDevice == VK_NULL_HANDLE)
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics camera error",
-                "Failed to create camera because the logical device was invalid!");
-        }
-
         Shader* shader = Shader::GetRegistry().GetContent(shaderID);
         if (!shader)
         {
@@ -115,6 +107,7 @@ namespace KalaGraphics::Resources
             return nullptr;
         }
 
+        //TODO: figure out a better solution
         if (shader->descriptorSetLayouts.empty())
         {
             Log::Print(
@@ -141,33 +134,8 @@ namespace KalaGraphics::Resources
 
         cameraPtr->viewport = gctx->GetExtent();
 
-        //assign descriptor set for camera
-        {
-            VkDescriptorSetAllocateInfo descriptorSetAllocateInfo{};
-            descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-            descriptorSetAllocateInfo.descriptorPool = GraphicsContext::GetDescriptorPool();
-            descriptorSetAllocateInfo.descriptorSetCount = 1;
-            descriptorSetAllocateInfo.pSetLayouts = &shader->descriptorSetLayouts[1];
-
-            VkDescriptorSet newDescriptorSet;
-            VkResult vkResult = vkAllocateDescriptorSets(
-                logicalDevice,
-                &descriptorSetAllocateInfo,
-                &newDescriptorSet);
-
-            if (vkResult != VK_SUCCESS)
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics camera error",
-                    "Failed to create camera because descriptor set init failed! Reason: " 
-                    + GraphicsContext::GetVkResultMessage(vkResult));
-            }
-
-            cameraPtr->vkDescriptorSet = newDescriptorSet;
-
-            //always assign descriptor set data at camera init
-            cameraPtr->reassign = true;
-        }
+        //always assign descriptor set data at camera init
+        cameraPtr->isDirty = true;
 
         //blank data for empty camera,
         //move also calls UpdateCameraData
@@ -191,6 +159,8 @@ namespace KalaGraphics::Resources
     u32 Camera::GetShaderId() const { return shaderID; }
     void Camera::SetShaderID(u32 newValue)
     {
+        //TODO: figure out if changing shader messes up meshes
+
         if (shaderID == newValue)
         {
             Log::Print(
@@ -341,7 +311,7 @@ namespace KalaGraphics::Resources
             vkDescriptorSet = newDescriptorSet;
 
             //reassign descriptor set data because we have a new mesh
-            reassign = true;
+            isDirty = true;
 
             UpdateCameraData();
 
@@ -357,60 +327,6 @@ namespace KalaGraphics::Resources
                 "Cleared camera '" + to_string(ID) + "' mesh ID.",
                 "KG_CAMERA",
                 LogType::LOG_INFO);
-        }
-    }
-
-    bool Camera::IsActiveCamera() const { return isActiveCamera; }
-    void Camera::SetAsActiveCamera()
-    {
-        if (isActiveCamera)
-        {
-            Log::Print(
-                "Failed to set camera '" + to_string(ID) 
-                + "' as active because it already is active!",
-                "KG_CAMERA",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        for (Camera* c : registry.GetAllContent())
-        {
-            if (!c)
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics camera error",
-                    "Failed to set camera '" + to_string(ID) + "' active state "
-                    "because an invalid camera was found!");
-            }
-
-            if (c->isActiveCamera)
-            {
-                c->isActiveCamera = false;
-                break;
-            }
-        }
-
-        isActiveCamera = true;
-    }
-
-    CameraType Camera::GetCameraType() const { return type; }
-    void Camera::SetCameraType(CameraType newValue)
-    {
-        switch (newValue)
-        {
-        case CameraType::C_INVALID:
-            Log::Print(
-                "Failed to set camera '" + to_string(ID) 
-                + "' type because it was invalid!");
-            break;
-        case CameraType::C_ORTHOGRAPHIC:
-            type = CameraType::C_ORTHOGRAPHIC;
-            break;
-        case CameraType::C_PERSPECTIVE:
-            type = CameraType::C_PERSPECTIVE;
-            break;
         }
     }
 
@@ -517,17 +433,21 @@ namespace KalaGraphics::Resources
         UpdateCameraData();
     }
 
-    void Camera::UpdateCameraData()
+    const Transform3D& Camera::GetTransform() const { return transform; }
+    void Camera::SetTransform(Transform3D&& newTransform)
     {
-        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
-        VmaAllocator allocator = GraphicsContext::GetVmaAllocator();
+        //TODO: figure out if transform safety checks are even needed
+        transform = std::move(newTransform);
+    }
 
-        Shader* shader = Shader::GetRegistry().GetContent(shaderID);
-        if (!shader)
+    bool Camera::IsActiveCamera() const { return isActiveCamera; }
+    void Camera::SetAsActiveCamera()
+    {
+        if (isActiveCamera)
         {
             Log::Print(
-                "Failed to update camera '" + to_string(ID) 
-                + "' data because the shader '" + to_string(shaderID) + "' was invalid!",
+                "Failed to set camera '" + to_string(ID) 
+                + "' as active because it already is active!",
                 "KG_CAMERA",
                 LogType::LOG_ERROR,
                 2);
@@ -535,84 +455,58 @@ namespace KalaGraphics::Resources
             return;
         }
 
-        if (vmaCameraUBOAllocation == VK_NULL_HANDLE)
+        for (Camera* c : registry.GetAllContent())
         {
-            size_t bufferSize = sizeof(mat4);
-
-            VkBufferCreateInfo bufferInfo{};
-            bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            bufferInfo.size = bufferSize;
-            bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-            bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-            VmaAllocationCreateInfo allocInfo{};
-            allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-            allocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-            allocInfo.flags = 
-                VMA_ALLOCATION_CREATE_MAPPED_BIT
-                | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
-
-            VkBuffer vkBuffer = VK_NULL_HANDLE;
-            VmaAllocation vmaAllocation = VK_NULL_HANDLE;
-            VmaAllocationInfo allocResult{};
-
-            VkResult result = vmaCreateBuffer(
-                allocator,
-                &bufferInfo,
-                &allocInfo,
-                &vkBuffer,
-                &vmaAllocation,
-                &allocResult);
-
-            if (result != VK_SUCCESS)
+            if (!c)
             {
-                Log::Print(
-                    "Failed to update camera '" + to_string(ID) 
-                    + "' UBO data because camera UBO vk buffer creation failed!",
-                    "KG_CAMERA",
-                    LogType::LOG_ERROR,
-                    2);
-
-                return;
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics camera error",
+                    "Failed to set camera '" + to_string(ID) + "' active state "
+                    "because an invalid camera was found!");
             }
 
-            vkCameraUBOBuffer = vkBuffer;
-            vmaCameraUBOAllocation = vmaAllocation;
-            cameraUBOMappedPtr = allocResult.pMappedData;
+            if (c->isActiveCamera)
+            {
+                c->isActiveCamera = false;
+                break;
+            }
         }
 
-        memcpy(
-            cameraUBOMappedPtr,
-            &GetCameraMatrix(),
-            sizeof(mat4));
+        isActiveCamera = true;
 
-        if (reassign)
-        {
-            VkDescriptorBufferInfo transformInfo{};
-            transformInfo.buffer = vkCameraUBOBuffer;
-            transformInfo.offset = 0;
-            transformInfo.range = sizeof(mat4);
-
-            VkWriteDescriptorSet writes[1]{};
-            writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            writes[0].dstSet = vkDescriptorSet;
-            writes[0].dstBinding = 0;
-            writes[0].descriptorCount = 1;
-            writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            writes[0].pBufferInfo = &transformInfo;
-
-            vkUpdateDescriptorSets(
-                logicalDevice,
-                1,
-                writes,
-                0,
-                nullptr);
-
-            reassign = false;
-        }
+        Log::Print(
+            "Set camera '" + to_string(ID) + "' as active camera.",
+            "KG_CAMERA",
+            LogType::LOG_SUCCESS);
     }
 
-    Transform3D& Camera::GetTransform() { return transform; }
+    CameraType Camera::GetCameraType() const { return type; }
+    void Camera::SetCameraType(CameraType newValue)
+    {
+        string camType{};
+
+        switch (newValue)
+        {
+        case CameraType::C_INVALID:
+            Log::Print(
+                "Failed to set camera '" + to_string(ID) 
+                + "' type because it was invalid!");
+            break;
+        case CameraType::C_ORTHOGRAPHIC:
+            camType = "orthographic";
+            type = CameraType::C_ORTHOGRAPHIC;
+            break;
+        case CameraType::C_PERSPECTIVE:
+            camType = "perspective";
+            type = CameraType::C_PERSPECTIVE;
+            break;
+        }
+
+        Log::Print(
+            "Set camera '" + to_string(ID) + "' type to '" + camType + "'.",
+            "KG_CAMERA",
+            LogType::LOG_SUCCESS);
+    }
 
     f32 Camera::GetSpeedMultiplier() const { return speedMultiplier; }
     void Camera::SetSpeedMultiplier(f32 newValue)
@@ -630,6 +524,11 @@ namespace KalaGraphics::Resources
         }
 
         speedMultiplier = newValue;
+
+        Log::Print(
+            "Set camera '" + to_string(ID) + "' speed multiplier to '" + to_string(speedMultiplier) + "'.",
+            "KG_CAMERA",
+            LogType::LOG_SUCCESS);
     }
 
     f32 Camera::GetSensitivityMultiplier() const { return sensitivityMultiplier; }
@@ -648,6 +547,11 @@ namespace KalaGraphics::Resources
         }
 
         sensitivityMultiplier = newValue;
+
+        Log::Print(
+            "Set camera '" + to_string(ID) + "' sensitivity multiplier to '" + to_string(sensitivityMultiplier) + "'.",
+            "KG_CAMERA",
+            LogType::LOG_SUCCESS);
     }
 
     f32 Camera::GetFOV() const { return fov; }
@@ -666,6 +570,11 @@ namespace KalaGraphics::Resources
         }
 
         fov = newValue;
+
+        Log::Print(
+            "Set camera '" + to_string(ID) + "' fov to '" + to_string(fov) + "'.",
+            "KG_CAMERA",
+            LogType::LOG_SUCCESS);
     }
 
     vec2 Camera::GetDrawDistance() const { return drawDistance; }
@@ -684,18 +593,162 @@ namespace KalaGraphics::Resources
         }
 
         drawDistance = newValue;
+
+        Log::Print(
+            "Set camera '" + to_string(ID) + "' draw distance to '" + to_string(drawDistance.x) + ", " + to_string(drawDistance.y) + "'.",
+            "KG_CAMERA",
+            LogType::LOG_SUCCESS);
     }
 
-    const mat4& Camera::GetCameraMatrix() const
+    const mat4& Camera::GetMatrix() const
     { 
         return type == CameraType::C_ORTHOGRAPHIC
             ? orthographicMatrix
             : projectionMatrix;
     }
 
-    VkBuffer Camera::GetBuffer() { return vkCameraUBOBuffer; }
-    VmaAllocation Camera::GetAllocation() { return vmaCameraUBOAllocation; }
-    VkDescriptorSet Camera::GetDescriptorSet() { return vkDescriptorSet; }
+    void Camera::UpdateCameraData()
+    {
+        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
+        if (logicalDevice == VK_NULL_HANDLE)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics camera error",
+                "Failed to update camera '" + to_string(ID) 
+                + "' data because the logical device was invalid!");
+        }
+
+        VmaAllocator allocator = GraphicsContext::GetVmaAllocator();
+        if (!allocator)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics camera error",
+                "Failed to update camera '" + to_string(ID) + "' data "
+                "because the vma allocator was invalid!");
+        }
+
+        Shader* shader = Shader::GetRegistry().GetContent(shaderID);
+        if (!shader)
+        {
+            Log::Print(
+                "Failed to update camera '" + to_string(ID) 
+                + "' data because the shader '" + to_string(shaderID) + "' was invalid!",
+                "KG_CAMERA",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (vkDescriptorSet == VK_NULL_HANDLE)
+        {
+            //
+            // DESCRIPTOR SET
+            //
+
+            VkDescriptorSetAllocateInfo descriptorSetAllocateInfo{};
+            descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+            descriptorSetAllocateInfo.descriptorPool = GraphicsContext::GetDescriptorPool();
+            descriptorSetAllocateInfo.descriptorSetCount = 1;
+            descriptorSetAllocateInfo.pSetLayouts = &shader->descriptorSetLayouts[0];
+
+            VkDescriptorSet newDescriptorSet;
+            VkResult vkResult = vkAllocateDescriptorSets(
+                logicalDevice,
+                &descriptorSetAllocateInfo,
+                &newDescriptorSet);
+
+            if (vkResult != VK_SUCCESS)
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics camera update error",
+                    "Failed to update camera because descriptor set init failed! Reason: " 
+                    + GraphicsContext::GetVkResultMessage(vkResult));
+            }
+
+            vkDescriptorSet = newDescriptorSet;
+
+            //
+            // VMA ALLOCATOR
+            //
+
+            size_t bufferSize = sizeof(mat4);
+
+            VkBufferCreateInfo bufferInfo{};
+            bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+            bufferInfo.size = bufferSize;
+            bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+            bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+            VmaAllocationCreateInfo allocInfo{};
+            allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+            allocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+            allocInfo.flags = 
+                VMA_ALLOCATION_CREATE_MAPPED_BIT
+                | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+
+            VkBuffer newBuffer{};
+            VmaAllocation newAllocation{};
+            VmaAllocationInfo allocResult{};
+
+            VkResult result = vmaCreateBuffer(
+                allocator,
+                &bufferInfo,
+                &allocInfo,
+                &newBuffer,
+                &newAllocation,
+                &allocResult);
+
+            if (result != VK_SUCCESS)
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics camera update error",
+                    "Failed to update camera because vma allocator init failed! Reason: " 
+                    + GraphicsContext::GetVkResultMessage(vkResult));
+            }
+
+            vkCameraUBOBuffer = newBuffer;
+            vmaCameraUBOAllocation = newAllocation;
+            cameraUBOMappedPtr = allocResult.pMappedData;
+        }
+
+        memcpy(
+            cameraUBOMappedPtr,
+            &GetMatrix(),
+            sizeof(mat4));
+
+        if (isDirty)
+        {
+            VkDescriptorBufferInfo transformInfo{};
+            transformInfo.buffer = vkCameraUBOBuffer;
+            transformInfo.offset = 0;
+            transformInfo.range = sizeof(mat4);
+
+            VkWriteDescriptorSet writes[1]{};
+            writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writes[0].dstSet = vkDescriptorSet;
+            writes[0].dstBinding = 0; // <<<< SET 0 BINDING 0 - CAMERA UBO SLOT
+            writes[0].descriptorCount = 1;
+            writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            writes[0].pBufferInfo = &transformInfo;
+
+            vkUpdateDescriptorSets(
+                logicalDevice,
+                1,
+                writes,
+                0,
+                nullptr);
+
+            isDirty = false;
+        }
+
+        /*
+        Log::Print(
+            "Updated camera '" + to_string(ID) + "' data!",
+            "KG_CAMERA",
+            LogType::LOG_SUCCESS);
+        */
+    }
 
     void Camera::Destroy()
     {
@@ -754,8 +807,6 @@ namespace KalaGraphics::Resources
                 vkCameraUBOBuffer,
                 vmaCameraUBOAllocation);
 
-            vkCameraUBOBuffer = VK_NULL_HANDLE;
-            vmaCameraUBOAllocation = VK_NULL_HANDLE;
             cameraUBOMappedPtr = nullptr;
         }
 
@@ -766,8 +817,6 @@ namespace KalaGraphics::Resources
                 GraphicsContext::GetDescriptorPool(),
                 1,
                 &vkDescriptorSet);
-
-            vkDescriptorSet = VK_NULL_HANDLE;
         }
     }
 }

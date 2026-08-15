@@ -4,16 +4,16 @@ layout(location = 0) in vec2 inPosition;
 layout(location = 1) in vec2 inUV;
 layout(location = 2) in vec4 inColor;
 
-layout(push_constant) uniform Rect
-{
-    vec2 offset;
-    vec2 size;
-} rectData;
-
 layout(set = 0, binding = 0) uniform CameraUBO
 {
     mat4 projectionMatrix;
 } camera;
+
+layout(set = 1, binding = 0) uniform Rect
+{
+    vec2 offset;
+    vec2 size;
+} rectData;
 
 layout(location = 0) out vec2 outUV;
 layout(location = 1) out vec4 outColor;

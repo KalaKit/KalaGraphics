@@ -15,6 +15,7 @@
 
 #include "resources/kg_shader.hpp"
 #include "resources/kg_mesh.hpp"
+#include "resources/kg_texture.hpp"
 #include "resources/kg_camera.hpp"
 #include "core/kg_context.hpp"
 #include "core/kg_core.hpp"
@@ -51,7 +52,7 @@ struct ShaderModule
 {
     bool success{};
     VkShaderModule vkModule{};
-    SpvReflectShaderModule spvModule{};
+    SpvReflectShaderModule* spvModule{};
 };
 
 struct PipelineInfo
@@ -84,7 +85,6 @@ static unique_ptr<PipelineInfo> GetPipelineInfo(
     unique_ptr<PipelineInfo> pi = make_unique<PipelineInfo>();
 
     pi->stages = std::move(stages);
-
 
     pi->bindingDescription.binding   = 0;
     pi->bindingDescription.stride    = is2D ? sizeof(Vertex2D) : sizeof(Vertex);
@@ -177,6 +177,8 @@ static unique_ptr<PipelineInfo> GetPipelineInfo(
     pi->multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     pi->multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
+    //TODO: fix depth for 2D
+
     pi->depthStencil.sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     pi->depthStencil.depthTestEnable  = VK_TRUE;
     pi->depthStencil.depthWriteEnable = VK_TRUE;
@@ -211,23 +213,12 @@ static unique_ptr<PipelineInfo> GetPipelineInfo(
     return pi;
 }
 
-static void DestroyVkShaderModules(vector<VkShaderModule> modules)
-{
-    VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
-
-    for (const auto& m : modules)
-    {
-        vkDestroyShaderModule(
-            logicalDevice,
-            m,
-            nullptr);
-    }
-};
 static void DestroySpvShaderModules(vector<SpvReflectShaderModule*> modules)
 {
-    for (const auto& m : modules)
+    for (SpvReflectShaderModule* m : modules)
     {
         spvReflectDestroyShaderModule(m);
+        delete m;
     }
 };
 
@@ -430,6 +421,7 @@ namespace KalaGraphics::Resources
     }
 
     const vector<u32>& Shader::GetMeshIDs() const { return meshIDs; }
+    const vector<u32>& Shader::GetTextureIDs() const { return textureIDs; }
     const vector<u32>& Shader::GetCameraIDs() const { return cameraIDs; }
 
     void Shader::SetShaderData(
@@ -583,12 +575,14 @@ namespace KalaGraphics::Resources
                 createInfo.codeSize = outData.size();
                 createInfo.pCode = rcast<const u32*>(outData.data());
 
-                VkShaderModule shaderModule{};
+                ShaderModule shaderModule{};
+
+                VkShaderModule vkShaderModule{};
                 VkResult vkResult = vkCreateShaderModule(
                     logicalDevice,
                     &createInfo,
                     nullptr,
-                    &shaderModule);
+                    &vkShaderModule);
 
                 if (vkResult != VK_SUCCESS)
                 {
@@ -616,11 +610,11 @@ namespace KalaGraphics::Resources
                     return { false };
                 }
 
-                SpvReflectShaderModule reflectModule{};
+                SpvReflectShaderModule* spvShaderModule = new SpvReflectShaderModule{};
                 SpvReflectResult reflResult = spvReflectCreateShaderModule(
                     outData.size(),
                     outData.data(),
-                    &reflectModule);
+                    spvShaderModule);
 
                 if (reflResult != SPV_REFLECT_RESULT_SUCCESS)
                 {
@@ -633,10 +627,17 @@ namespace KalaGraphics::Resources
                         LogType::LOG_ERROR,
                         2);
 
+                    delete spvShaderModule;
+
                     return { false };
                 }
 
-                return { true, shaderModule};
+                return 
+                { 
+                    .success = true, 
+                    .vkModule = vkShaderModule, 
+                    .spvModule = spvShaderModule
+                };
             };
 
         //
@@ -650,21 +651,21 @@ namespace KalaGraphics::Resources
         else
         {
             newShaderModuleData.vkModule_vert = module_vert.vkModule;
-            newShaderModuleData.spvModule_vert = FromVar(&module_vert.spvModule);
+            newShaderModuleData.spvModule_vert = FromVar(module_vert.spvModule);
         }
 
         ShaderModule module_frag = create_shader_module("fragment", fragPath);
         if (!module_frag.success)
         {
             DestroyVkShaderModules({ module_vert.vkModule });
-            DestroySpvShaderModules({ &module_vert.spvModule });
+            DestroySpvShaderModules({ module_vert.spvModule });
 
             return;
         }
         else
         {
             newShaderModuleData.vkModule_frag = module_frag.vkModule;
-            newShaderModuleData.spvModule_frag = FromVar(&module_frag.spvModule);
+            newShaderModuleData.spvModule_frag = FromVar(module_frag.spvModule);
         }
 
         ShaderModule module_geom{};
@@ -681,8 +682,8 @@ namespace KalaGraphics::Resources
 
                 DestroySpvShaderModules(
                     {
-                        &module_vert.spvModule,
-                        &module_frag.spvModule
+                        module_vert.spvModule,
+                        module_frag.spvModule
                     });
 
                 return;
@@ -692,7 +693,7 @@ namespace KalaGraphics::Resources
                 newShaderModuleData.usingGeom = true;
 
                 newShaderModuleData.vkModule_geom = module_geom.vkModule;
-                newShaderModuleData.spvModule_geom = FromVar(&module_geom.spvModule);
+                newShaderModuleData.spvModule_geom = FromVar(module_geom.spvModule);
             }
         }
 
@@ -808,9 +809,11 @@ namespace KalaGraphics::Resources
                 layoutBinding.binding = refl->binding;
                 layoutBinding.descriptorType = scast<VkDescriptorType>(refl->descriptor_type);
                 layoutBinding.descriptorCount = std::max(
-                    layoutBinding.descriptorCount,
+                    1u,
                     refl->count);
-                layoutBinding.stageFlags |= scast<VkShaderStageFlags>(refl->accessed);
+                layoutBinding.stageFlags |= 
+                    scast<VkShaderStageFlags>(refl->accessed)
+                    | scast<VkShaderStageFlags>(mod->shader_stage);
                 layoutBinding.pImmutableSamplers = nullptr;
             }
         }
@@ -1134,15 +1137,10 @@ namespace KalaGraphics::Resources
         shaderModuleData = std::move(newShaderModuleData);
 
         Log::Print(
-            "Assigned new shader data for shader '" + to_string(ID) 
-            + "' under graphics context '" + to_string(contextID) + "'!",
+            "Updated shader '" + to_string(ID) + "' data!",
             "KG_SHADER",
             LogType::LOG_SUCCESS);
     }
-
-    vector<VkDescriptorSetLayout> Shader::GetDescriptorSetLayouts() { return descriptorSetLayouts; }
-    VkPipelineLayout Shader::GetPipelineLayout() { return pipelineLayout; }
-    VkPipeline Shader::GetPipeline() { return pipeline; }
 
     void Shader::Update(VkCommandBuffer cmdBuffer)
     {
@@ -1202,7 +1200,7 @@ namespace KalaGraphics::Resources
                     cmdBuffer,
                     VK_PIPELINE_BIND_POINT_GRAPHICS,
                     pipelineLayout,
-                    0, // <<<<< - camera must always be set 0
+                    0, // <<<< SET 0 BINDING 0 - CAMERA UBO SLOT
                     1,
                     &camera->vkDescriptorSet,
                     0,
@@ -1226,7 +1224,7 @@ namespace KalaGraphics::Resources
             if (mesh->vkVertexBuffer == VK_NULL_HANDLE)
             {
                 //skip mesh if it has no vertex buffer data
-                if (mesh->vertexBufferSize == 0) continue;
+                if (mesh->verticesSize == 0) continue;
                 //invalid mesh, vertex buffer was removed for calculated mesh data
                 else
                 {
@@ -1239,7 +1237,7 @@ namespace KalaGraphics::Resources
                 }
             }
             //vertex buffer was added but its data was not assigned
-            else if (mesh->vertexBufferSize == 0)
+            else if (mesh->verticesSize == 0)
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics shader error",
@@ -1253,9 +1251,29 @@ namespace KalaGraphics::Resources
                 cmdBuffer,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
                 pipelineLayout,
-                1, // <<<<< - mesh must always be set 1
+                1, // <<<< SET 1 BINDING 0 - MESH UBO SLOT
                 1,
                 &mesh->vkDescriptorSet,
+                0,
+                nullptr);
+
+            Texture* texture = Texture::GetRegistry().GetContent(mesh->textureID);
+            if (!texture)
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics shader error",
+                    "Failed to render mesh '" + to_string(meshID) 
+                    + "' on shader '" + to_string(ID) 
+                    + "' because its texture '" + to_string(mesh->textureID) + "' was invalid!");
+            }
+
+            vkCmdBindDescriptorSets(
+                cmdBuffer,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                pipelineLayout,
+                2, // <<<< SET 2 BINDING 0 - TEXTURE SAMPLER SLOT
+                1,
+                &texture->vkDescriptorSet,
                 0,
                 nullptr);
 
@@ -1279,7 +1297,7 @@ namespace KalaGraphics::Resources
             else
             {
                 //vertex buffer was added but its data was not assigned
-                if (mesh->indexBufferSize == 0)
+                if (mesh->indicesSize == 0)
                 {
                     KalaGraphicsCore::ForceClose(
                         "KalaGraphics shader error",
@@ -1307,6 +1325,19 @@ namespace KalaGraphics::Resources
         }
     }
 
+    void Shader::DestroyVkShaderModules(vector<VkShaderModule> modules)
+    {
+        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
+
+        for (const auto& m : modules)
+        {
+            vkDestroyShaderModule(
+                logicalDevice,
+                m,
+                nullptr);
+        }
+    };
+
     void Shader::Destroy()
     {
         for (u32 cID : cameraIDs)
@@ -1315,6 +1346,13 @@ namespace KalaGraphics::Resources
             if (c) c->shaderID = 0;
         }
         cameraIDs.clear();
+
+        for (u32 tID : textureIDs)
+        {
+            Texture* t = Texture::GetRegistry().GetContent(tID);
+            if (t) t->shaderID = 0;
+        }
+        textureIDs.clear();
 
         for (u32 mID : meshIDs)
         {

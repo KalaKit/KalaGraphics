@@ -14,6 +14,7 @@
 #include "core/kg_core.hpp"
 #include "core/kg_context.hpp"
 #include "resources/kg_shader.hpp"
+#include "resources/kg_texture.hpp"
 #include "resources/kg_camera.hpp"
 
 using KalaHeaders::KalaLog::Log;
@@ -35,7 +36,9 @@ namespace KalaGraphics::Resources
 
     KalaGraphicsRegistry<Mesh>& Mesh::GetRegistry() { return registry; }
 
-    Mesh* Mesh::Initialize(u32 shaderID)
+    Mesh* Mesh::Initialize(
+        u32 shaderID,
+        u32 textureID)
     {
         VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
         if (logicalDevice == VK_NULL_HANDLE)
@@ -57,11 +60,24 @@ namespace KalaGraphics::Resources
             return nullptr;
         }
 
+        //TODO: figure out a better solution
         if (shader->descriptorSetLayouts.empty())
         {
             Log::Print(
                 "Failed to create mesh because the shader '" 
                 + to_string(shaderID) + "' had no shader data!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return nullptr;
+        }
+
+        Texture* texture = Texture::GetRegistry().GetContent(textureID);
+        if (!texture)
+        {
+            Log::Print(
+                "Failed to create mesh because texture '" + to_string(textureID) + "' was invalid!",
                 "KG_MESH",
                 LogType::LOG_ERROR,
                 2);
@@ -77,37 +93,18 @@ namespace KalaGraphics::Resources
 
         meshPtr->ID = newID;
         meshPtr->shaderID = shaderID;
+        meshPtr->textureID = textureID;
+
+        //texture references this mesh
+        texture->meshIDs.push_back(newID);
 
         //shader references this mesh
         shader->meshIDs.push_back(newID);
 
-        //assign descriptor set for camera
-        {
-            VkDescriptorSetAllocateInfo descriptorSetAllocateInfo{};
-            descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-            descriptorSetAllocateInfo.descriptorPool = GraphicsContext::GetDescriptorPool();
-            descriptorSetAllocateInfo.descriptorSetCount = 1;
-            descriptorSetAllocateInfo.pSetLayouts = &shader->descriptorSetLayouts[1];
+        //always assign descriptor set data at mesh init
+        meshPtr->isDirty = true;
 
-            VkDescriptorSet newDescriptorSet;
-            VkResult vkResult = vkAllocateDescriptorSets(
-                logicalDevice,
-                &descriptorSetAllocateInfo,
-                &newDescriptorSet);
-
-            if (vkResult != VK_SUCCESS)
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics camera error",
-                    "Failed to create camera because descriptor set init failed! Reason: " 
-                    + GraphicsContext::GetVkResultMessage(vkResult));
-            }
-
-            meshPtr->vkDescriptorSet = newDescriptorSet;
-
-            //always assign descriptor set data at mesh init
-            //meshPtr->reassign = true;
-        }
+        meshPtr->UpdateMeshData();
 
         registry.AddContent(newID, std::move(newMesh));
 
@@ -126,6 +123,8 @@ namespace KalaGraphics::Resources
     u32 Mesh::GetShaderID() const { return shaderID; }
     void Mesh::SetShaderID(u32 newValue)
     {
+        //TODO: figure out if changing shader messes up camera and texture
+
         if (shaderID == newValue)
         {
             Log::Print("Failed to set mesh '" + to_string(ID) 
@@ -169,23 +168,57 @@ namespace KalaGraphics::Resources
             LogType::LOG_SUCCESS);
     }
 
-    void Mesh::UpdateMeshData()
+    u32 Mesh::GetTextureID() const { return textureID; }
+    void Mesh::SetTextureID(u32 newValue)
     {
-        if (!Shader::GetRegistry().GetContent(shaderID))
+        if (textureID == newValue)
         {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics mesh error",
-                "Failed to update mesh '" + to_string(ID) 
-                + "' because its shader '" + to_string(shaderID) + "' was invalid!");
+            Log::Print("Failed to set mesh '" + to_string(ID) 
+                + "' texture ID to '" + to_string(newValue) 
+                + "' because it already is that value!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
         }
 
-        meshMatrix = createmodelmatrix(
-            transform.pos_world, 
-            transform.rot_world, 
-            transform.size_world);
+        Texture* oldTexture = Texture::GetRegistry().GetContent(textureID);
+        Texture* texture = Texture::GetRegistry().GetContent(newValue);
+        if (!texture)
+        {
+            Log::Print("Failed to set mesh '" + to_string(ID) 
+                + "' texture ID to '" + to_string(newValue) 
+                + "' because it was invalid!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
 
-        UpdateVertices();
-        UpdateIndices();
+            return;
+        }
+
+        textureID = newValue;
+
+        if (oldTexture)
+        {
+            erase(
+                oldTexture->meshIDs,
+                ID);
+        }
+        texture->meshIDs.push_back(ID);
+
+        Log::Print(
+            "Set mesh '" + to_string(ID) 
+            + "' texture ID to '" + to_string(textureID) + "'!",
+            "KG_MESH",
+            LogType::LOG_SUCCESS);
+    }
+
+    const Transform3D& Mesh::GetTransform() const { return transform; }
+    void Mesh::SetTransform(Transform3D&& newTransform)
+    {
+        //TODO: figure out if transform safety checks are even needed
+        transform = std::move(newTransform);
     }
 
     bool Mesh::Is2D() const { return is2D; }
@@ -225,22 +258,203 @@ namespace KalaGraphics::Resources
         }
 
         is2D = newState;
+
+        string state = is2D ? "true" : "false";
+
+        Log::Print(
+            "Set mesh '" + to_string(ID) + "' 2D state to '" + state + "'.",
+            "KG_MESH",
+            LogType::LOG_SUCCESS);
     }
 
-    Transform3D& Mesh::GetTransform() { return transform; }
+    const vector<Vertex>& Mesh::GetVertices() const { return vertices; }
+    void Mesh::SetVertices(vector<Vertex>&& newVertices)
+    {
+        size_t bufferSize = newVertices.size() * sizeof(Vertex);
+        if (bufferSize == 0)
+        {
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) + "' vertices "
+                "because no vertex data was passed!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
 
-    const mat4& Mesh::GetModelMatrix() const { return meshMatrix; }
+            return;
+        }
 
-    vector<Vertex>& Mesh::GetVertices() { return vertices; }
-    vector<u32>& Mesh::GetIndices() { return indices; }
+        vertices = std::move(newVertices);
+
+        UpdateVertices();
+    }
+
+    const vector<u32>& Mesh::GetIndices() const { return indices; }
+    void Mesh::SetIndices(vector<u32>&& newIndices)
+    {
+        //TODO: figure out if index safety checks are even needed
+        indices = std::move(newIndices);
+
+        UpdateIndices();
+    }
+
+    const mat4& Mesh::GetMatrix() const { return meshMatrix; }
+
+    void Mesh::UpdateMeshData()
+    {
+        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
+        if (logicalDevice == VK_NULL_HANDLE)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to update mesh '" + to_string(ID) 
+                + "' data because the logical device was invalid!");
+        }
+
+        VmaAllocator allocator = GraphicsContext::GetVmaAllocator();
+        if (!allocator)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to update mesh '" + to_string(ID) + "' data "
+                "because the vma allocator was invalid!");
+        }
+
+        Shader* shader = Shader::GetRegistry().GetContent(shaderID);
+        if (!shader)
+        {
+            Log::Print(
+                "Failed to update mesh '" + to_string(ID) 
+                + "' data because the shader '" + to_string(shaderID) + "' was invalid!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (vkDescriptorSet == VK_NULL_HANDLE)
+        {
+            //
+            // DESCRIPTOR SET
+            //
+
+            VkDescriptorSetAllocateInfo descriptorSetAllocateInfo{};
+            descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+            descriptorSetAllocateInfo.descriptorPool = GraphicsContext::GetDescriptorPool();
+            descriptorSetAllocateInfo.descriptorSetCount = 1;
+            descriptorSetAllocateInfo.pSetLayouts = &shader->descriptorSetLayouts[1];
+
+            VkDescriptorSet newDescriptorSet;
+            VkResult vkResult = vkAllocateDescriptorSets(
+                logicalDevice,
+                &descriptorSetAllocateInfo,
+                &newDescriptorSet);
+
+            if (vkResult != VK_SUCCESS)
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics mesh update error",
+                    "Failed to update mesh because descriptor set init failed! Reason: " 
+                    + GraphicsContext::GetVkResultMessage(vkResult));
+            }
+
+            vkDescriptorSet = newDescriptorSet;
+
+            //
+            // VMA ALLOCATOR
+            //
+
+            size_t bufferSize = sizeof(mat4);
+
+            VkBufferCreateInfo bufferInfo{};
+            bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+            bufferInfo.size = bufferSize;
+            bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+            bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+            VmaAllocationCreateInfo allocInfo{};
+            allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+            allocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+            allocInfo.flags = 
+                VMA_ALLOCATION_CREATE_MAPPED_BIT
+                | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+
+            VkBuffer newBuffer{};
+            VmaAllocation newAllocation{};
+            VmaAllocationInfo allocResult{};
+
+            VkResult result = vmaCreateBuffer(
+                allocator,
+                &bufferInfo,
+                &allocInfo,
+                &newBuffer,
+                &newAllocation,
+                &allocResult);
+
+            if (result != VK_SUCCESS)
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics mesh update error",
+                    "Failed to update mesh because vma allocator init failed! Reason: " 
+                    + GraphicsContext::GetVkResultMessage(vkResult));
+            }
+
+            vkMeshUBOBuffer = newBuffer;
+            vmaMeshUBOAllocation = newAllocation;
+            meshUBOMappedPtr = allocResult.pMappedData;
+        }
+
+        meshMatrix = createmodelmatrix(
+            transform.pos_world, 
+            transform.rot_world, 
+            transform.size_world);
+
+        memcpy(
+            meshUBOMappedPtr,
+            &meshMatrix,
+            sizeof(mat4));
+
+        if (isDirty)
+        {
+            VkDescriptorBufferInfo transformInfo{};
+            transformInfo.buffer = vkMeshUBOBuffer;
+            transformInfo.offset = 0;
+            transformInfo.range = sizeof(mat4);
+
+            VkWriteDescriptorSet writes[1]{};
+            writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writes[0].dstSet = vkDescriptorSet;
+            writes[0].dstBinding = 0; // <<<< SET 1 BINDING 0 - MESH UBO SLOT
+            writes[0].descriptorCount = 1;
+            writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            writes[0].pBufferInfo = &transformInfo;
+
+            vkUpdateDescriptorSets(
+                logicalDevice,
+                1,
+                writes,
+                0,
+                nullptr);
+
+            isDirty = false;
+        }
+
+        UpdateVertices();
+        UpdateIndices();
+
+        Log::Print(
+            "Updated mesh '" + to_string(ID) + "' data!",
+            "KG_MESH",
+            LogType::LOG_SUCCESS);
+    }
 
     void Mesh::UpdateVertices()
     {
         VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
         VmaAllocator allocator = GraphicsContext::GetVmaAllocator();
 
-        size_t bufferSize = vertices.size() * sizeof(Vertex);
-        if (bufferSize == 0)
+        u64 newSize = vertices.size() * sizeof(Vertex);
+        if (newSize == 0)
         {
             Log::Print(
                 "Failed to update vertices for mesh '" + to_string(ID) + "' because no vertex data was passed!",
@@ -251,9 +465,47 @@ namespace KalaGraphics::Resources
             return;
         }
 
-        if (bufferSize != vertexBufferSize
+        if (newSize != verticesSize
             || vkVertexBuffer == VK_NULL_HANDLE)
         {
+            VkBufferCreateInfo bufferInfo{};
+            bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+            bufferInfo.size = newSize;
+            bufferInfo.usage = 
+                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
+                | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+            bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+            VmaAllocationCreateInfo allocInfo{};
+            allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+            allocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+            allocInfo.flags = 
+                VMA_ALLOCATION_CREATE_MAPPED_BIT
+                | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+
+            VkBuffer newBuffer{};
+            VmaAllocation newAllocation{};
+            VmaAllocationInfo allocResult{};
+
+            VkResult result = vmaCreateBuffer(
+                allocator,
+                &bufferInfo,
+                &allocInfo,
+                &newBuffer,
+                &newAllocation,
+                &allocResult);
+
+            if (result != VK_SUCCESS)
+            {
+                Log::Print(
+                    "Failed to update vertices for mesh '" + to_string(ID) + "' because vertex vk buffer creation failed!",
+                    "KG_MESH",
+                    LogType::LOG_ERROR,
+                    2);
+
+                return;
+            }
+
             if (vkVertexBuffer != VK_NULL_HANDLE)
             {
                 Log::Print(
@@ -272,54 +524,16 @@ namespace KalaGraphics::Resources
                 vertexMappedPtr = nullptr;
             }
 
-            VkBufferCreateInfo bufferInfo{};
-            bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            bufferInfo.size = bufferSize;
-            bufferInfo.usage = 
-                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
-                | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-            bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-            VmaAllocationCreateInfo allocInfo{};
-            allocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-            allocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-            allocInfo.flags = 
-                VMA_ALLOCATION_CREATE_MAPPED_BIT
-                | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
-
-            VkBuffer vkBuffer = VK_NULL_HANDLE;
-            VmaAllocation vmaAllocation = VK_NULL_HANDLE;
-            VmaAllocationInfo allocResult{};
-
-            VkResult result = vmaCreateBuffer(
-                allocator,
-                &bufferInfo,
-                &allocInfo,
-                &vkBuffer,
-                &vmaAllocation,
-                &allocResult);
-
-            if (result != VK_SUCCESS)
-            {
-                Log::Print(
-                    "Failed to update vertices for mesh '" + to_string(ID) + "' because vertex vk buffer creation failed!",
-                    "KG_MESH",
-                    LogType::LOG_ERROR,
-                    2);
-
-                return;
-            }
-
-            vkVertexBuffer = vkBuffer;
-            vmaVertexAllocation = vmaAllocation;
-            vertexBufferSize = bufferSize;
+            vkVertexBuffer = newBuffer;
+            verticesSize = newSize;
+            vmaVertexAllocation = newAllocation;
             vertexMappedPtr = allocResult.pMappedData;
         }
 
         memcpy(
             vertexMappedPtr, 
             vertices.data(), 
-            bufferSize);
+            verticesSize);
     }
 
     void Mesh::UpdateIndices()
@@ -327,10 +541,10 @@ namespace KalaGraphics::Resources
         VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
         VmaAllocator allocator = GraphicsContext::GetVmaAllocator();
 
-        size_t bufferSize = indices.size() * sizeof(u32);
+        u64 newSize = indices.size() * sizeof(u32);
 
         //empty indices = non-indexed mesh, not an error
-        if (bufferSize == 0)
+        if (newSize == 0)
         {
             if (vkIndexBuffer != VK_NULL_HANDLE)
             {
@@ -347,9 +561,47 @@ namespace KalaGraphics::Resources
             return;
         }
 
-        if (indexBufferSize != bufferSize
+        if (indicesSize != newSize
             || vkIndexBuffer == VK_NULL_HANDLE)
         {
+            VkBufferCreateInfo indexBufferInfo{};
+            indexBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+            indexBufferInfo.size = newSize;
+            indexBufferInfo.usage =
+                VK_BUFFER_USAGE_INDEX_BUFFER_BIT
+                | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+            indexBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+            VmaAllocationCreateInfo indexAllocInfo{};
+            indexAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+            indexAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+            indexAllocInfo.flags = 
+                VMA_ALLOCATION_CREATE_MAPPED_BIT
+                | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+
+            VkBuffer newBuffer{};
+            VmaAllocation newAllocation{};
+            VmaAllocationInfo allocResult{};
+
+            VkResult result = vmaCreateBuffer(
+                allocator,
+                &indexBufferInfo,
+                &indexAllocInfo,
+                &newBuffer,
+                &newAllocation,
+                &allocResult);
+
+            if (result != VK_SUCCESS)
+            {
+                Log::Print(
+                    "Failed to update indices for mesh '" + to_string(ID) + "' because index vk buffer creation failed!",
+                    "KG_MESH",
+                    LogType::LOG_ERROR,
+                    2);
+
+                return;
+            }
+
             if (vkIndexBuffer != VK_NULL_HANDLE)
             {
                 Log::Print(
@@ -368,60 +620,32 @@ namespace KalaGraphics::Resources
                 indexMappedPtr = nullptr;
             }
 
-            VkBufferCreateInfo indexBufferInfo{};
-            indexBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            indexBufferInfo.size = bufferSize;
-            indexBufferInfo.usage =
-                VK_BUFFER_USAGE_INDEX_BUFFER_BIT
-                | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-            indexBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-            VmaAllocationCreateInfo indexAllocInfo{};
-            indexAllocInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-            indexAllocInfo.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
-            indexAllocInfo.flags = 
-                VMA_ALLOCATION_CREATE_MAPPED_BIT
-                | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
-
-            VkBuffer vkBuffer = VK_NULL_HANDLE;
-            VmaAllocation vmaAllocation = VK_NULL_HANDLE;
-            VmaAllocationInfo allocResult{};
-
-            VkResult result = vmaCreateBuffer(
-                allocator,
-                &indexBufferInfo,
-                &indexAllocInfo,
-                &vkBuffer,
-                &vmaAllocation,
-                &allocResult);
-
-            if (result != VK_SUCCESS)
-            {
-                Log::Print(
-                    "Failed to update indices for mesh '" + to_string(ID) + "' because index vk buffer creation failed!",
-                    "KG_MESH",
-                    LogType::LOG_ERROR,
-                    2);
-
-                return;
-            }
-
-            vkIndexBuffer = vkBuffer;
-            vmaIndexAllocation = vmaAllocation;
-            indexBufferSize = bufferSize;
+            vkIndexBuffer = newBuffer;
+            indicesSize = newSize;
+            vmaIndexAllocation = newAllocation;
             indexMappedPtr = allocResult.pMappedData;
         }
 
         memcpy(
             indexMappedPtr, 
             indices.data(), 
-            indexBufferSize);
+            indicesSize);
     }
 
     void Mesh::Destroy()
     {
         Camera* camera = Camera::GetRegistry().GetContent(cameraID);
         if (camera) camera->meshID = 0;
+
+        //only remove this mesh from texture meshes list of the texture is still valid
+
+        Texture* texture = Texture::GetRegistry().GetContent(textureID);
+        if (texture)
+        {
+            erase(
+                texture->meshIDs,
+                ID);
+        }
 
         //only remove this mesh from shader meshes list if the shader is still valid
 
@@ -468,8 +692,6 @@ namespace KalaGraphics::Resources
                 vkVertexBuffer,
                 vmaVertexAllocation);
 
-            vmaVertexAllocation = VK_NULL_HANDLE;
-            vkVertexBuffer = VK_NULL_HANDLE;
             vertexMappedPtr = nullptr;
         }
         if (vmaIndexAllocation)
@@ -479,9 +701,26 @@ namespace KalaGraphics::Resources
                 vkIndexBuffer,
                 vmaIndexAllocation);
 
-            vmaIndexAllocation = VK_NULL_HANDLE;
-            vkIndexBuffer = VK_NULL_HANDLE;
             indexMappedPtr = nullptr;
+        }
+
+        if (vmaMeshUBOAllocation != VK_NULL_HANDLE)
+        {
+            vmaDestroyBuffer(
+                allocator,
+                vkMeshUBOBuffer,
+                vmaMeshUBOAllocation);
+
+            meshUBOMappedPtr = nullptr;
+        }
+
+        if (vkDescriptorSet != VK_NULL_HANDLE)
+        {
+            vkFreeDescriptorSets(
+                logicalDevice,
+                GraphicsContext::GetDescriptorPool(),
+                1,
+                &vkDescriptorSet);
         }
     }
 }
