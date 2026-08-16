@@ -19,7 +19,7 @@ namespace KalaGraphics::Core
     using u8 = uint8_t;
     using u32 = uint32_t;
 
-    constexpr u8 MAX_NAME_LENGTH = 64;
+    static constexpr u8 MAX_NAME_LENGTH = 64;
 
     class LIB_API KalaGraphicsCore
     {

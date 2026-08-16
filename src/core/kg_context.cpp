@@ -79,7 +79,7 @@ using std::vector;
 using std::array;
 using std::clamp;
 
-constexpr array<const char*, 2> deviceExtensions =
+static constexpr array<const char*, 2> deviceExtensions =
 {
     "VK_KHR_swapchain",
     "VK_KHR_maintenance1"
@@ -232,36 +232,36 @@ static void PrintError(string_view message)
 
 //4:3
 
-constexpr string_view vp_640_480 = "640x480";
-constexpr string_view vp_800_600 = "800x600";
-constexpr string_view vp_1024_768 = "1024x768";
-constexpr string_view vp_1600_1200 = "1600x1200";
+static constexpr string_view vp_640_480 = "640x480";
+static constexpr string_view vp_800_600 = "800x600";
+static constexpr string_view vp_1024_768 = "1024x768";
+static constexpr string_view vp_1600_1200 = "1600x1200";
 
 //16:9
 
-constexpr string_view vp_1280_720 = "1280x720";
-constexpr string_view vp_1600_900 = "1600x900";
-constexpr string_view vp_1920_1080 = "1920x1080";
-constexpr string_view vp_2560_1440 = "2560x1440";
-constexpr string_view vp_3840_2160 = "3840x2160";
+static constexpr string_view vp_1280_720 = "1280x720";
+static constexpr string_view vp_1600_900 = "1600x900";
+static constexpr string_view vp_1920_1080 = "1920x1080";
+static constexpr string_view vp_2560_1440 = "2560x1440";
+static constexpr string_view vp_3840_2160 = "3840x2160";
 
 //16:10
 
-constexpr string_view vp_1280_800 = "640x480";
-constexpr string_view vp_1680_1050 = "640x480";
-constexpr string_view vp_1920_1200 = "640x480";
-constexpr string_view vp_2560_1600 = "2560x1600";
+static constexpr string_view vp_1280_800 = "640x480";
+static constexpr string_view vp_1680_1050 = "640x480";
+static constexpr string_view vp_1920_1200 = "640x480";
+static constexpr string_view vp_2560_1600 = "2560x1600";
 
 //21:9
 
-constexpr string_view vp_2560_1080 = "2560x1080";
-constexpr string_view vp_3440_1440 = "3440x1440";
-constexpr string_view vp_5120_2160 = "5120x2160";
+static constexpr string_view vp_2560_1080 = "2560x1080";
+static constexpr string_view vp_3440_1440 = "3440x1440";
+static constexpr string_view vp_5120_2160 = "5120x2160";
 
 //32:9
 
-constexpr string_view vp_3840_1080 = "3840x1080";
-constexpr string_view vp_5120_1440 = "5120x1440";
+static constexpr string_view vp_3840_1080 = "3840x1080";
+static constexpr string_view vp_5120_1440 = "5120x1440";
 
 static unordered_map<ViewportSize, string_view, EnumHash<ViewportSize>> vpNames =
 {

@@ -174,6 +174,8 @@ static unique_ptr<PipelineInfo> GetPipelineInfo(
     pi->rasterization.frontFace   = VK_FRONT_FACE_CLOCKWISE;
     pi->rasterization.lineWidth   = 1.0f;
 
+    //TODO: add proper multisampling/MSAA
+
     pi->multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     pi->multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 

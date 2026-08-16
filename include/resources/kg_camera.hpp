@@ -36,19 +36,19 @@ namespace KalaGraphics::Resources
     using std::default_delete;
 
     //min and max allowed raw deltatime for mouse
-    constexpr f32 MOUSE_MAX = 100.0f;
+    static constexpr f32 MOUSE_MAX = 100.0f;
 
-    constexpr f32 SENS_MIN = 0.1f;
-    constexpr f32 SENS_MAX = 10.0f;
+    static constexpr f32 SENS_MIN = 0.1f;
+    static constexpr f32 SENS_MAX = 10.0f;
 
-    constexpr f32 SPEED_MIN = 0.1f;
-    constexpr f32 SPEED_MAX = 10.0f;
+    static constexpr f32 SPEED_MIN = 0.1f;
+    static constexpr f32 SPEED_MAX = 10.0f;
 
-    constexpr f32 FOV_MIN = 30.0f;
-    constexpr f32 FOV_MAX = 180.0f;
+    static constexpr f32 FOV_MIN = 30.0f;
+    static constexpr f32 FOV_MAX = 180.0f;
 
-    constexpr f32 DRAW_DISTANCE_MIN = 0.001f;
-    constexpr f32 DRAW_DISTANCE_MAX = 10000.0f;
+    static constexpr f32 DRAW_DISTANCE_MIN = 0.001f;
+    static constexpr f32 DRAW_DISTANCE_MAX = 10000.0f;
 
     enum class CameraType : u8
     {
