@@ -97,8 +97,8 @@ namespace KalaGraphics::Resources
         vec3 normal{};
         //U, V texture coordinates
         vec2 uv{};
-        //RGBA color
-        vec4 color{};
+        //RGBA color - default is white
+        vec4 color = 1;
     };
     struct LIB_API Vertex2D
     {
@@ -106,7 +106,7 @@ namespace KalaGraphics::Resources
         vec2 pos{};
         //U, V texture coordinates
         vec2 uv{};
-        //RGBA color
+        //RGBA color - default is white
         vec4 color = 1;
     };
 
