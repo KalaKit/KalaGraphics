@@ -27,7 +27,7 @@ case "$1" in
         OUT_NAME=KalaGraphics-Windows
 
         LIB_NAME=kalagraphics
-        LIB_EXT=
+        LIB_EXT=lib
         LIB_ORIGIN=build/release-windows
         ;;
     *)
