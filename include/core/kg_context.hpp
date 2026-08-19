@@ -83,9 +83,6 @@ namespace KalaGraphics::Core
     using std::array;
     using std::default_delete;
 
-    using u8 = uint8_t;
-    using u32 = uint32_t;
-
     static constexpr u8 MAX_FRAMES_IN_FLIGHT = 2;
 
     //Max total descriptor sets this pool can allocate at once,
@@ -167,9 +164,9 @@ namespace KalaGraphics::Core
     {
         u32 windowID{};
 
-#ifdef _WIN32
+#if defined(KWIN_ANY)
         uintptr_t context_window{};
-#else
+#elif defined(KLIN_ANY)
         uintptr_t context_display{};
         uintptr_t context_window{};
 #endif

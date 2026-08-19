@@ -21,10 +21,7 @@ namespace KalaGraphics::Import
     using std::string;
     using std::string_view;
     using std::default_delete;
-
-    using u8 = uint8_t;
-    using u32 = uint32_t;
-
+    
     static constexpr string_view EXT_PNG = ".png";
     static constexpr string_view EXT_KTEX = ".ktex";
 

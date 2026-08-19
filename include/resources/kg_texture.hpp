@@ -44,9 +44,6 @@ namespace KalaGraphics::Resources
     using std::array;
     using std::default_delete;
 
-    using u8 = uint8_t;
-    using u32 = uint32_t;
-
     //Pixel data for a fallback 16x16 sized checkerboard texture with pink and black tiles
     static constexpr array<u8, 16 * 16 * 4> FALLBACK_TEXTURE = []
     {

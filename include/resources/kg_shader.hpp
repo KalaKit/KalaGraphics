@@ -49,9 +49,6 @@ namespace KalaGraphics::Resources
     using std::unique_ptr;
     using std::default_delete;
 
-    using u8 = uint8_t;
-    using u32 = uint32_t;
-
     struct ShaderModuleData
     {
         VkShaderModule vkModule_vert{};

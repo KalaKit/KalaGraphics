@@ -3,9 +3,7 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#ifdef __linux__
 #include <csignal>
-#endif
 
 #include "log_utils.hpp"
 
@@ -18,7 +16,7 @@ using KalaHeaders::KalaLog::DateFormat;
 
 using std::function;
 using std::string;
-#ifdef __linux__
+#if defined(KLIN_ANY)
 using std::raise;
 #endif
 
@@ -58,9 +56,9 @@ namespace KalaGraphics::Core
 				TimeFormat::TIME_NONE,
 				DateFormat::DATE_NONE);
 
-#ifdef _WIN32
+#if defined(KWIN_ANY)
 			__debugbreak();
-#else
+#elif defined(KLIN_ANY)
 			raise(SIGTRAP);
 #endif
 		}

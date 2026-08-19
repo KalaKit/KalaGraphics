@@ -119,7 +119,7 @@ namespace KalaGraphics::Import
         string errMsg{};
         char buffer[256]{};
 
-#ifdef _WIN32
+#if defined(KWIN_ANY)
         FILE* pipe = _popen(command.c_str(), "r");
         if (!pipe)
         {
@@ -135,7 +135,7 @@ namespace KalaGraphics::Import
         while(fgets(buffer, sizeof(buffer), pipe)) errMsg += buffer;
 
         int exitCode = _pclose(pipe);
-#else
+#elif defined(KLIN_ANY)
         FILE* pipe = popen(command.c_str(), "r");
         if (!pipe)
         {

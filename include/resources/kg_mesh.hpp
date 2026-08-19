@@ -38,9 +38,6 @@ namespace KalaGraphics::Resources
     using std::filesystem::path;
     using std::default_delete;
 
-    using u8 = uint8_t;
-    using f32 = float;
-
     struct LIB_API Mesh_Cube
     {
         //ranges from 3 to 255,

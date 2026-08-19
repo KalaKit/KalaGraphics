@@ -46,8 +46,6 @@ using std::map;
 using std::pair;
 using std::make_pair;
 
-using u8 = uint8_t;
-
 struct ShaderModule
 {
     bool success{};

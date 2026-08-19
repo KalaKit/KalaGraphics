@@ -3,10 +3,11 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#include "vulkan/vulkan_core.h"
-#ifdef _WIN32
+#include "core/kg_context.hpp"
+
+#if defined(KWIN_ANY)
 #include <windows.h>
-#else
+#elif defined(KLIN_ANY)
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #endif
@@ -45,7 +46,6 @@ struct VmaStdRWMutex
 #include "log_utils.hpp"
 #include "math_utils.hpp"
 
-#include "core/kg_context.hpp"
 #include "core/kg_core.hpp"
 #include "core/kg_registry.hpp"
 #include "resources/kg_shader.hpp"
@@ -750,7 +750,7 @@ namespace KalaGraphics::Core
 
     GraphicsContext* GraphicsContext::InitializeInstance(GraphicsContextData&& in_context)
     {
-        if (!vkInstance)
+        if (vkInstance == VK_NULL_HANDLE)
         {
             Log::Print(
                 "Failed to initialize graphics context because "
@@ -785,7 +785,7 @@ namespace KalaGraphics::Core
             return nullptr;
         }
 
-#ifdef _WIN32
+#if defined(KWIN_ANY)
         if (!in_context.context_window)
         {
             Log::Print(
@@ -804,7 +804,7 @@ namespace KalaGraphics::Core
                 "KalaGraphics context error",
                 "Failed to initialize graphics context because it did not contain a real window!");
         }
-#else
+#elif defined(KLIN_ANY)
         if (!in_context.context_display
             || !in_context.context_window)
         {
@@ -2040,7 +2040,7 @@ namespace KalaGraphics::Core
 
     VkInstance GraphicsContext::GetInstance()
     {
-        if (!vkInstance)
+        if (vkInstance == VK_NULL_HANDLE)
         {
             Log::Print(
                 "Failed to get instance because it was not assigned!", 
