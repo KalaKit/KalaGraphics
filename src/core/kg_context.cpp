@@ -39,14 +39,17 @@ struct VmaStdRWMutex
 #define VMA_MUTEX VmaStdMutex
 #define VMA_RW_MUTEX VmaStdRWMutex
 
+#include "core/kg_core.hpp"
+
 #define VMA_IMPLEMENTATION
+KG_VK_MEM_ALLOC_IGNORE_PUSH
 #include "vma/vk_mem_alloc.h"
+KG_VK_MEM_ALLOC_IGNORE_POP
 
 #include "core_utils.hpp"
 #include "log_utils.hpp"
 #include "math_utils.hpp"
 
-#include "core/kg_core.hpp"
 #include "core/kg_registry.hpp"
 #include "resources/kg_shader.hpp"
 #include "resources/kg_texture.hpp"
@@ -79,19 +82,29 @@ using std::vector;
 using std::array;
 using std::clamp;
 
-static constexpr array<const char*, 2> deviceExtensions =
+static constexpr array<const char*, 2> DEVICE_EXTENSIONS =
 {
     "VK_KHR_swapchain",
     "VK_KHR_maintenance1"
 };
 
+static constexpr VkFormat TARGET_COLOR_FORMAT = VK_FORMAT_B8G8R8A8_SRGB;
+static constexpr array<VkFormat, 2> DEPTH_FORMAT_CANDIDATES =
+{
+    //32-bit float depth, preferred for forward/deferred rendering
+    VK_FORMAT_D32_SFLOAT,
+    //16-bit depth, last resort for for memory-constrained targets
+    VK_FORMAT_D16_UNORM
+};
+
 static bool isInitialized{};
 static bool isVerboseLoggingEnabled{};
 
-static u32 deviceCount{};
 static u32 graphicsFamily = UINT32_MAX;
-static vector<VkPhysicalDevice> devices{};
 
+static VkFormat DEFAULT_COLOR_FORMAT{};
+static VkFormat DEFAULT_DEPTH_FORMAT{};
+ 
 static VkInstance vkInstance{};
 
 static VkPhysicalDevice physicalDevice{};
@@ -462,16 +475,18 @@ namespace KalaGraphics::Core
             || (major == 1
             && minor < 4))
         {
-            ForceClose(
+            KalaGraphicsCore::ForceClose(
                 "KalaGraphics context error",
                 "Failed to initialize global graphics context because "
-                "the instance version was lower than minimum required version 1.4!",
-                0);
+                "the instance version was lower than minimum required version 1.4!");
         }
 
         //
         // STORE DEVICE COUNT
         //
+
+        u32 deviceCount{};
+        vector<VkPhysicalDevice> devices{};
 
         VkResult vkResult = vkEnumeratePhysicalDevices(
             vkInstance, 
@@ -527,10 +542,10 @@ namespace KalaGraphics::Core
                 availableExts.data());
 
             bool hasAllExtensions = true;
-            for (const auto& required : deviceExtensions)
+            for (const auto& required : DEVICE_EXTENSIONS)
             {
                 bool found{};
-                for (const auto& ext :availableExts)
+                for (const auto& ext : availableExts)
                 {
                     if (strcmp(ext.extensionName, required) == 0)
                     {
@@ -583,13 +598,35 @@ namespace KalaGraphics::Core
 
         if (bestDevice == VK_NULL_HANDLE)
         {
-            ForceClose(
+            KalaGraphicsCore::ForceClose(
                 "KalaGraphics context error",
-                "Failed to initialize global graphics context because no suitable physical device was found!",
-                0);
+                "Failed to initialize global graphics context because no suitable physical device was found!");
         }
 
         physicalDevice = bestDevice;
+
+        VkFormat chosenDepthFormat = VK_FORMAT_UNDEFINED;
+        for (VkFormat candidate : DEPTH_FORMAT_CANDIDATES)
+        {
+            VkFormatProperties props{};
+            vkGetPhysicalDeviceFormatProperties(
+                physicalDevice,
+                candidate,
+                &props);
+
+            if (props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
+            {
+                chosenDepthFormat = candidate;
+            }
+        }
+
+        if (chosenDepthFormat == VK_FORMAT_UNDEFINED)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics context error",
+                "Failed to initialize global graphics context because no valid depth format was found!");
+        }
+        else DEFAULT_DEPTH_FORMAT = chosenDepthFormat;
 
         //
         // FIND QUEUE FAMILIES
@@ -618,11 +655,14 @@ namespace KalaGraphics::Core
 
         if (graphicsFamily == UINT32_MAX)
         {
-            ForceClose(
+            KalaGraphicsCore::ForceClose(
                 "KalaGraphics context error",
-                "Failed to initialize global graphics context because no graphics queue family was found!",
-                0);
+                "Failed to initialize global graphics context because no graphics queue family was found!");
         }
+
+        //
+        // SET DEVICE FEATURES
+        //
 
         f32 queuePriority = 1.0f;
 
@@ -632,20 +672,33 @@ namespace KalaGraphics::Core
         queueInfo.queueCount = 1;
         queueInfo.pQueuePriorities = &queuePriority;
 
-        VkPhysicalDeviceFeatures enabledFeatures{};
-        enabledFeatures.samplerAnisotropy = VK_TRUE;
-        enabledFeatures.fillModeNonSolid = VK_TRUE;
-        enabledFeatures.depthClamp = VK_TRUE;
-        enabledFeatures.sampleRateShading = VK_TRUE;
-        enabledFeatures.multiDrawIndirect = VK_TRUE;
+        VkPhysicalDeviceFeatures2 enabledFeatures2{};
+        enabledFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+        enabledFeatures2.features.samplerAnisotropy = VK_TRUE;
+        enabledFeatures2.features.fillModeNonSolid = VK_TRUE;
+        enabledFeatures2.features.depthClamp = VK_TRUE;
+        enabledFeatures2.features.sampleRateShading = VK_TRUE;
+        enabledFeatures2.features.multiDrawIndirect = VK_TRUE;
+
+        VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures{};
+        dynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES;
+        dynamicRenderingFeatures.dynamicRendering = VK_TRUE;
+
+        VkPhysicalDeviceSynchronization2Features sync2Features{};
+        sync2Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
+        sync2Features.synchronization2 = VK_TRUE;
+
+        enabledFeatures2.pNext = &dynamicRenderingFeatures;
+        dynamicRenderingFeatures.pNext = &sync2Features;
 
         VkDeviceCreateInfo deviceInfo{};
         deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        deviceInfo.pNext = &enabledFeatures2;
         deviceInfo.queueCreateInfoCount = 1;
         deviceInfo.pQueueCreateInfos = &queueInfo;
-        deviceInfo.enabledExtensionCount = scast<u32>(deviceExtensions.size());
-        deviceInfo.ppEnabledExtensionNames = deviceExtensions.data();
-        deviceInfo.pEnabledFeatures = &enabledFeatures;
+        deviceInfo.enabledExtensionCount = scast<u32>(DEVICE_EXTENSIONS.size());
+        deviceInfo.ppEnabledExtensionNames = DEVICE_EXTENSIONS.data();
+        deviceInfo.pEnabledFeatures = nullptr;
 
         //
         // CREATE LOGICAL DEVICE
@@ -948,36 +1001,20 @@ namespace KalaGraphics::Core
         }
 
         //
-        // DESTROY
+        // DELETE OLD DATA
         //
 
-        for (auto& fb : framebuffers)
-        {
-            vkDestroyFramebuffer(
-                logicalDevice,
-                fb,
-                nullptr);
-        }
-        framebuffers.clear();
+        //dont delete, just clear
+        swapchainImages.clear();
 
-        for (auto& view : imageViews)
+        for (auto& view : swapchainImageViews)
         {
             vkDestroyImageView(
                 logicalDevice,
                 view,
                 nullptr);
         }
-        imageViews.clear();
-
-        if (depthImageView != VK_NULL_HANDLE)
-        {
-            vkDestroyImageView(
-                logicalDevice,
-                depthImageView,
-                nullptr);
-
-            depthImageView = VK_NULL_HANDLE;
-        }
+        swapchainImageViews.clear();
 
         if (depthImage != VK_NULL_HANDLE)
         {
@@ -988,6 +1025,16 @@ namespace KalaGraphics::Core
 
             depthImage = VK_NULL_HANDLE;
             depthAllocation = VK_NULL_HANDLE;
+        }
+
+        if (depthImageView != VK_NULL_HANDLE)
+        {
+            vkDestroyImageView(
+                logicalDevice,
+                depthImageView,
+                nullptr);
+
+            depthImageView = VK_NULL_HANDLE;
         }
 
         //
@@ -1017,10 +1064,11 @@ namespace KalaGraphics::Core
         VkSurfaceFormatKHR chosenFormat = formats[0];
         for (const auto& format : formats)
         {
-            if (format.format == VK_FORMAT_B8G8R8A8_SRGB
+            if (format.format == TARGET_COLOR_FORMAT
                 && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
             {
                 chosenFormat = format;
+                DEFAULT_COLOR_FORMAT = format.format;
                 break;
             }
         }
@@ -1174,10 +1222,6 @@ namespace KalaGraphics::Core
         extent.x = newExtent.width;
         extent.y = newExtent.height;
 
-        //
-        // GET SWAPCHAIN IMAGES 
-        //
-
         u32 swapchainImageCount{};
         vkGetSwapchainImagesKHR(
             logicalDevice,
@@ -1185,18 +1229,31 @@ namespace KalaGraphics::Core
             &swapchainImageCount,
             nullptr);
 
-        vector<VkImage> swapchainImages(swapchainImageCount);
-        vkGetSwapchainImagesKHR(
+        //
+        // CREATE IMAGES
+        //
+
+        swapchainImages.resize(swapchainImageCount);
+        vkResult = vkGetSwapchainImagesKHR(
             logicalDevice,
             swapchain,
             &swapchainImageCount,
             swapchainImages.data());
 
+        if (vkResult != VK_SUCCESS)
+        {
+            ForceClose(
+                "KalaGraphics context error",
+                "Failed to recreate Vulkan swapchain for graphics context '" 
+                + to_string(ID) + "' because image recreation failed!",
+                vkResult);
+        }
+
         //
         // CREATE IMAGE VIEWS
         //
 
-        imageViews.resize(swapchainImageCount);
+        swapchainImageViews.resize(swapchainImageCount);
         for (u32 i = 0; i < swapchainImageCount; i++)
         {
             VkImageViewCreateInfo viewInfo{};
@@ -1218,14 +1275,14 @@ namespace KalaGraphics::Core
                 logicalDevice,
                 &viewInfo,
                 nullptr,
-                &imageViews[i]);
+                &swapchainImageViews[i]);
 
             if (vkResult != VK_SUCCESS)
             {
                 ForceClose(
                     "KalaGraphics context error",
                     "Failed to recreate Vulkan swapchain for graphics context '" 
-                    + to_string(ID) + "' because image view recreation failed!",
+                    + to_string(ID) + "' because image view '" + to_string(i) + "' recreation failed!",
                     vkResult);
             }
         }
@@ -1237,7 +1294,7 @@ namespace KalaGraphics::Core
         VkImageCreateInfo depthImageInfo{};
         depthImageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         depthImageInfo.imageType = VK_IMAGE_TYPE_2D;
-        depthImageInfo.format = VK_FORMAT_D32_SFLOAT;
+        depthImageInfo.format = DEFAULT_DEPTH_FORMAT;
         depthImageInfo.extent.width = extent.x;
         depthImageInfo.extent.height = extent.y;
         depthImageInfo.extent.depth = 1;
@@ -1277,7 +1334,7 @@ namespace KalaGraphics::Core
         depthViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         depthViewInfo.image = depthImage;
         depthViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        depthViewInfo.format = VK_FORMAT_D32_SFLOAT;
+        depthViewInfo.format = DEFAULT_DEPTH_FORMAT;
         depthViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
         depthViewInfo.subresourceRange.baseMipLevel = 0;
         depthViewInfo.subresourceRange.levelCount = 1;
@@ -1300,45 +1357,7 @@ namespace KalaGraphics::Core
         }
 
         //
-        // CREATE FRAMEBUFFERS
-        //
-
-        framebuffers.resize(swapchainImageCount);
-        for (u32 i = 0; i < swapchainImageCount; i++)
-        {
-            array<VkImageView, 2> attachments = 
-            {
-                imageViews[i],
-                depthImageView
-            };
-
-            VkFramebufferCreateInfo framebufferInfo{};
-            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferInfo.renderPass = renderPass;
-            framebufferInfo.attachmentCount = scast<u32>(attachments.size());
-            framebufferInfo.pAttachments = attachments.data();
-            framebufferInfo.width = extent.x;
-            framebufferInfo.height = extent.y;
-            framebufferInfo.layers = 1;
-            
-            vkResult = vkCreateFramebuffer(
-                logicalDevice,
-                &framebufferInfo,
-                nullptr,
-                &framebuffers[i]);
-
-            if (vkResult != VK_SUCCESS)
-            {
-                ForceClose(
-                    "KalaGraphics context error",
-                    "Failed to recreate Vulkan swapchain for graphics context '" 
-                    + to_string(ID) + "' because framebuffer recreation failed for image " + to_string(i) + "!",
-                    vkResult);
-            }
-        }
-
-        //
-        // CLEANUP AND FINISH
+        // FINISH
         //
 
         u32 oldSwapchainImageCount = scast<u32>(renderFinishedSemaphores.size());
@@ -1380,23 +1399,23 @@ namespace KalaGraphics::Core
             }
         }
 
-        u32 oldImagesInFlightCount = scast<u32>(imagesInFlight.size());
+        u32 oldImagesInFlightCount = scast<u32>(swapchainImagesInFlight.size());
 
         if (swapchainImageCount != oldImagesInFlightCount)
         {
             //destroy excess fences
             for (u32 i = swapchainImageCount; i < oldImagesInFlightCount; ++i)
             {
-                if (imagesInFlight[i] != VK_NULL_HANDLE)
+                if (swapchainImagesInFlight[i] != VK_NULL_HANDLE)
                 {
                     vkDestroyFence(
                         logicalDevice,
-                        imagesInFlight[i],
+                        swapchainImagesInFlight[i],
                         nullptr);
                 }
             }
 
-            imagesInFlight.resize(
+            swapchainImagesInFlight.resize(
                 swapchainImageCount,
                 VK_NULL_HANDLE);
         }
@@ -1424,6 +1443,67 @@ namespace KalaGraphics::Core
         }
     }
 
+    VkInstance GraphicsContext::GetInstance()
+    {
+        if (vkInstance == VK_NULL_HANDLE)
+        {
+            Log::Print(
+                "Failed to get instance because it was not assigned!", 
+                "KG_CONTEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return {};
+        }
+
+        return vkInstance;
+    }
+
+    VkPhysicalDevice GraphicsContext::GetPhysicalDevice()
+    {
+        if (!isInitialized)
+        {
+            PrintError("Failed to get physical device because Vulkan has not been initialized!");
+
+            return nullptr;
+        }
+        
+        return physicalDevice;
+    }
+    VkDevice GraphicsContext::GetLogicalDevice()
+    {
+        if (!isInitialized)
+        {
+            PrintError("Failed to get logical device because Vulkan has not been initialized!");
+
+            return nullptr;
+        }
+        
+        return logicalDevice;
+    }
+    VmaAllocator GraphicsContext::GetVmaAllocator()
+    {
+        if (!isInitialized)
+        {
+            PrintError("Failed to get VMA allocator because Vulkan has not been initialized!");
+
+            return nullptr;
+        }
+        
+        return vmaAllocator;
+    }
+    VkDescriptorPool GraphicsContext::GetDescriptorPool()
+    {
+        if (!isInitialized)
+        {
+            PrintError("Failed to get descriptor pool because Vulkan has not been initialized!");
+
+            return nullptr;
+        }
+        
+        return descriptorPool;
+    }
+
     void GraphicsContext::InitializeVulkanContext()
     {
         VkSurfaceKHR surface = contextData.context_vk_surface;
@@ -1436,10 +1516,9 @@ namespace KalaGraphics::Core
 
         if (physicalDevice == VK_NULL_HANDLE)
         {
-            ForceClose(
+            KalaGraphicsCore::ForceClose(
                 "KalaGraphics context error",
-                "Failed to initialize graphics context because the physical device was invalid!",
-                0);
+                "Failed to initialize graphics context because the physical device was invalid!");
         }
 
         u32 queueCount{};
@@ -1472,10 +1551,9 @@ namespace KalaGraphics::Core
 
         if (!surfaceSupported)
         {
-            ForceClose(
+            KalaGraphicsCore::ForceClose(
                 "KalaGraphics context error",
-                "Failed to initialize graphics context because the instance surface is not supported by the physical device!",
-                0);
+                "Failed to initialize graphics context because the instance surface is not supported by the physical device!");
         }
         
         //
@@ -1505,10 +1583,11 @@ namespace KalaGraphics::Core
         VkSurfaceFormatKHR chosenFormat = formats[0];
         for (const auto& format : formats)
         {
-            if (format.format == VK_FORMAT_B8G8R8A8_SRGB
+            if (format.format == TARGET_COLOR_FORMAT
                 && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
             {
                 chosenFormat = format;
+                DEFAULT_COLOR_FORMAT = format.format;
                 break;
             }
         }
@@ -1664,12 +1743,25 @@ namespace KalaGraphics::Core
             &swapchainImageCount,
             nullptr);
 
-        vector<VkImage> swapchainImages(swapchainImageCount);
-        vkGetSwapchainImagesKHR(
+        //
+        // CREATE IMAGES
+        //
+
+        swapchainImages.resize(swapchainImageCount);
+        vkResult = vkGetSwapchainImagesKHR(
             logicalDevice,
             swapchain,
             &swapchainImageCount,
             swapchainImages.data());
+
+        if (vkResult != VK_SUCCESS)
+        {
+            ForceClose(
+                "KalaGraphics context error",
+                "Failed to initialize graphics context "
+                "because image creation failed!",
+                vkResult);
+        }
 
         //
         // CREATE IMAGE VIEWS
@@ -1703,100 +1795,14 @@ namespace KalaGraphics::Core
             {
                 ForceClose(
                     "KalaGraphics context error",
-                    "Failed to initialize graphics context because image view creation failed!",
+                    "Failed to initialize graphics context because "
+                    "image view '" + to_string(i) + "' creation failed!",
                     vkResult);
             }
         }
 
-        imageViews = scImageViews;
-        imagesInFlight.resize(swapchainImageCount, VK_NULL_HANDLE);
-
-        //
-        // CREATE RENDER PASS
-        //
-
-        VkAttachmentDescription colorAttachment{};
-        colorAttachment.format = chosenFormat.format;
-        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-        VkAttachmentDescription depthAttachment{};
-        depthAttachment.format = VK_FORMAT_D32_SFLOAT;
-        depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentReference colorRef{};
-        colorRef.attachment = 0;
-        colorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentReference depthRef{};
-        depthRef.attachment = 1;
-        depthRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-        VkSubpassDescription subpass{};
-        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpass.colorAttachmentCount = 1;
-        subpass.pColorAttachments = &colorRef;
-        subpass.pDepthStencilAttachment = &depthRef;
-
-        VkSubpassDependency dependency{};
-        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependency.dstSubpass = 0;
-        dependency.srcStageMask = 
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
-            | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT
-            | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-        dependency.dstStageMask =
-            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
-            | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependency.srcAccessMask = 
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
-            | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-        dependency.dstAccessMask =
-            VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT
-            | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-        array<VkAttachmentDescription, 2> attachments =
-        {
-            colorAttachment,
-            depthAttachment
-        };
-
-        VkRenderPassCreateInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        renderPassInfo.attachmentCount = scast<u32>(attachments.size());
-        renderPassInfo.pAttachments = attachments.data();
-        renderPassInfo.subpassCount = 1;
-        renderPassInfo.pSubpasses = &subpass;
-        renderPassInfo.dependencyCount = 1;
-        renderPassInfo.pDependencies = &dependency;
-
-        VkRenderPass newRenderPass{};
-        vkResult = vkCreateRenderPass(
-            logicalDevice,
-            &renderPassInfo,
-            nullptr,
-            &newRenderPass);
-
-        if (vkResult != VK_SUCCESS)
-        {
-            ForceClose(
-                "KalaGraphics context error",
-                "Failed to initialize graphics context because render pass creation failed!",
-                vkResult);
-        }
-
-        renderPass = newRenderPass;
+        swapchainImageViews = scImageViews;
+        swapchainImagesInFlight.resize(swapchainImageCount, VK_NULL_HANDLE);
 
         //
         // CREATE DEPTH IMAGE
@@ -1805,7 +1811,7 @@ namespace KalaGraphics::Core
         VkImageCreateInfo depthImageInfo{};
         depthImageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         depthImageInfo.imageType = VK_IMAGE_TYPE_2D;
-        depthImageInfo.format = VK_FORMAT_D32_SFLOAT;
+        depthImageInfo.format = DEFAULT_DEPTH_FORMAT;
         depthImageInfo.extent.width = extent.x;
         depthImageInfo.extent.height = extent.y;
         depthImageInfo.extent.depth = 1;
@@ -1834,7 +1840,8 @@ namespace KalaGraphics::Core
         {
             ForceClose(
                 "KalaGraphics context error",
-                "Failed to initialize graphics context because depth image creation failed!",
+                "Failed to initialize graphics context "
+                "because depth image creation failed!",
                 vkResult);
         }
 
@@ -1846,7 +1853,7 @@ namespace KalaGraphics::Core
         depthViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         depthViewInfo.image = newDepthImage;
         depthViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        depthViewInfo.format = VK_FORMAT_D32_SFLOAT;
+        depthViewInfo.format = DEFAULT_DEPTH_FORMAT;
         depthViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
         depthViewInfo.subresourceRange.baseMipLevel = 0;
         depthViewInfo.subresourceRange.levelCount = 1;
@@ -1871,46 +1878,6 @@ namespace KalaGraphics::Core
         depthImage = newDepthImage;
         depthAllocation = newDepthAllocation;
         depthImageView = newDepthImageView;
-
-        //
-        // CREATE FRAMEBUFFERS
-        //
-
-        vector<VkFramebuffer> newFramebuffers(swapchainImageCount);
-        for (u32 i = 0; i < swapchainImageCount; i++)
-        {
-            array<VkImageView, 2> attachments = 
-            {
-                scImageViews[i],
-                newDepthImageView
-            };
-
-            VkFramebufferCreateInfo framebufferInfo{};
-            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferInfo.renderPass = newRenderPass;
-            framebufferInfo.attachmentCount = scast<u32>(attachments.size());
-            framebufferInfo.pAttachments = attachments.data();
-            framebufferInfo.width = extent.x;
-            framebufferInfo.height = extent.y;
-            framebufferInfo.layers = 1;
-            
-            vkResult = vkCreateFramebuffer(
-                logicalDevice,
-                &framebufferInfo,
-                nullptr,
-                &newFramebuffers[i]);
-            
-            if (vkResult != VK_SUCCESS)
-            {
-                ForceClose(
-                    "KalaGraphics context error",
-                    "Failed to initialize graphics context "
-                    "because framebuffer creation failed for image " + to_string(i) + "!",
-                    vkResult);
-            }
-        }
-
-        framebuffers = newFramebuffers;
 
         //
         // CREATE SYNC OBJECTS
@@ -2038,89 +2005,8 @@ namespace KalaGraphics::Core
         }
     }
 
-    VkInstance GraphicsContext::GetInstance()
-    {
-        if (vkInstance == VK_NULL_HANDLE)
-        {
-            Log::Print(
-                "Failed to get instance because it was not assigned!", 
-                "KG_CONTEXT",
-                LogType::LOG_ERROR,
-                2);
-
-            return {};
-        }
-
-        return vkInstance;
-    }
-
-    VkPhysicalDevice GraphicsContext::GetPhysicalDevice()
-    {
-        if (!isInitialized)
-        {
-            PrintError("Failed to get physical device because Vulkan has not been initialized!");
-
-            return nullptr;
-        }
-        
-        return physicalDevice;
-    }
-    VkDevice GraphicsContext::GetLogicalDevice()
-    {
-        if (!isInitialized)
-        {
-            PrintError("Failed to get logical device because Vulkan has not been initialized!");
-
-            return nullptr;
-        }
-        
-        return logicalDevice;
-    }
-    VkQueue GraphicsContext::GetGraphicsQueue()
-    {
-        if (!isInitialized)
-        {
-            PrintError("Failed to get graphics queue because Vulkan has not been initialized!");
-
-            return nullptr;
-        }
-        
-        return graphicsQueue;
-    }
-    VmaAllocator GraphicsContext::GetVmaAllocator()
-    {
-        if (!isInitialized)
-        {
-            PrintError("Failed to get VMA allocator because Vulkan has not been initialized!");
-
-            return nullptr;
-        }
-        
-        return vmaAllocator;
-    }
-    VkDescriptorPool GraphicsContext::GetDescriptorPool()
-    {
-        if (!isInitialized)
-        {
-            PrintError("Failed to get descriptor pool because Vulkan has not been initialized!");
-
-            return nullptr;
-        }
-        
-        return descriptorPool;
-    }
-
-    VkSwapchainKHR& GraphicsContext::GetSwapchain()                                     { return swapchain; }
-    vector<VkImageView>& GraphicsContext::GetImageViews()                               { return imageViews; }
-    VkRenderPass& GraphicsContext::GetRenderPass()                                      { return renderPass; }
-    VkImage& GraphicsContext::GetDepthImage()                                           { return depthImage; }
-    VkImageView& GraphicsContext::GetDepthImageView()                                   { return depthImageView; }
-    vector<VkFramebuffer>& GraphicsContext::GetFramebuffers()                           { return framebuffers; }
-    array<VkSemaphore, MAX_FRAMES_IN_FLIGHT>& GraphicsContext::GetAvailableSemaphores() { return availableSemaphores; }
-    vector<VkSemaphore>& GraphicsContext::GetRenderFinishedSemaphores()                 { return renderFinishedSemaphores; }
-    VkCommandPool& GraphicsContext::GetCommandPool()                                    { return commandPool; }
-    array<VkFence, MAX_FRAMES_IN_FLIGHT>& GraphicsContext::GetInFlightFences()          { return inFlightFences; }
-    array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT>& GraphicsContext::GetCommandBuffers()  { return commandBuffers; }
+    u32 GraphicsContext::GetDefaultColorFormat() const { return DEFAULT_COLOR_FORMAT; }
+    u32 GraphicsContext::GetDefaultDepthFormat() const { return DEFAULT_DEPTH_FORMAT; }
 
     VkCommandBuffer GraphicsContext::BeginSingleTimeCommands()
     {
@@ -2185,11 +2071,10 @@ namespace KalaGraphics::Core
     {
         if (logicalDevice == VK_NULL_HANDLE)
         {
-            ForceClose(
+            KalaGraphicsCore::ForceClose(
                 "KalaGraphics context error",
                 "Failed to update graphics context '" + to_string(ID) 
-                + "' because the logical device was invalid!",
-                0);
+                + "' because the logical device was invalid!");
         }
 
         //ignore if minimized
@@ -2268,17 +2153,17 @@ namespace KalaGraphics::Core
             }
         }
 
-        if (imagesInFlight[imageIndex] != VK_NULL_HANDLE)
+        if (swapchainImagesInFlight[imageIndex] != VK_NULL_HANDLE)
         {
             vkWaitForFences(
                 logicalDevice,
                 1,
-                &imagesInFlight[imageIndex],
+                &swapchainImagesInFlight[imageIndex],
                 VK_TRUE,
                 UINT64_MAX);
         }
 
-        imagesInFlight[imageIndex] = inFlightFences[currentFrame];
+        swapchainImagesInFlight[imageIndex] = inFlightFences[currentFrame];
 
         vkResetFences(
             logicalDevice,
@@ -2294,23 +2179,85 @@ namespace KalaGraphics::Core
             commandBuffers[currentFrame],
             &beginInfo);
 
-        array<VkClearValue, 2> clearValues{};
-        clearValues[0].color = { {0.0f, 1.0f, 0.0f, 1.0f} };
-        clearValues[1].depthStencil = { 1.0f, 0 };
+        VkImageMemoryBarrier2 colorBarrier{};
+        colorBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+        colorBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+        colorBarrier.srcAccessMask = VK_ACCESS_2_NONE;
+        colorBarrier.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+        colorBarrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+        colorBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        colorBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colorBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        colorBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        colorBarrier.image = swapchainImages[imageIndex];
+        colorBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        colorBarrier.subresourceRange.baseMipLevel = 0;
+        colorBarrier.subresourceRange.levelCount = 1;
+        colorBarrier.subresourceRange.baseArrayLayer = 0;
+        colorBarrier.subresourceRange.layerCount = 1;
 
-        VkRenderPassBeginInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = renderPass;
-        renderPassInfo.framebuffer = framebuffers[imageIndex];
-        renderPassInfo.renderArea.offset = { 0, 0 };
-        renderPassInfo.renderArea.extent = { scast<u32>(extent.x), scast<u32>(extent.y) };
-        renderPassInfo.clearValueCount = scast<u32>(clearValues.size());
-        renderPassInfo.pClearValues = clearValues.data();
+        VkImageMemoryBarrier2 depthBarrier{};
+        depthBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+        depthBarrier.srcStageMask = VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+        depthBarrier.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        depthBarrier.dstStageMask =
+            VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT
+            | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+        depthBarrier.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        depthBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depthBarrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        depthBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        depthBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        depthBarrier.image = depthImage;
+        depthBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        depthBarrier.subresourceRange.baseMipLevel = 0;
+        depthBarrier.subresourceRange.levelCount = 1;
+        depthBarrier.subresourceRange.baseArrayLayer = 0;
+        depthBarrier.subresourceRange.layerCount = 1;
 
-        vkCmdBeginRenderPass(
+        array<VkImageMemoryBarrier2, 2> beginBarriers = 
+        {
+            colorBarrier,
+            depthBarrier
+        };
+
+        VkDependencyInfo depInfo{};
+        depInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        depInfo.imageMemoryBarrierCount = scast<u32>(beginBarriers.size());
+        depInfo.pImageMemoryBarriers = beginBarriers.data();
+
+        vkCmdPipelineBarrier2(
             commandBuffers[currentFrame],
-            &renderPassInfo,
-            VK_SUBPASS_CONTENTS_INLINE);
+            &depInfo);
+
+        VkRenderingAttachmentInfo colorAttachment{};
+        colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        colorAttachment.imageView = swapchainImageViews[imageIndex];
+        colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachment.clearValue.color = { { 0.0f, 1.0f, 0.0f, 1.0f } };
+
+        VkRenderingAttachmentInfo depthAttachment{};
+        depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        depthAttachment.imageView = depthImageView;
+        depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depthAttachment.clearValue.depthStencil = { 1.0f, 0 };
+
+        VkRenderingInfo renderingInfo{};
+        renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+        renderingInfo.renderArea.offset = { 0, 0 };
+        renderingInfo.renderArea.extent = { scast<u32>(extent.x), scast<u32>(extent.y) };
+        renderingInfo.layerCount = 1;
+        renderingInfo.colorAttachmentCount = 1;
+        renderingInfo.pColorAttachments = &colorAttachment;
+        renderingInfo.pDepthAttachment = &depthAttachment;
+
+        vkCmdBeginRendering(
+            commandBuffers[currentFrame],
+            &renderingInfo);
 
         //
         // BEGIN DRAW
@@ -2375,25 +2322,63 @@ namespace KalaGraphics::Core
         // END DRAW
         //
 
-        vkCmdEndRenderPass(commandBuffers[currentFrame]);
+        vkCmdEndRendering(commandBuffers[currentFrame]);
+
+        VkImageMemoryBarrier2 presentBarrier{};
+        presentBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+        presentBarrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+        presentBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+        presentBarrier.dstStageMask = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
+        presentBarrier.dstAccessMask = VK_ACCESS_2_NONE;
+        presentBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        presentBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        presentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        presentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        presentBarrier.image = swapchainImages[imageIndex];
+        presentBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        presentBarrier.subresourceRange.baseMipLevel = 0;
+        presentBarrier.subresourceRange.levelCount = 1;
+        presentBarrier.subresourceRange.baseArrayLayer = 0;
+        presentBarrier.subresourceRange.layerCount = 1;
+
+        VkDependencyInfo presentDepInfo{};
+        presentDepInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        presentDepInfo.imageMemoryBarrierCount = 1;
+        presentDepInfo.pImageMemoryBarriers = &presentBarrier;
+
+        vkCmdPipelineBarrier2(
+            commandBuffers[currentFrame],
+            &presentDepInfo);
+
         vkEndCommandBuffer(commandBuffers[currentFrame]);
 
-        VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        VkSemaphoreSubmitInfo renderSignal{};
+        renderSignal.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+        renderSignal.semaphore = renderFinishedSemaphores[imageIndex];
+        renderSignal.stageMask = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
 
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = &availableSemaphores[currentFrame];
-        submitInfo.pWaitDstStageMask = &waitStage;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &renderFinishedSemaphores[imageIndex];
+        VkCommandBufferSubmitInfo cmdBufInfo{};
+        cmdBufInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
+        cmdBufInfo.commandBuffer = commandBuffers[currentFrame];
 
-        vkQueueSubmit(
+        VkSemaphoreSubmitInfo imageAvailableWait{};
+        imageAvailableWait.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+        imageAvailableWait.semaphore = availableSemaphores[currentFrame];
+        imageAvailableWait.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+        VkSubmitInfo2 submitInfo2{};
+        submitInfo2.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+        submitInfo2.commandBufferInfoCount = 1;
+        submitInfo2.pCommandBufferInfos = &cmdBufInfo;
+        submitInfo2.signalSemaphoreInfoCount = 1;
+        submitInfo2.pSignalSemaphoreInfos = &renderSignal;
+        submitInfo2.waitSemaphoreInfoCount = 1;
+        submitInfo2.pWaitSemaphoreInfos = &imageAvailableWait;
+
+        vkQueueSubmit2(
             graphicsQueue,
             1,
-            &submitInfo,
+            &submitInfo2,
             inFlightFences[currentFrame]);
 
         VkPresentInfoKHR presentInfo{};
@@ -2547,15 +2532,6 @@ namespace KalaGraphics::Core
         }
         renderFinishedSemaphores.clear();
 
-        for (auto& fb : framebuffers)
-        {
-            vkDestroyFramebuffer(
-                logicalDevice,
-                fb,
-                nullptr);
-        }
-        framebuffers.clear();
-
         if (depthImageView != VK_NULL_HANDLE)
         {
             vkDestroyImageView(
@@ -2572,22 +2548,17 @@ namespace KalaGraphics::Core
                 depthAllocation);
         }
 
-        if (renderPass != VK_NULL_HANDLE)
-        {
-            vkDestroyRenderPass(
-                logicalDevice,
-                renderPass,
-                nullptr);
-        }
+        //dont delete, just clear
+        swapchainImages.clear();
 
-        for (auto& view : imageViews)
+        for (auto& view : swapchainImageViews)
         {
             vkDestroyImageView(
                 logicalDevice,
                 view,
                 nullptr);
         }
-        imageViews.clear();
+        swapchainImageViews.clear();
 
         if (swapchain != VK_NULL_HANDLE)
         {
@@ -2597,7 +2568,7 @@ namespace KalaGraphics::Core
                 nullptr);
         }
 
-        imagesInFlight.clear();
+        swapchainImagesInFlight.clear();
 
         //only destroy the static resources if all graphics contexts are destroyed
         if (registry.GetAllContent().empty())

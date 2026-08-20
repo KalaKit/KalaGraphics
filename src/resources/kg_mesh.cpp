@@ -5,13 +5,16 @@
 
 #include <memory>
 
+#include "core/kg_core.hpp"
+
 #include "vulkan/vulkan_core.h"
+KG_VK_MEM_ALLOC_IGNORE_PUSH
 #include "vma/vk_mem_alloc.h"
+KG_VK_MEM_ALLOC_IGNORE_POP
 
 #include "log_utils.hpp"
 
 #include "resources/kg_mesh.hpp"
-#include "core/kg_core.hpp"
 #include "core/kg_context.hpp"
 #include "resources/kg_shader.hpp"
 #include "resources/kg_texture.hpp"
@@ -450,7 +453,6 @@ namespace KalaGraphics::Resources
 
     void Mesh::UpdateVertices()
     {
-        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
         VmaAllocator allocator = GraphicsContext::GetVmaAllocator();
 
         u64 newSize = vertices.size() * sizeof(Vertex);
@@ -538,7 +540,6 @@ namespace KalaGraphics::Resources
 
     void Mesh::UpdateIndices()
     {
-        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
         VmaAllocator allocator = GraphicsContext::GetVmaAllocator();
 
         u64 newSize = indices.size() * sizeof(u32);

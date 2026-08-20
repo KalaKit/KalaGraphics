@@ -348,11 +348,24 @@ namespace KalaGraphics::Resources
                     shaderModuleData.vkModule_geom);
             }
 
+            VkFormat colorFormat = scast<VkFormat>(newContext->GetDefaultColorFormat());
+            VkFormat depthFormat = scast<VkFormat>(newContext->GetDefaultDepthFormat());
+
+            VkPipelineRenderingCreateInfo pipelineRenderingInfo{};
+            pipelineRenderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+            pipelineRenderingInfo.colorAttachmentCount = 1;
+            pipelineRenderingInfo.pColorAttachmentFormats = &colorFormat;
+            pipelineRenderingInfo.depthAttachmentFormat = depthFormat;
+            pipelineRenderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
             unique_ptr<PipelineInfo> newPipelineInfo = GetPipelineInfo(
                 is2D,
                 std::move(stages),
                 pipelineLayout,
-                newContext->GetRenderPass());
+                VK_NULL_HANDLE);
+
+            newPipelineInfo->pipelineInfo.pNext = &pipelineRenderingInfo;
+            newPipelineInfo->pipelineInfo.renderPass = VK_NULL_HANDLE;
 
             VkPipeline newPipeline{};
             VkResult vkResult = vkCreateGraphicsPipelines(
@@ -575,8 +588,6 @@ namespace KalaGraphics::Resources
                 createInfo.codeSize = outData.size();
                 createInfo.pCode = rcast<const u32*>(outData.data());
 
-                ShaderModule shaderModule{};
-
                 VkShaderModule vkShaderModule{};
                 VkResult vkResult = vkCreateShaderModule(
                     logicalDevice,
@@ -607,7 +618,7 @@ namespace KalaGraphics::Resources
                             2);
                     }
 
-                    return { false };
+                    return {};
                 }
 
                 SpvReflectShaderModule* spvShaderModule = new SpvReflectShaderModule{};
@@ -629,7 +640,7 @@ namespace KalaGraphics::Resources
 
                     delete spvShaderModule;
 
-                    return { false };
+                    return {};
                 }
 
                 return 
@@ -908,7 +919,7 @@ namespace KalaGraphics::Resources
         pipelineLayoutInfo.setLayoutCount         = scast<u32>(newDescriptorSetLayouts.size());
         pipelineLayoutInfo.pSetLayouts            = newDescriptorSetLayouts.data();
         pipelineLayoutInfo.pushConstantRangeCount = (pushConstantRange.size > 0) ? 1u : 0u;
-        pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+        pipelineLayoutInfo.pPushConstantRanges    = &pushConstantRange;
 
         VkPipelineLayout newPipelineLayout{};
         VkResult vkResult = vkCreatePipelineLayout(
@@ -996,11 +1007,24 @@ namespace KalaGraphics::Resources
                 newShaderModuleData.vkModule_geom);
         }
 
+        VkFormat colorFormat = scast<VkFormat>(gctx->GetDefaultColorFormat());
+        VkFormat depthFormat = scast<VkFormat>(gctx->GetDefaultDepthFormat());
+
+        VkPipelineRenderingCreateInfo pipelineRenderingInfo{};
+        pipelineRenderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+        pipelineRenderingInfo.colorAttachmentCount = 1;
+        pipelineRenderingInfo.pColorAttachmentFormats = &colorFormat;
+        pipelineRenderingInfo.depthAttachmentFormat = depthFormat;
+        pipelineRenderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
         unique_ptr<PipelineInfo> newPipelineInfo = GetPipelineInfo(
             is2D,
             std::move(stages),
             newPipelineLayout,
-            gctx->GetRenderPass());
+            VK_NULL_HANDLE);
+
+        newPipelineInfo->pipelineInfo.pNext = &pipelineRenderingInfo;
+        newPipelineInfo->pipelineInfo.renderPass = VK_NULL_HANDLE;
 
         VkPipeline newPipeline{};
         vkResult = vkCreateGraphicsPipelines(

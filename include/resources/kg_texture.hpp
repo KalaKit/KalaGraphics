@@ -93,11 +93,11 @@ namespace KalaGraphics::Resources
 
     enum class TextureType : u8
     {
-        TYPE_2D       = 0,      //single, flat image, layer count always 1
-        TYPE_2D_ARRAY = 1,      //N independent 2D layers
-        TYPE_CUBEMAP  = 2,      //always 6 layers, one per cube face
+        TYPE_2D            = 0, //single, flat image, layer count always 1
+        TYPE_2D_ARRAY      = 1, //N independent 2D layers
+        TYPE_CUBEMAP       = 2, //always 6 layers, one per cube face
         TYPE_CUBEMAP_ARRAY = 3, //6 layers per cubemap, one per cube face
-        TYPE_3D       = 4       //volumetric, layerCount = depth
+        TYPE_3D            = 4  //volumetric, layerCount = depth
     };
 
     enum class TextureFilterMode : u8

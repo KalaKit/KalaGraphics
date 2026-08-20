@@ -5,6 +5,33 @@
 
 #pragma once
 
+#if defined(__clang__)
+    #define KG_VK_MEM_ALLOC_IGNORE_PUSH \
+        _Pragma("clang diagnostic push") \
+        _Pragma("clang diagnostic ignored \"-Wnullability-completeness\"") \
+        _Pragma("clang diagnostic ignored \"-Wunused-parameter\"") \
+        _Pragma("clang diagnostic ignored \"-Wunused-variable\"") \
+        _Pragma("clang diagnostic ignored \"-Wunused-private-field\"") \
+        _Pragma("clang diagnostic ignored \"-Wmissing-field-initializers\"")
+    #define KG_VK_MEM_ALLOC_IGNORE_POP \
+        _Pragma("clang diagnostic pop")
+#elif defined(__GNUC__)
+    #define KG_VK_MEM_ALLOC_IGNORE_PUSH \
+        _Pragma("GCC diagnostic push") \
+        _Pragma("GCC diagnostic ignored \"-Wunused-parameter\"") \
+        _Pragma("GCC diagnostic ignored \"-Wunused-variable\"") \
+        _Pragma("GCC diagnostic ignored \"-Wmissing-field-initializers\"")
+    #define KG_VK_MEM_ALLOC_IGNORE_POP \
+        _Pragma("GCC diagnostic pop")
+#elif defined(_MSC_VER)
+    #define KG_VK_MEM_ALLOC_IGNORE_PUSH \
+        __pragma(warning(push))
+    #define KG_VK_MEM_ALLOC_IGNORE_POP \
+        __pragma(warning(pop))
+#else
+    #error "UNKNOWN COMPILER, MUST DEFINE NULLABILITY_IGNORE_START AND NULLABILITY_IGNORE_END"
+#endif
+
 #include <string>
 #include <functional>
 

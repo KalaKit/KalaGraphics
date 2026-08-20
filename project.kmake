@@ -16,7 +16,7 @@ binarytype: static
 sources: "src"
 headers: "include", "../external-shared/KalaHeaders/include", "../external-shared/Vulkan/Include", "../external-shared/Spirv-reflect/include"
 defines: LIB_STATIC
-warninglevel: none
+warninglevel: normal
 customflags: export-compile-commands, export-vscode-sln
 
 #profile debug-windows

@@ -273,23 +273,13 @@ namespace KalaGraphics::Core
 
         static VkPhysicalDevice GetPhysicalDevice();
         static VkDevice GetLogicalDevice();
-        static VkQueue GetGraphicsQueue();
         static VmaAllocator GetVmaAllocator();
         static VkDescriptorPool GetDescriptorPool();        
 
         void InitializeVulkanContext();
 
-        VkSwapchainKHR& GetSwapchain();
-        vector<VkImageView>& GetImageViews();
-        VkRenderPass& GetRenderPass();
-        VkImage& GetDepthImage();
-        VkImageView& GetDepthImageView();
-        vector<VkFramebuffer>& GetFramebuffers();
-        array<VkSemaphore, MAX_FRAMES_IN_FLIGHT>& GetAvailableSemaphores();
-        vector<VkSemaphore>& GetRenderFinishedSemaphores();
-        VkCommandPool& GetCommandPool();
-        array<VkFence, MAX_FRAMES_IN_FLIGHT>& GetInFlightFences();
-        array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT>& GetCommandBuffers();
+        u32 GetDefaultColorFormat() const;
+        u32 GetDefaultDepthFormat() const;
 
         //Create and use a single time command buffer for a small batch of operations
         VkCommandBuffer BeginSingleTimeCommands();
@@ -315,13 +305,12 @@ namespace KalaGraphics::Core
         vec2 extent{};
         VkSwapchainKHR swapchain{};
         u32 swapchainFormat{};
-        vector<VkFence> imagesInFlight{};
-        vector<VkImageView> imageViews{};
-        VkRenderPass renderPass{};
+        vector<VkFence> swapchainImagesInFlight{};
+        vector<VkImage> swapchainImages{};
+        vector<VkImageView> swapchainImageViews{};
         VkImage depthImage{};
         VmaAllocation depthAllocation{};
         VkImageView depthImageView{};
-        vector<VkFramebuffer> framebuffers{};
         array<VkSemaphore, MAX_FRAMES_IN_FLIGHT> availableSemaphores{};
         vector<VkSemaphore> renderFinishedSemaphores{};
         VkCommandPool commandPool{};
