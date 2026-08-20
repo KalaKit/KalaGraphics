@@ -126,8 +126,6 @@ namespace KalaGraphics::Resources
     u32 Mesh::GetShaderID() const { return shaderID; }
     void Mesh::SetShaderID(u32 newValue)
     {
-        //TODO: figure out if changing shader messes up camera and texture
-
         if (shaderID == newValue)
         {
             Log::Print("Failed to set mesh '" + to_string(ID) 
@@ -141,6 +139,13 @@ namespace KalaGraphics::Resources
         }
 
         Shader* oldShader = Shader::GetRegistry().GetContent(shaderID);
+        if (!oldShader)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to set shader ID for mesh '" + to_string(ID) + "' because its old shader is invalid!");
+        }
+
         Shader* shader = Shader::GetRegistry().GetContent(newValue);
         if (!shader)
         {
@@ -154,14 +159,25 @@ namespace KalaGraphics::Resources
             return;
         }
 
+        if (oldShader->is2D
+            != shader->is2D)
+        {
+            Log::Print(
+                "Clearing all data for mesh '" + to_string(ID) 
+                + "' because new shader '" + to_string(shader->ID) 
+                + "' 2D state does not match old shader '" + to_string(oldShader->ID) + "' 2D state!",
+                "KG_MESH",
+                LogType::LOG_WARNING);
+
+            ClearAllData();
+            UpdateMeshData();
+        }
+
         shaderID = newValue;
 
-        if (oldShader)
-        {
-            erase(
-                oldShader->meshIDs,
-                ID);
-        }
+        erase(
+            oldShader->meshIDs,
+            ID);
         shader->meshIDs.push_back(ID);
 
         Log::Print(
@@ -227,38 +243,26 @@ namespace KalaGraphics::Resources
     bool Mesh::Is2D() const { return is2D; }
     void Mesh::Set2DState(bool newState)
     {
-        if (newState)
+        if (is2D == newState)
         {
-            if (transform.pos_world.z != 0
-                || transform.rot_world.y != 0
-                || transform.rot_world.z != 0
-                || transform.size_world.z != 0)
-            {
-                Log::Print(
-                        "Failed to set mesh '" + to_string(ID) + "' 2D state because 2D state was requested "
-                        "but 3D values were assigned to transform pos, rot or size!",
-                    "KG_MESH",
-                    LogType::LOG_ERROR,
-                    2);
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) 
+                + "' 2D state because it already is the same value!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
 
-                return;
-            }
-
-            for (const auto& v : vertices)
-            {
-                if (v.pos.z != 0)
-                {
-                    Log::Print(
-                        "Failed to set mesh '" + to_string(ID) + "' 2D state because 2D state was requested "
-                        "but 3D values were assigned to one of the vertice positions!",
-                        "KG_MESH",
-                        LogType::LOG_ERROR,
-                        2);
-
-                    return;
-                }
-            }
+            return;
         }
+
+        Log::Print(
+            "Clearing all data for mesh '" + to_string(ID) 
+            + "' because its 2D toggle state was changed!",
+            "KG_MESH",
+            LogType::LOG_WARNING);
+
+        ClearAllData();
+        UpdateMeshData();
 
         is2D = newState;
 
@@ -273,6 +277,30 @@ namespace KalaGraphics::Resources
     const vector<Vertex>& Mesh::GetVertices() const { return vertices; }
     void Mesh::SetVertices(vector<Vertex>&& newVertices)
     {
+        if (is2D)
+        {
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) + "' vertices "
+                "because user attempted to set 3D vertices to 2D mesh!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (vertices.data() == newVertices.data())
+        {
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) + "' vertices "
+                "because they already are the same!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
         size_t bufferSize = newVertices.size() * sizeof(Vertex);
         if (bufferSize == 0)
         {
@@ -291,10 +319,66 @@ namespace KalaGraphics::Resources
         UpdateVertices();
     }
 
+    const vector<Vertex2D>& Mesh::GetVertices2D() const { return vertices2D; }
+    void Mesh::SetVertices2D(vector<Vertex2D>&& newVertices)
+    {
+        if (!is2D)
+        {
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) + "' vertices "
+                "because user attempted to set 2D vertices to 3D mesh!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (vertices2D.data() == newVertices.data())
+        {
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) + "' vertices "
+                "because they already are the same!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        size_t bufferSize = newVertices.size() * sizeof(Vertex);
+        if (bufferSize == 0)
+        {
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) + "' vertices "
+                "because no vertex data was passed!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        vertices2D = std::move(newVertices);
+
+        UpdateVertices();
+    }
+
     const vector<u32>& Mesh::GetIndices() const { return indices; }
     void Mesh::SetIndices(vector<u32>&& newIndices)
     {
-        //TODO: figure out if index safety checks are even needed
+        if (indices.data() == newIndices.data())
+        {
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) + "' indices "
+                "because they already are the same!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+    
         indices = std::move(newIndices);
 
         UpdateIndices();
@@ -451,6 +535,107 @@ namespace KalaGraphics::Resources
             LogType::LOG_SUCCESS);
     }
 
+    void Mesh::ClearAllData()
+    {
+        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
+        if (logicalDevice == VK_NULL_HANDLE)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to clear mesh '" + to_string(ID) 
+                + "' data because the logical device was invalid!");
+        }
+
+        VmaAllocator allocator = GraphicsContext::GetVmaAllocator();
+        if (!allocator)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to clear mesh '" + to_string(ID) 
+                + "' data because the vma allocator was invalid!");
+        }
+
+        //drain the gpu before destroying this mesh
+        VkResult vkResult = vkDeviceWaitIdle(logicalDevice);
+        if (vkResult != VK_SUCCESS)
+        {
+            GraphicsContext::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to clear mesh '" 
+                + to_string(ID) + "' data because vkDeviceWaitIdle did not succeed!",
+                vkResult);
+        }
+
+        isDirty = false;
+
+        if (cameraID != 0)
+        {
+            Camera* cam = Camera::GetRegistry().GetContent(cameraID);
+            if (!cam)
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics mesh error",
+                    "Failed to clear mesh '" + to_string(ID) 
+                    + "' data because its camera '" + to_string(cameraID) + "' was invalid!");
+            }
+
+            cam->meshID = 0;
+
+            Log::Print(
+                "Detached mesh '" + to_string(ID) 
+                + "' from camera '" + to_string(cameraID) + "' because mesh data was cleared!",
+                "KG_MESH",
+                LogType::LOG_WARNING);
+
+            cameraID = 0;
+        }
+
+        vertices.clear();
+        indices.clear();
+
+        if (vkVertexBuffer != VK_NULL_HANDLE)
+        {
+            vmaDestroyBuffer(
+                allocator,
+                vkVertexBuffer,
+                vmaVertexAllocation);
+
+            vmaVertexAllocation = VK_NULL_HANDLE;
+            vkVertexBuffer = VK_NULL_HANDLE;
+            vertexMappedPtr = nullptr;
+        }
+        if (vkIndexBuffer != VK_NULL_HANDLE)
+        {
+            vmaDestroyBuffer(
+                allocator,
+                vkIndexBuffer,
+                vmaIndexAllocation);
+
+            vmaIndexAllocation = VK_NULL_HANDLE;
+            vkIndexBuffer = VK_NULL_HANDLE;
+            indexMappedPtr = nullptr;
+        }
+
+        if (vmaMeshUBOAllocation != VK_NULL_HANDLE)
+        {
+            vmaDestroyBuffer(
+                allocator,
+                vkMeshUBOBuffer,
+                vmaMeshUBOAllocation);
+
+            meshUBOMappedPtr = nullptr;
+        }
+
+        if (vkDescriptorSet != VK_NULL_HANDLE)
+        {
+            vkFreeDescriptorSets(
+                logicalDevice,
+                GraphicsContext::GetDescriptorPool(),
+                1,
+                &vkDescriptorSet);
+        }
+    }
+
     void Mesh::UpdateVertices()
     {
         VmaAllocator allocator = GraphicsContext::GetVmaAllocator();
@@ -461,8 +646,7 @@ namespace KalaGraphics::Resources
             Log::Print(
                 "Failed to update vertices for mesh '" + to_string(ID) + "' because no vertex data was passed!",
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -668,60 +852,6 @@ namespace KalaGraphics::Resources
             "KG_MESH",
             LogType::LOG_INFO);
 
-        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
-
-        //drain the gpu before destroying this mesh
-        if (logicalDevice != VK_NULL_HANDLE) 
-        {
-            VkResult vkResult = vkDeviceWaitIdle(logicalDevice);
-            if (vkResult != VK_SUCCESS)
-            {
-                GraphicsContext::ForceClose(
-                    "KalaGraphics mesh error",
-                    "Failed to destroy mesh '" 
-                    + to_string(ID) + "' because vkDeviceWaitIdle did not succeed!",
-                    vkResult);
-            }
-        }
-
-        VmaAllocator allocator = GraphicsContext::GetVmaAllocator();
-
-        if (vmaVertexAllocation)
-        {
-            vmaDestroyBuffer(
-                allocator,
-                vkVertexBuffer,
-                vmaVertexAllocation);
-
-            vertexMappedPtr = nullptr;
-        }
-        if (vmaIndexAllocation)
-        {
-            vmaDestroyBuffer(
-                allocator,
-                vkIndexBuffer,
-                vmaIndexAllocation);
-
-            indexMappedPtr = nullptr;
-        }
-
-        if (vmaMeshUBOAllocation != VK_NULL_HANDLE)
-        {
-            vmaDestroyBuffer(
-                allocator,
-                vkMeshUBOBuffer,
-                vmaMeshUBOAllocation);
-
-            meshUBOMappedPtr = nullptr;
-        }
-
-        if (vkDescriptorSet != VK_NULL_HANDLE)
-        {
-            vkFreeDescriptorSets(
-                logicalDevice,
-                GraphicsContext::GetDescriptorPool(),
-                1,
-                &vkDescriptorSet);
-        }
+        ClearAllData();
     }
 }

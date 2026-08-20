@@ -177,12 +177,19 @@ static unique_ptr<PipelineInfo> GetPipelineInfo(
     pi->multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     pi->multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-    //TODO: fix depth for 2D
-
     pi->depthStencil.sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    pi->depthStencil.depthTestEnable  = VK_TRUE;
-    pi->depthStencil.depthWriteEnable = VK_TRUE;
-    pi->depthStencil.depthCompareOp   = VK_COMPARE_OP_LESS;
+    if (!is2D)
+    {
+        pi->depthStencil.depthTestEnable  = VK_TRUE;
+        pi->depthStencil.depthWriteEnable = VK_TRUE;
+        pi->depthStencil.depthCompareOp   = VK_COMPARE_OP_LESS;
+    }
+    else
+    {
+        pi->depthStencil.depthTestEnable  = VK_FALSE;
+        pi->depthStencil.depthWriteEnable = VK_FALSE;
+        pi->depthStencil.depthCompareOp   = VK_COMPARE_OP_LESS;
+    }
 
     pi->colorBlendAttachment.colorWriteMask =
         VK_COLOR_COMPONENT_R_BIT
@@ -438,7 +445,7 @@ namespace KalaGraphics::Resources
     const vector<u32>& Shader::GetCameraIDs() const { return cameraIDs; }
 
     void Shader::SetShaderData(
-        bool is2D,
+        bool new2DValue,
         path&& vertPath,
         path&& fragPath,
         path&& geomPath)
@@ -1018,7 +1025,7 @@ namespace KalaGraphics::Resources
         pipelineRenderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
         unique_ptr<PipelineInfo> newPipelineInfo = GetPipelineInfo(
-            is2D,
+            new2DValue,
             std::move(stages),
             newPipelineLayout,
             VK_NULL_HANDLE);
@@ -1152,8 +1159,45 @@ namespace KalaGraphics::Resources
         }
 
         //
+        // DETACH INVALID 2D STATE MESHES
+        //
+
+        vector<Mesh*> removedMeshes{};
+        for (u32 mID : meshIDs)
+        {
+            Mesh* m = Mesh::GetRegistry().GetContent(mID);
+            if (!m)
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics shader error",
+                    "Failed to update shader '" + to_string(ID) + "' data "
+                    "because its mesh '" + to_string(mID) + "' was invalid!");
+            }
+
+            if (m->is2D != new2DValue) removedMeshes.push_back(m);
+        }
+        for (Mesh* m : removedMeshes)
+        {
+            Log::Print(
+                "Destroyed mesh '" + to_string(m->ID) 
+                + "' because its shader '" + to_string(ID) 
+                + "' was updated and the shader 2D state no longer matches the mesh 2D state!",
+                "KG_SHADER",
+                LogType::LOG_WARNING);
+
+            u32 mID = m->ID;
+            m->Destroy();
+
+            erase(
+                meshIDs, 
+                mID);
+        }
+
+        //
         // FINISH
         //
+
+        is2D = new2DValue;
 
         pipeline = newPipeline;
         pipelineLayout = newPipelineLayout;
@@ -1399,26 +1443,30 @@ namespace KalaGraphics::Resources
 
     Shader::~Shader()
     {
-        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
-
-        //drain the gpu before destroying this shader
-        if (logicalDevice != VK_NULL_HANDLE) 
-        {
-            VkResult vkResult = vkDeviceWaitIdle(logicalDevice);
-            if (vkResult != VK_SUCCESS)
-            {
-                GraphicsContext::ForceClose(
-                    "KalaGraphics shader error",
-                    "Failed to destroy shader '" 
-                    + to_string(ID) + "' because vkDeviceWaitIdle did not succeed!",
-                    vkResult);
-            }
-        }
-
         Log::Print(
 			"Destroying shader '" + to_string(ID) + "'.",
 			"KG_SHADER",
 			LogType::LOG_INFO);
+
+        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
+        if (logicalDevice == VK_NULL_HANDLE) 
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics shader error",
+                "Failed to clear shader '" + to_string(ID) 
+                + "' data because the logical device was invalid!");
+        }
+
+        //drain the gpu before destroying this shader
+        VkResult vkResult = vkDeviceWaitIdle(logicalDevice);
+        if (vkResult != VK_SUCCESS)
+        {
+            GraphicsContext::ForceClose(
+                "KalaGraphics shader error",
+                "Failed to destroy shader '" 
+                + to_string(ID) + "' because vkDeviceWaitIdle did not succeed!",
+                vkResult);
+        }
 
         vkDestroyPipeline(
             logicalDevice,

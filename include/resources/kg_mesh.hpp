@@ -147,6 +147,9 @@ namespace KalaGraphics::Resources
         u32 GetCameraID() const;
 
         u32 GetShaderID() const;
+        //Changing to a shader whose 2D state doesn't match the old shader 2D state
+        //will recreate this mesh data and detach camera,
+        //UpdateMeshData is called internally on success
         void SetShaderID(u32 newID);
 
         u32 GetTextureID() const;
@@ -156,10 +159,15 @@ namespace KalaGraphics::Resources
         void SetTransform(Transform3D&& newTransform);
 
         bool Is2D() const;
+        //Toggling 2D state resets mesh data and detaches attached camera,
+        //UpdateMeshData is called internally on success
         void Set2DState(bool newState);
 
         const vector<Vertex>& GetVertices() const;
         void SetVertices(vector<Vertex>&& newVertices);
+
+        const vector<Vertex2D>& GetVertices2D() const;
+        void SetVertices2D(vector<Vertex2D>&& newVertices);
 
         const vector<u32>& GetIndices() const;
         void SetIndices(vector<u32>&& newIndices);
@@ -172,6 +180,8 @@ namespace KalaGraphics::Resources
         void Destroy();
     private:
         ~Mesh();
+
+        void ClearAllData();
 
         void UpdateVertices();
         void UpdateIndices();
@@ -190,6 +200,8 @@ namespace KalaGraphics::Resources
         //vertex data
 
         vector<Vertex> vertices{};
+        vector<Vertex2D> vertices2D{};
+
         VkBuffer vkVertexBuffer{};
         u64 verticesSize{};
         VmaAllocation vmaVertexAllocation{};

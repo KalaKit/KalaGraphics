@@ -159,11 +159,9 @@ namespace KalaGraphics::Resources
 
     u32 Camera::GetID() const { return ID; }
 
-    u32 Camera::GetShaderId() const { return shaderID; }
+    u32 Camera::GetShaderID() const { return shaderID; }
     void Camera::SetShaderID(u32 newValue)
     {
-        //TODO: figure out if changing shader messes up meshes
-
         if (shaderID == newValue)
         {
             Log::Print(
@@ -178,6 +176,13 @@ namespace KalaGraphics::Resources
         }
 
         Shader* oldShader = Shader::GetRegistry().GetContent(shaderID);
+        if (!oldShader)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics camera error",
+                "Failed to set shader ID for camera '" + to_string(ID) + "' because its old shader is invalid!");
+        }
+
         Shader* shader = Shader::GetRegistry().GetContent(newValue);
         if (!shader)
         {
@@ -190,6 +195,20 @@ namespace KalaGraphics::Resources
                 2);
 
             return;
+        }
+
+        if (oldShader->is2D
+            != shader->is2D)
+        {
+            Log::Print(
+                "Clearing all data for camera '" + to_string(ID) 
+                + "' because new shader '" + to_string(shader->ID) 
+                + "' 2D state does not match old shader '" + to_string(oldShader->ID) + "' 2D state!",
+                "KG_MESH",
+                LogType::LOG_WARNING);
+
+            ClearAllData();
+            Move({}, {});
         }
 
         shaderID = newValue;
@@ -244,6 +263,14 @@ namespace KalaGraphics::Resources
         }
 
         Mesh* oldMesh = Mesh::GetRegistry().GetContent(meshID);
+        if (meshID != 0
+            && !oldMesh)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to set mesh ID for camera '" + to_string(ID) + "' because its old mesh is invalid!");
+        }
+
         Mesh* mesh = Mesh::GetRegistry().GetContent(newValue);
         if (!mesh)
         {
@@ -264,6 +291,8 @@ namespace KalaGraphics::Resources
         mesh->cameraID = ID;
 
         Shader* shader = Shader::GetRegistry().GetContent(mesh->shaderID);
+
+        //TODO: figure out what data needs to change/clear when modifying mesh ID
 
         if (vkDescriptorSet != VK_NULL_HANDLE)
         {
@@ -486,6 +515,24 @@ namespace KalaGraphics::Resources
     CameraType Camera::GetCameraType() const { return type; }
     void Camera::SetCameraType(CameraType newValue)
     {
+        if (type == newValue)
+        {
+            Log::Print(
+                "Failed to set camera '" + to_string(ID) 
+                + "' state because it already is the same value!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        Log::Print(
+            "Clearing all data for camera '" + to_string(ID) 
+            + "' because its camera type was changed!",
+            "KG_MESH",
+            LogType::LOG_WARNING);
+
         string camType{};
 
         switch (newValue)
@@ -504,6 +551,9 @@ namespace KalaGraphics::Resources
             type = CameraType::C_PERSPECTIVE;
             break;
         }
+
+        ClearAllData();
+        Move({}, {});
 
         Log::Print(
             "Set camera '" + to_string(ID) + "' type to '" + camType + "'.",
@@ -753,6 +803,57 @@ namespace KalaGraphics::Resources
         */
     }
 
+    void Camera::ClearAllData()
+    {
+        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
+        if (logicalDevice == VK_NULL_HANDLE)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics camera error",
+                "Failed to clear camera '" + to_string(ID) 
+                + "' data because the logical device was invalid!");
+        }
+
+        VmaAllocator allocator = GraphicsContext::GetVmaAllocator();
+        if (!allocator)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics camera error",
+                "Failed to clear camera '" + to_string(ID) + "' data "
+                "because the vma allocator was invalid!");
+        }
+
+        //drain the gpu before destroying this camera
+        VkResult vkResult = vkDeviceWaitIdle(logicalDevice);
+        if (vkResult != VK_SUCCESS)
+        {
+            GraphicsContext::ForceClose(
+                "KalaGraphics camera error",
+                "Failed to clear camera '" + to_string(ID) 
+                + "' data because vkDeviceWaitIdle did not succeed!",
+                vkResult);
+        }
+
+        if (vmaCameraUBOAllocation != VK_NULL_HANDLE)
+        {
+            vmaDestroyBuffer(
+                allocator,
+                vkCameraUBOBuffer,
+                vmaCameraUBOAllocation);
+
+            cameraUBOMappedPtr = nullptr;
+        }
+
+        if (vkDescriptorSet != VK_NULL_HANDLE)
+        {
+            vkFreeDescriptorSets(
+                logicalDevice,
+                GraphicsContext::GetDescriptorPool(),
+                1,
+                &vkDescriptorSet);
+        }
+    }
+
     void Camera::Destroy()
     {
         Mesh* mesh = Mesh::GetRegistry().GetContent(meshID);
@@ -785,41 +886,6 @@ namespace KalaGraphics::Resources
                 LogType::LOG_WARNING);
         }
 
-        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
-
-        //drain the gpu before destroying this mesh
-        if (logicalDevice != VK_NULL_HANDLE) 
-        {
-            VkResult vkResult = vkDeviceWaitIdle(logicalDevice);
-            if (vkResult != VK_SUCCESS)
-            {
-                GraphicsContext::ForceClose(
-                    "KalaGraphics camera error",
-                    "Failed to destroy camera '" 
-                    + to_string(ID) + "' because vkDeviceWaitIdle did not succeed!",
-                    vkResult);
-            }
-        }
-
-        VmaAllocator allocator = GraphicsContext::GetVmaAllocator();
-
-        if (vmaCameraUBOAllocation != VK_NULL_HANDLE)
-        {
-            vmaDestroyBuffer(
-                allocator,
-                vkCameraUBOBuffer,
-                vmaCameraUBOAllocation);
-
-            cameraUBOMappedPtr = nullptr;
-        }
-
-        if (vkDescriptorSet != VK_NULL_HANDLE)
-        {
-            vkFreeDescriptorSets(
-                logicalDevice,
-                GraphicsContext::GetDescriptorPool(),
-                1,
-                &vkDescriptorSet);
-        }
+        ClearAllData();
     }
 }

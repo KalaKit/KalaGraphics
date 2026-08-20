@@ -1020,6 +1020,17 @@ namespace KalaGraphics::Resources
 
         if (isDirty)
         {
+            //drain the gpu before recreating this texture
+            VkResult vkResult = vkDeviceWaitIdle(logicalDevice);
+            if (vkResult != VK_SUCCESS)
+            {
+                GraphicsContext::ForceClose(
+                    "KalaGraphics texture error",
+                    "Failed to recreate texture '" 
+                    + to_string(ID) + "' data because vkDeviceWaitIdle did not succeed!",
+                    vkResult);
+            }
+
             //
             // CREATE IMAGE
             //
@@ -1571,22 +1582,33 @@ namespace KalaGraphics::Resources
             LogType::LOG_INFO);
 
         VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
-
-        //drain the gpu before destroying this texture
-        if (logicalDevice != VK_NULL_HANDLE) 
+        if (logicalDevice == VK_NULL_HANDLE) 
         {
-            VkResult vkResult = vkDeviceWaitIdle(logicalDevice);
-            if (vkResult != VK_SUCCESS)
-            {
-                GraphicsContext::ForceClose(
-                    "KalaGraphics texture error",
-                    "Failed to texture camera '" 
-                    + to_string(ID) + "' because vkDeviceWaitIdle did not succeed!",
-                    vkResult);
-            }
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics shader error",
+                "Failed to clear shader '" + to_string(ID) 
+                + "' data because the logical device was invalid!");
         }
 
         VmaAllocator allocator = GraphicsContext::GetVmaAllocator();
+        if (!allocator)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics texture error",
+                "Failed to clear texture '" + to_string(ID) + "' data "
+                "because the vma allocator was invalid!");
+        }
+
+        //drain the gpu before destroying this texture
+        VkResult vkResult = vkDeviceWaitIdle(logicalDevice);
+        if (vkResult != VK_SUCCESS)
+        {
+            GraphicsContext::ForceClose(
+                "KalaGraphics texture error",
+                "Failed to texture camera '" 
+                + to_string(ID) + "' because vkDeviceWaitIdle did not succeed!",
+                vkResult);
+        }
 
         if (vmaTexAllocation != VK_NULL_HANDLE)
         {

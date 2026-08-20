@@ -74,7 +74,10 @@ namespace KalaGraphics::Resources
 
         u32 GetID() const;
 
-        u32 GetShaderId() const;
+        u32 GetShaderID() const;
+        //Changing to a shader whose 2D state doesn't match the old shader 2D state
+        //will recreate this camera data and detach mesh,
+        //Move and UpdateCameraData is called internally on success
         void SetShaderID(u32 newValue);
 
         u32 GetMeshID() const;
@@ -101,6 +104,8 @@ namespace KalaGraphics::Resources
         void SetAsActiveCamera();
 
         CameraType GetCameraType() const;
+        //Toggling camera type resets camera data and detaches attached mesh,
+        //Move and UpdateCameraData is called internally on success
         void SetCameraType(CameraType type);
 
         f32 GetSpeedMultiplier() const;
@@ -124,6 +129,8 @@ namespace KalaGraphics::Resources
         void Destroy();
     private:
         ~Camera();
+
+        void ClearAllData();
 
         u32 ID{};
         u32 shaderID{};

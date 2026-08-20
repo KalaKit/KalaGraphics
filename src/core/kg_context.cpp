@@ -989,6 +989,14 @@ namespace KalaGraphics::Core
             return;
         }
 
+        if (logicalDevice == VK_NULL_HANDLE)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics context error",
+                "Failed to recreate Vulkan swapchain for graphics context '" 
+                + to_string(ID) + "' because the logical device was invalid!");
+        }
+
         //drain the gpu before freeing its context resources
         VkResult vkResult = vkDeviceWaitIdle(logicalDevice);
         if (vkResult != VK_SUCCESS)
@@ -2230,6 +2238,75 @@ namespace KalaGraphics::Core
             commandBuffers[currentFrame],
             &depInfo);
 
+        //
+        // DRAW FUNCTION
+        //
+
+        auto draw = [&](bool is2D) -> void
+            {
+                vec2 depth = vpData.depth;
+                vec2 vpOffset = vpData.viewportOffset;
+                vec2 scissorSize = vpData.scissorSize;
+
+                VkViewport viewport{};
+                viewport.x = vpOffset.x;
+                viewport.y = vpOffset.y;
+                viewport.width = extent.x;
+                viewport.height = extent.y;
+                viewport.minDepth = depth.x;
+                viewport.maxDepth = depth.y;
+
+                VkRect2D scissor{};
+                scissor.offset = { scast<int>(scissorSize.x), scast<int>(scissorSize.y) };
+                scissor.extent = { scast<u32>(extent.x), scast<u32>(extent.y) };
+
+                vkCmdSetViewport(
+                    commandBuffers[currentFrame],
+                    0,
+                    1,
+                    &viewport);
+                    
+                vkCmdSetScissor(
+                    commandBuffers[currentFrame],
+                    0,
+                    1,
+                    &scissor);
+                
+                if (Shader::GetRegistry().GetAllContent().empty())
+                {
+                    if (missingShaderWarningCount < 10)
+                    {
+                        Log::Print(
+                            "Failed to render onto graphics context '" + to_string(ID) + "' "
+                            "because there are no shaders to draw with! This warning will only be given 10 times.",
+                            "KG_CONTEXT",
+                            LogType::LOG_WARNING);
+
+                        missingShaderWarningCount++;
+                    }
+                }
+
+                for (Shader* shader : Shader::GetRegistry().GetAllContent())
+                {
+                    if (!shader)
+                    {
+                        KalaGraphicsCore::ForceClose(
+                            "KalaGraphics context error",
+                            "Failed to update graphics context '" + to_string(ID) 
+                            + "' because one of the the shaders was nullptr!");
+                    }
+
+                    if (shader->is2D == is2D)
+                    {
+                        shader->Update(commandBuffers[currentFrame]);
+                    }
+                }
+            };
+
+        // ==================================================
+        // 3D STAGE START
+        // ==================================================
+
         VkRenderingAttachmentInfo colorAttachment{};
         colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
         colorAttachment.imageView = swapchainImageViews[imageIndex];
@@ -2259,70 +2336,41 @@ namespace KalaGraphics::Core
             commandBuffers[currentFrame],
             &renderingInfo);
 
-        //
-        // BEGIN DRAW
-        //
-
-        vec2 depth = vpData.depth;
-        vec2 vpOffset = vpData.viewportOffset;
-        vec2 scissorSize = vpData.scissorSize;
-
-        VkViewport viewport{};
-        viewport.x = vpOffset.x;
-        viewport.y = vpOffset.y;
-        viewport.width = extent.x;
-        viewport.height = extent.y;
-        viewport.minDepth = depth.x;
-        viewport.maxDepth = depth.y;
-
-        VkRect2D scissor{};
-        scissor.offset = { scast<int>(scissorSize.x), scast<int>(scissorSize.y) };
-        scissor.extent = { scast<u32>(extent.x), scast<u32>(extent.y) };
-
-        vkCmdSetViewport(
-            commandBuffers[currentFrame],
-            0,
-            1,
-            &viewport);
-            
-        vkCmdSetScissor(
-            commandBuffers[currentFrame],
-            0,
-            1,
-            &scissor);
-        
-        if (Shader::GetRegistry().GetAllContent().empty())
-        {
-            if (missingShaderWarningCount < 10)
-            {
-                Log::Print(
-                    "Failed to render onto graphics context '" + to_string(ID) + "' "
-                    "because there are no shaders to draw with! This warning will only be given 10 times.",
-                    "KG_CONTEXT",
-                    LogType::LOG_WARNING);
-
-                missingShaderWarningCount++;
-            }
-        }
-
-        for (Shader* shader : Shader::GetRegistry().GetAllContent())
-        {
-            if (!shader)
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics context error",
-                    "Failed to update graphics context '" + to_string(ID) 
-                    + "' because one of the the shaders was nullptr!");
-            }
-
-            shader->Update(commandBuffers[currentFrame]);
-        }
-
-        //
-        // END DRAW
-        //
+        draw(false);
 
         vkCmdEndRendering(commandBuffers[currentFrame]);
+
+        // ==================================================
+        // 2D STAGE START
+        // ==================================================
+
+        VkRenderingAttachmentInfo colorAttachment2D{};
+        colorAttachment2D.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        colorAttachment2D.imageView = swapchainImageViews[imageIndex];
+        colorAttachment2D.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colorAttachment2D.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+        colorAttachment2D.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+        VkRenderingInfo renderingInfo2D{};
+        renderingInfo2D.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+        renderingInfo2D.renderArea.offset = { 0, 0 };
+        renderingInfo2D.renderArea.extent = { scast<u32>(extent.x), scast<u32>(extent.y) };
+        renderingInfo2D.layerCount = 1;
+        renderingInfo2D.colorAttachmentCount = 1;
+        renderingInfo2D.pColorAttachments = &colorAttachment2D;
+        renderingInfo2D.pDepthAttachment = nullptr;
+
+        vkCmdBeginRendering(
+            commandBuffers[currentFrame],
+            &renderingInfo2D);
+
+        draw(true);
+
+        vkCmdEndRendering(commandBuffers[currentFrame]);
+
+        // ==================================================
+        // 2D STAGE END
+        // ==================================================
 
         VkImageMemoryBarrier2 presentBarrier{};
         presentBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
@@ -2470,7 +2518,15 @@ namespace KalaGraphics::Core
 			"KG_CONTEXT",
 			LogType::LOG_INFO);
 
-        //drain the gpu before freeing its context resources
+        if (logicalDevice == VK_NULL_HANDLE)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics context error",
+                "Failed to destroy graphics context '" + to_string(ID) 
+                + "' because the logical device was invalid!");
+        }
+
+        //drain the gpu before destroying this context
         if (logicalDevice != VK_NULL_HANDLE) 
         {
             VkResult vkResult = vkDeviceWaitIdle(logicalDevice);
