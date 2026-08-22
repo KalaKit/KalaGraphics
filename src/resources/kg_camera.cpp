@@ -16,6 +16,7 @@ KG_VK_MEM_ALLOC_IGNORE_POP
 
 #include "resources/kg_camera.hpp"
 #include "core/kg_context.hpp"
+#include "core/kg_viewport.hpp"
 #include "resources/kg_mesh.hpp"
 #include "resources/kg_shader.hpp"
 
@@ -38,6 +39,7 @@ using KalaHeaders::KalaMath::isnear;
 
 using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Core::GraphicsContext;
+using KalaGraphics::Core::Viewport;
 
 using std::unique_ptr;
 using std::make_unique;
@@ -49,47 +51,16 @@ namespace KalaGraphics::Resources
 
     KalaGraphicsRegistry<Camera>& Camera::GetRegistry() { return registry; }
 
-    Camera* Camera::GetActiveCamera()
+    Camera* Camera::Initialize(
+        u32 shaderID,
+        CameraType newType)
     {
-        if (registry.GetAllContent().empty())
+        Shader* shader{};
+        string err = Shader::GetRegistry().GetContent(shaderID, shader);
+        if (!err.empty())
         {
             Log::Print(
-                "Failed to get active camera because there are no cameras!",
-                "KG_CAMERA",
-                LogType::LOG_WARNING);
-
-            return nullptr;
-        }
-
-        for (Camera* c : registry.GetAllContent())
-        {
-            if (!c)
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics camera error",
-                    "Failed to get active camera "
-                    "because an invalid camera was found!");
-            }
-
-            if (c->isActiveCamera) return c;
-        }
-
-        KalaGraphicsCore::ForceClose(
-            "KalaGraphics camera error",
-            "No active camera was found when searching for camera!");
-
-        //not that we will ever reach here, but it shuts up a dumb compiler warning
-        return nullptr;
-    }
-
-    Camera* Camera::Initialize(u32 shaderID)
-    {
-        Shader* shader = Shader::GetRegistry().GetContent(shaderID);
-        if (!shader)
-        {
-            Log::Print(
-                "Failed to create camera because the shader '" 
-                + to_string(shaderID) + "' was invalid!",
+                "Failed to create camera because of invalid shader! Reason: " + err,
                 "KG_CAMERA",
                 LogType::LOG_ERROR,
                 2);
@@ -97,12 +68,29 @@ namespace KalaGraphics::Resources
             return nullptr;
         }
 
-        GraphicsContext* gctx = GraphicsContext::GetRegistry().GetContent(shader->contextID);
-        if (!gctx)
+        Viewport* vp{};
+        err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics camera error",
+                "Failed to create camera because the shaders viewport was invalid! Reason: " + err);
+        }
+
+        GraphicsContext* gctx{};
+        err = GraphicsContext::GetRegistry().GetContent(vp->contextID, gctx);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics camera error",
+                "Failed to create camera because the graphics context "
+                "on the cameras viewport was invalid! Reason: " + err);
+        }
+
+        if (shader->is2D != (newType == CameraType::CAM_ORTHOGRAPHIC))
         {
             Log::Print(
-                "Failed to create camera because the shader '" 
-                + to_string(shaderID) + "' graphics context '" + to_string(shader->contextID) + "' was invalid!",
+                "Failed to create camera because camera type is not compatible with shader 2D state!",
                 "KG_CAMERA",
                 LogType::LOG_ERROR,
                 2);
@@ -135,7 +123,8 @@ namespace KalaGraphics::Resources
         //shader references this camera
         shader->cameraIDs.push_back(newID);
 
-        cameraPtr->viewport = gctx->GetExtent();
+        cameraPtr->viewport = gctx->GetRenderSize();
+        cameraPtr->type = newType;
 
         //always assign descriptor set data at camera init
         cameraPtr->isDirty = true;
@@ -144,9 +133,13 @@ namespace KalaGraphics::Resources
         //move also calls UpdateCameraData
         cameraPtr->Move({}, {});
 
-        if (registry.GetAllContent().empty()) cameraPtr->isActiveCamera = true;
-
-        registry.AddContent(newID, std::move(newCamera));
+        err = registry.AddContent(newID, std::move(newCamera));
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics camera error",
+				"Failed to initialize camera! Reason: " + err);
+        }
 
         Log::Print(
 			"Created new camera '" + to_string(newID) 
@@ -175,21 +168,23 @@ namespace KalaGraphics::Resources
             return;
         }
 
-        Shader* oldShader = Shader::GetRegistry().GetContent(shaderID);
-        if (!oldShader)
+        Shader* oldShader{};
+        string err = Shader::GetRegistry().GetContent(shaderID, oldShader);
+        if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics camera error",
-                "Failed to set shader ID for camera '" + to_string(ID) + "' because its old shader is invalid!");
+                "Failed to set shader ID for camera '" 
+                + to_string(ID) + "' because of invalid old shader! Reason: " + err);
         }
 
-        Shader* shader = Shader::GetRegistry().GetContent(newValue);
-        if (!shader)
+        Shader* shader{};
+        err = Shader::GetRegistry().GetContent(newValue, shader);
+        if (!err.empty())
         {
             Log::Print(
                 "Failed to set camera '" + to_string(ID) 
-                + "' shader ID to '" + to_string(newValue) 
-                + "' because it was invalid!",
+                + "' shader ID because it was invalid! Reason: " + err,
                 "KG_CAMERA",
                 LogType::LOG_ERROR,
                 2);
@@ -223,7 +218,7 @@ namespace KalaGraphics::Resources
 
         Log::Print(
             "Set camera '" + to_string(ID) 
-            + "' shader9 ID to '" + to_string(shaderID) + "'!",
+            + "' shader ID to '" + to_string(shaderID) + "'!",
             "KG_CAMERA",
             LogType::LOG_SUCCESS);
     }
@@ -262,22 +257,37 @@ namespace KalaGraphics::Resources
             return;
         }
 
-        Mesh* oldMesh = Mesh::GetRegistry().GetContent(meshID);
+        Mesh* oldMesh{};
+        string err = Mesh::GetRegistry().GetContent(meshID, oldMesh);
         if (meshID != 0
-            && !oldMesh)
+            && !err.empty())
         {
             KalaGraphicsCore::ForceClose(
-                "KalaGraphics mesh error",
-                "Failed to set mesh ID for camera '" + to_string(ID) + "' because its old mesh is invalid!");
+                "KalaGraphics camera error",
+                "Failed to set mesh ID for camera '" 
+                + to_string(ID) + "' because of invalid old mesh! Reason: " + err);
         }
 
-        Mesh* mesh = Mesh::GetRegistry().GetContent(newValue);
-        if (!mesh)
+        Mesh* mesh{};
+        err = Mesh::GetRegistry().GetContent(newValue, mesh);
+        if (!err.empty())
+        {
+            Log::Print(
+                "Failed to set camera '" + to_string(ID) 
+                + "' mesh ID because it was invalid! Reason: " + err,
+                "KG_CAMERA",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (mesh->is2D != Is2D())
         {
             Log::Print(
                 "Failed to set camera '" + to_string(ID) 
                 + "' mesh ID to '" + to_string(newValue) 
-                + "' because it was invalid!",
+                + "' because mesh 2D state is not compatible with camera type!",
                 "KG_CAMERA",
                 LogType::LOG_ERROR,
                 2);
@@ -290,7 +300,15 @@ namespace KalaGraphics::Resources
         if (oldMesh) oldMesh->cameraID = 0;
         mesh->cameraID = ID;
 
-        Shader* shader = Shader::GetRegistry().GetContent(mesh->shaderID);
+        Shader* shader{};
+        err = Shader::GetRegistry().GetContent(mesh->shaderID, shader);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics camera error",
+                "Failed to set mesh ID for camera '" 
+                + to_string(ID) + "' because of invalid mesh shader! Reason: " + err);
+        }
 
         //TODO: figure out what data needs to change/clear when modifying mesh ID
 
@@ -371,7 +389,7 @@ namespace KalaGraphics::Resources
         mouse = kclamp(mouse, -MOUSE_MAX, MOUSE_MAX);
         keyboard = kclamp(keyboard, -1, 1);
 
-        if (type == CameraType::C_ORTHOGRAPHIC)
+        if (type == CameraType::CAM_ORTHOGRAPHIC)
         {
             vec3 move = vec2(
                 keyboard.x * speedMultiplier,
@@ -472,46 +490,6 @@ namespace KalaGraphics::Resources
         transform = std::move(newTransform);
     }
 
-    bool Camera::IsActiveCamera() const { return isActiveCamera; }
-    void Camera::SetAsActiveCamera()
-    {
-        if (isActiveCamera)
-        {
-            Log::Print(
-                "Failed to set camera '" + to_string(ID) 
-                + "' as active because it already is active!",
-                "KG_CAMERA",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        for (Camera* c : registry.GetAllContent())
-        {
-            if (!c)
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics camera error",
-                    "Failed to set camera '" + to_string(ID) + "' active state "
-                    "because an invalid camera was found!");
-            }
-
-            if (c->isActiveCamera)
-            {
-                c->isActiveCamera = false;
-                break;
-            }
-        }
-
-        isActiveCamera = true;
-
-        Log::Print(
-            "Set camera '" + to_string(ID) + "' as active camera.",
-            "KG_CAMERA",
-            LogType::LOG_SUCCESS);
-    }
-
     CameraType Camera::GetCameraType() const { return type; }
     void Camera::SetCameraType(CameraType newValue)
     {
@@ -537,18 +515,14 @@ namespace KalaGraphics::Resources
 
         switch (newValue)
         {
-        case CameraType::C_INVALID:
-            Log::Print(
-                "Failed to set camera '" + to_string(ID) 
-                + "' type because it was invalid!");
-            break;
-        case CameraType::C_ORTHOGRAPHIC:
+        default:
+        case CameraType::CAM_ORTHOGRAPHIC:
             camType = "orthographic";
-            type = CameraType::C_ORTHOGRAPHIC;
+            type = CameraType::CAM_ORTHOGRAPHIC;
             break;
-        case CameraType::C_PERSPECTIVE:
+        case CameraType::CAM_PERSPECTIVE:
             camType = "perspective";
-            type = CameraType::C_PERSPECTIVE;
+            type = CameraType::CAM_PERSPECTIVE;
             break;
         }
 
@@ -560,6 +534,8 @@ namespace KalaGraphics::Resources
             "KG_CAMERA",
             LogType::LOG_SUCCESS);
     }
+
+    bool Camera::Is2D() { return type == CameraType::CAM_ORTHOGRAPHIC; }
 
     f32 Camera::GetSpeedMultiplier() const { return speedMultiplier; }
     void Camera::SetSpeedMultiplier(f32 newValue)
@@ -655,7 +631,7 @@ namespace KalaGraphics::Resources
 
     const mat4& Camera::GetMatrix() const
     { 
-        return type == CameraType::C_ORTHOGRAPHIC
+        return type == CameraType::CAM_ORTHOGRAPHIC
             ? orthographicMatrix
             : projectionMatrix;
     }
@@ -680,17 +656,14 @@ namespace KalaGraphics::Resources
                 "because the vma allocator was invalid!");
         }
 
-        Shader* shader = Shader::GetRegistry().GetContent(shaderID);
-        if (!shader)
+        Shader* shader{};
+        string err = Shader::GetRegistry().GetContent(shaderID, shader);
+        if (!err.empty())
         {
-            Log::Print(
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics camera error",
                 "Failed to update camera '" + to_string(ID) 
-                + "' data because the shader '" + to_string(shaderID) + "' was invalid!",
-                "KG_CAMERA",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
+                + "' data because its shader was invalid! Reason: " + err);
         }
 
         if (vkDescriptorSet == VK_NULL_HANDLE)
@@ -856,18 +829,26 @@ namespace KalaGraphics::Resources
 
     void Camera::Destroy()
     {
-        Mesh* mesh = Mesh::GetRegistry().GetContent(meshID);
-        if (mesh) mesh->cameraID = 0;
+        Mesh* mesh{};
+        string err = Mesh::GetRegistry().GetContent(meshID, mesh);
+        if (err.empty()) mesh->cameraID = 0;
 
-        Shader* shader = Shader::GetRegistry().GetContent(shaderID);
-        if (shader)
+        Shader* shader{};
+        err = Shader::GetRegistry().GetContent(shaderID, shader);
+        if (err.empty())
         {
             erase(
                 shader->cameraIDs, 
                 ID);
         }
 
-        registry.RemoveContent(ID);
+        err = registry.DestroyContent(ID);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics camera error",
+                "Failed to destroy camera '" + to_string(ID) + "'! Reason: " + err);
+        }
     }
 
     Camera::~Camera()
@@ -877,6 +858,8 @@ namespace KalaGraphics::Resources
             "KG_CAMERA",
             LogType::LOG_INFO);
 
+        //TODO: log for viewport camera?
+        /*
         if (!registry.GetAllContent().empty()
             && isActiveCamera)
         {
@@ -885,6 +868,7 @@ namespace KalaGraphics::Resources
                 "KG_CAMERA",
                 LogType::LOG_WARNING);
         }
+        */
 
         ClearAllData();
     }

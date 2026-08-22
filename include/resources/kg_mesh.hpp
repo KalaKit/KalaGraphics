@@ -60,11 +60,9 @@ namespace KalaGraphics::Resources
 
     enum class SphereType : u8
     {
-        S_INVALID = 0u,
-
-        S_UV = 1u,
-        S_ICO = 2u,
-        S_QUAD = 3u
+        SPHERE_UV = 0,
+        SPHERE_ICO = 1,
+        SPHERE_QUAD = 2
     };
     struct LIB_API Mesh_Sphere
     {

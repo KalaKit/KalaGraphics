@@ -235,6 +235,8 @@ namespace KalaGraphics::Resources
 
         u32 ID{};
         u32 shaderID{};
+
+        //meshes that contain this texture
         vector<u32> meshIDs{};
 
         //set to true if any texture-breaking data was adjusted

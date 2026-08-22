@@ -249,7 +249,13 @@ namespace KalaGraphics::Import
         shaderPtr->shaderPath = std::move(shaderPath);
         shaderPtr->shaderData = std::move(shaderData);
 
-        registry.AddContent(newID, std::move(newShader));
+        string err = registry.AddContent(newID, std::move(newShader));
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics import shader error",
+				"Failed to initialize import shader! Reason: " + err);
+        }
 
         Log::Print(
 			"Created new import shader '" + to_string(newID) + "'!",
@@ -276,7 +282,13 @@ namespace KalaGraphics::Import
 
     void ImportShader::Destroy()
     {
-        registry.RemoveContent(ID);
+        string err = registry.DestroyContent(ID);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics import shader error",
+                "Failed to destroy import shader '" + to_string(ID) + "'! Reason: " + err);
+        }
     }
 
     ImportShader::~ImportShader()

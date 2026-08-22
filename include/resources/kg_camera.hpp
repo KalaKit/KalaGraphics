@@ -22,6 +22,7 @@ using VkDescriptorSet = VkDescriptorSet_T*;
 namespace KalaGraphics::Core
 {
     class GraphicsContext;
+    class Viewport;
 }
 
 namespace KalaGraphics::Resources
@@ -52,25 +53,25 @@ namespace KalaGraphics::Resources
 
     enum class CameraType : u8
     {
-        C_INVALID = 0u,
-
-        C_ORTHOGRAPHIC = 1u,
-        C_PERSPECTIVE = 2u
+        //2D camera
+        CAM_ORTHOGRAPHIC = 0,
+        //fps-stype 3D camera
+        CAM_PERSPECTIVE = 1
     };
 
     class LIB_API Camera
     {
-    friend class KalaGraphics::Core::GraphicsContext;
     friend class Mesh;
     friend class Shader;
+    friend class KalaGraphics::Core::GraphicsContext;
+    friend class KalaGraphics::Core::Viewport;
     friend struct default_delete<Camera>;
     public:
         static KalaGraphicsRegistry<Camera>& GetRegistry();
 
-        //Return whatever the current active camera is
-        static Camera* GetActiveCamera();
-
-        static Camera* Initialize(u32 shaderID);
+        static Camera* Initialize(
+            u32 shaderID,
+            CameraType type = CameraType::CAM_PERSPECTIVE);
 
         u32 GetID() const;
 
@@ -98,15 +99,13 @@ namespace KalaGraphics::Resources
         const Transform3D& GetTransform() const;
         void SetTransform(Transform3D&& newTransform);
 
-        bool IsActiveCamera() const;
-        //Assign this camera as the active camera,
-        //only one camera is allowed to draw across all shaders
-        void SetAsActiveCamera();
-
         CameraType GetCameraType() const;
         //Toggling camera type resets camera data and detaches attached mesh,
         //Move and UpdateCameraData is called internally on success
         void SetCameraType(CameraType type);
+
+        //Is this camera 2D (orthographic) or 3D (perspective)
+        bool Is2D();
 
         f32 GetSpeedMultiplier() const;
         void SetSpeedMultiplier(f32 newSpeed);
@@ -136,9 +135,7 @@ namespace KalaGraphics::Resources
         u32 shaderID{};
         u32 meshID{};
 
-        bool isActiveCamera{};
-
-        CameraType type = CameraType::C_PERSPECTIVE;
+        CameraType type = CameraType::CAM_PERSPECTIVE;
 
         Transform3D transform{};
 

@@ -100,64 +100,22 @@ namespace KalaGraphics::Core
 
     enum class Severity : u8
     {
-        S_INVALID = 0u,
-
-        S_INFO = 1u,
-        S_WARNING = 2u,
-        S_FATAL = 3u
-    };
-
-    enum class ViewportSize : u8
-    {
-        VP_INVALID = 0u,
-
-        //4:3
-
-        VP_640_480 = 1u,
-        VP_800_600 = 2u,
-        VP_1024_768 = 3u,
-        VP_1600_1200 = 4u,
-
-        //16:9
-
-        VP_1280_720 = 5u,
-        VP_1600_900 = 6u,
-        VP_1920_1080 = 7u,
-        VP_2560_1440 = 8u,
-        VP_3840_2160 = 9u,
-
-        //16:10
-
-        VP_1280_800 = 10u,
-        VP_1680_1050 = 11u,
-        VP_1920_1200 = 12u,
-        VP_2560_1600 = 13u,
-
-        //21:9
-
-        VP_2560_1080 = 14u,
-        VP_3440_1440 = 15u,
-        VP_5120_2160 = 16u,
-
-        //32:9
-
-        VP_3840_1080 = 17u,
-        VP_5120_1440 = 18u
+        SEVERITY_INFO = 0,
+        SEVERITY_WARNING = 1,
+        SEVERITY_FATAL = 2
     };
 
     enum class VSyncState : u8
 	{
-        VSYNC_INVALID = 0u,
-
         //Lowest latency, no tearing (mailbox, fifo_relaxed/fifo as fallback)
-        VSYNC_ON_TRIPLE_BUFFERED = 1u,
+        VSYNC_ON_TRIPLE_BUFFERED = 0,
 
         //Frames synced to display refresh rate to prevent stuttering,
         //can cause tearing (fifo_relaxed, fifo as fallback)
-        VSYNC_ON_ADAPTIVE = 2u,
+        VSYNC_ON_ADAPTIVE = 1,
 
         //Uncapped framerates, no waiting, causes tearing (immediate)
-        VSYNC_OFF = 3u
+        VSYNC_OFF = 2
 	};
 
     struct LIB_API GraphicsContextData
@@ -174,34 +132,13 @@ namespace KalaGraphics::Core
         VkSurfaceKHR context_vk_surface{};
     };
 
-    struct LIB_API ViewportData
-    {
-        //does the viewport dynamically scale with the 
-        bool isDynamicViewport = true;
-
-        //where the viewport starts at, relative to top-left corner
-        vec2 offset{};
-
-        //min and max depth
-        vec2 depth = vec2(0, 1);
-
-        //pushes the drawable area down and right if x and y are positive
-        vec2 viewportOffset{};
-
-        //cuts everything outside of this area,
-        //gpu can only draw clear color there
-        vec2 scissorSize{};
-
-        //static viewport size
-        ViewportSize vpSize = ViewportSize::VP_1920_1080;
-    };
-
     class LIB_API GraphicsContext
     {
     friend class KalaGraphics::Resources::Shader;
     friend class KalaGraphics::Resources::Mesh;
     friend class KalaGraphics::Resources::Texture;
     friend class KalaGraphics::Resources::Camera;
+    friend class Viewport;
     friend struct default_delete<GraphicsContext>;
     public:
         static KalaGraphicsRegistry<GraphicsContext>& GetRegistry();
@@ -232,38 +169,16 @@ namespace KalaGraphics::Core
         static GraphicsContext* InitializeInstance(GraphicsContextData&& context);
 
         u32 GetID() const;
-        const vector<u32>& GetShaderIDs() const;
+        const vector<u32>& GetViewportIDs() const;
 
         VSyncState GetVSyncState() const;
         void SetVSyncState(VSyncState newValue);
 
-        static string_view GetStaticViewportName(ViewportSize vpSize);
-        static vec2 GetStaticViewportSizeValue(ViewportSize vpSize);
-
-        //Sets static viewport size, only applied if dynamic viewport is disabled
-        vec2 GetStaticViewportSize() const;
-        void SetStaticViewportSize(ViewportSize fbSize);
-
-        //If true then viewport resizes dynamically with the true window size
-        bool IsDynamicViewport() const;
-        void SetDynamicViewportState(bool newValue);
-
-        vec2 GetDepth() const;
-        void SetDepth(vec2 newDepth);
-
-        vec2 GetViewportOffset() const;
-        void SetViewportOffset(vec2 newSize);
-
-        vec2 GetScissorSize() const;
-        void SetScissorSize(vec2 newOffset);
+        //Get current Windows/X11 window true window size,
+        //this is also used as VkExtent
+        vec2 GetRenderSize() const;
     
         const GraphicsContextData& GetGraphicsContextData() const;
-
-        //Get current swapchain extent size
-        vec2 GetExtent();
-
-        //Recreates the Vulkan swapchain and its related content, useful for resize events etc
-        void RecreateSwapchain();
 
         void Destroy();
     private:
@@ -276,10 +191,10 @@ namespace KalaGraphics::Core
         static VmaAllocator GetVmaAllocator();
         static VkDescriptorPool GetDescriptorPool();        
 
-        void InitializeVulkanContext();
+        static u32 GetDefaultColorFormat();
+        static u32 GetDefaultDepthFormat();
 
-        u32 GetDefaultColorFormat() const;
-        u32 GetDefaultDepthFormat() const;
+        void InitializeVulkanContext();
 
         //Create and use a single time command buffer for a small batch of operations
         VkCommandBuffer BeginSingleTimeCommands();
@@ -288,21 +203,23 @@ namespace KalaGraphics::Core
 
         void UpdateInstance();
 
+        void RecreateSwapchain();
+
         u32 ID{};
 
-        //shaders that use this graphics context
-        vector<u32> shaderIDs{};
+        //viewports that use this graphics context
+        vector<u32> viewportIDs{};
 
         u8 missingShaderWarningCount{};
 
         VSyncState vsyncState = VSyncState::VSYNC_ON_TRIPLE_BUFFERED;
 
         GraphicsContextData contextData{};
-        ViewportData vpData{};
 
         size_t currentFrame{};
 
-        vec2 extent{};
+        vec2 renderSize{};
+
         VkSwapchainKHR swapchain{};
         u32 swapchainFormat{};
         vector<VkFence> swapchainImagesInFlight{};

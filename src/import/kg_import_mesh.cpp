@@ -106,7 +106,13 @@ namespace KalaGraphics::Import
         meshPtr->meshPath = std::move(meshPath);
         meshPtr->meshData = std::move(meshData);
 
-        registry.AddContent(newID, std::move(newMesh));
+        string err = registry.AddContent(newID, std::move(newMesh));
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics import mesh error",
+				"Failed to initialize import mesh! Reason: " + err);
+        }
 
         Log::Print(
 			"Created new import mesh '" + to_string(newID) + "'!",
@@ -136,7 +142,13 @@ namespace KalaGraphics::Import
 
     void ImportMesh::Destroy()
     {
-        registry.RemoveContent(ID);
+        string err = registry.DestroyContent(ID);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics import mesh error",
+                "Failed to destroy import mesh '" + to_string(ID) + "'! Reason: " + err);
+        }
     }
 
     ImportMesh::~ImportMesh()

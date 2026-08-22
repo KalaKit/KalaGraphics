@@ -105,7 +105,13 @@ namespace KalaGraphics::Import
         texPtr->texturePath = std::move(texturePath);
         texPtr->textureData = std::move(textureData);
 
-        registry.AddContent(newID, std::move(newTex));
+        string err = registry.AddContent(newID, std::move(newTex));
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics import texture error",
+				"Failed to initialize import texture! Reason: " + err);
+        }
 
         Log::Print(
 			"Created new import texture '" + to_string(newID) + "'!",
@@ -136,7 +142,13 @@ namespace KalaGraphics::Import
 
     void ImportTexture::Destroy()
     {
-        registry.RemoveContent(ID);
+        string err = registry.DestroyContent(ID);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics import texture error",
+                "Failed to destroy import texture '" + to_string(ID) + "'! Reason: " + err);
+        }
     }
 
     ImportTexture::~ImportTexture()

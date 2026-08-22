@@ -33,6 +33,7 @@ using VkPipeline = VkPipeline_T*;
 namespace KalaGraphics::Core
 {
     class GraphicsContext;
+    class Viewport;
 }
 
 namespace KalaGraphics::Resources
@@ -64,10 +65,11 @@ namespace KalaGraphics::Resources
 
     class LIB_API Shader
     {
-    friend class KalaGraphics::Core::GraphicsContext;
     friend class Mesh;
     friend class Texture;
     friend class Camera;
+    friend class KalaGraphics::Core::GraphicsContext;
+    friend class KalaGraphics::Core::Viewport;
     friend default_delete<Shader>;
     public:
         static KalaGraphicsRegistry<Shader>& GetRegistry();
@@ -75,12 +77,12 @@ namespace KalaGraphics::Resources
         //Create a blank shader.
         //This shader has no shader data and
         //must be given shaders via SetShaderData
-        static Shader* Initialize(u32 graphicsContextID);
+        static Shader* Initialize(u32 viewportID);
 
         u32 GetID() const;
 
-        u32 GetGraphicsContextID() const;
-        void SetGraphicsContextID(u32 newValue);
+        u32 GetViewportID() const;
+        void SetViewportID(u32 newValue);
 
         bool Is2D() const;
 
@@ -89,7 +91,7 @@ namespace KalaGraphics::Resources
         const vector<u32>& GetCameraIDs() const;
 
         //First time init or hot-reload shaders
-        void SetShaderData(
+        void UpdateShaderData(
             bool is2D,
             path&& vertPath,
             path&& fragPath,
@@ -106,12 +108,12 @@ namespace KalaGraphics::Resources
         void Update(VkCommandBuffer buffer);
 
         //used only to prevent shader from removing its ID from
-        //graphics context shader IDs list if the graphics context
+        //viewport shader IDs list if the viewport
         //destroy function called the destroy function of this shader 
-        bool isDestroyingGraphicsContext{};
+        bool isDestroyingViewport{};
 
         u32 ID{};
-        u32 contextID{};
+        u32 viewportID{};
 
         vector<u32> meshIDs{};
         vector<u32> textureIDs{};

@@ -62,5 +62,7 @@ namespace KalaGraphics::Core
 			raise(SIGTRAP);
 #endif
 		}
+
+		abort();
 	}
 }

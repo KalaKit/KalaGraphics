@@ -51,11 +51,12 @@ namespace KalaGraphics::Resources
                 "Failed to create mesh because the logical device was invalid!");
         }
 
-        Shader* shader = Shader::GetRegistry().GetContent(shaderID);
-        if (!shader)
+        Shader* shader{};
+        string err = Shader::GetRegistry().GetContent(shaderID, shader);
+        if (!err.empty())
         {
             Log::Print(
-                "Failed to create mesh because shader '" + to_string(shaderID) + "' was invalid!",
+                "Failed to create mesh because the shader was invalid! Reason: " + err,
                 "KG_MESH",
                 LogType::LOG_ERROR,
                 2);
@@ -76,11 +77,12 @@ namespace KalaGraphics::Resources
             return nullptr;
         }
 
-        Texture* texture = Texture::GetRegistry().GetContent(textureID);
-        if (!texture)
+        Texture* texture{};
+        err = Texture::GetRegistry().GetContent(textureID, texture);
+        if (!err.empty())
         {
             Log::Print(
-                "Failed to create mesh because texture '" + to_string(textureID) + "' was invalid!",
+                "Failed to create mesh because the texture was invalid! Reason: " + err,
                 "KG_MESH",
                 LogType::LOG_ERROR,
                 2);
@@ -109,7 +111,13 @@ namespace KalaGraphics::Resources
 
         meshPtr->UpdateMeshData();
 
-        registry.AddContent(newID, std::move(newMesh));
+        err = registry.AddContent(newID, std::move(newMesh));
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics mesh error",
+				"Failed to initialize mesh! Reason: " + err);
+        }
 
         Log::Print(
 			"Created new mesh '" + to_string(newID) 
@@ -138,20 +146,22 @@ namespace KalaGraphics::Resources
             return;
         }
 
-        Shader* oldShader = Shader::GetRegistry().GetContent(shaderID);
-        if (!oldShader)
+        Shader* oldShader{};
+        string err = Shader::GetRegistry().GetContent(shaderID, oldShader);
+        if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics mesh error",
-                "Failed to set shader ID for mesh '" + to_string(ID) + "' because its old shader is invalid!");
+                "Failed to set shader ID for mesh '" 
+                + to_string(ID) + "' because of invalid old shader! Reason: " + err);
         }
 
-        Shader* shader = Shader::GetRegistry().GetContent(newValue);
-        if (!shader)
+        Shader* shader{};
+        err = Shader::GetRegistry().GetContent(newValue, shader);
+        if (!err.empty())
         {
             Log::Print("Failed to set mesh '" + to_string(ID) 
-                + "' shader ID to '" + to_string(newValue) 
-                + "' because it was invalid!",
+                + "' shader ID because it was invalid! Reason: " + err,
                 "KG_MESH",
                 LogType::LOG_ERROR,
                 2);
@@ -202,13 +212,22 @@ namespace KalaGraphics::Resources
             return;
         }
 
-        Texture* oldTexture = Texture::GetRegistry().GetContent(textureID);
-        Texture* texture = Texture::GetRegistry().GetContent(newValue);
+        Texture* oldTexture{};
+        string err = Texture::GetRegistry().GetContent(textureID, oldTexture);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to set texture ID for mesh '" 
+                + to_string(ID) + "' because of invalid old texture! Reason: " + err);
+        }
+
+        Texture* texture{};
+        err = Texture::GetRegistry().GetContent(newValue, texture);
         if (!texture)
         {
             Log::Print("Failed to set mesh '" + to_string(ID) 
-                + "' texture ID to '" + to_string(newValue) 
-                + "' because it was invalid!",
+                + "' texture ID because it was invalid! Reason: " + err,
                 "KG_MESH",
                 LogType::LOG_ERROR,
                 2);
@@ -406,17 +425,14 @@ namespace KalaGraphics::Resources
                 "because the vma allocator was invalid!");
         }
 
-        Shader* shader = Shader::GetRegistry().GetContent(shaderID);
-        if (!shader)
+        Shader* shader{};
+        string err = Shader::GetRegistry().GetContent(shaderID, shader);
+        if (!err.empty())
         {
-            Log::Print(
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
                 "Failed to update mesh '" + to_string(ID) 
-                + "' data because the shader '" + to_string(shaderID) + "' was invalid!",
-                "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
+                + "' data because its shader was invalid! Reason: " + err);
         }
 
         if (vkDescriptorSet == VK_NULL_HANDLE)
@@ -570,13 +586,14 @@ namespace KalaGraphics::Resources
 
         if (cameraID != 0)
         {
-            Camera* cam = Camera::GetRegistry().GetContent(cameraID);
-            if (!cam)
+            Camera* cam{};
+            string err = Camera::GetRegistry().GetContent(cameraID, cam);
+            if (!err.empty())
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics mesh error",
                     "Failed to clear mesh '" + to_string(ID) 
-                    + "' data because its camera '" + to_string(cameraID) + "' was invalid!");
+                    + "' data because its camera was invalid! Reason: " + err);
             }
 
             cam->meshID = 0;
@@ -819,13 +836,15 @@ namespace KalaGraphics::Resources
 
     void Mesh::Destroy()
     {
-        Camera* camera = Camera::GetRegistry().GetContent(cameraID);
-        if (camera) camera->meshID = 0;
+        Camera* camera{};
+        string err = Camera::GetRegistry().GetContent(cameraID, camera);
+        if (err.empty()) camera->meshID = 0;
 
         //only remove this mesh from texture meshes list of the texture is still valid
 
-        Texture* texture = Texture::GetRegistry().GetContent(textureID);
-        if (texture)
+        Texture* texture{};
+        err = Texture::GetRegistry().GetContent(textureID, texture);
+        if (!err.empty())
         {
             erase(
                 texture->meshIDs,
@@ -834,15 +853,22 @@ namespace KalaGraphics::Resources
 
         //only remove this mesh from shader meshes list if the shader is still valid
 
-        Shader* shader = Shader::GetRegistry().GetContent(shaderID);
-        if (shader)
+        Shader* shader{};
+        err = Shader::GetRegistry().GetContent(shaderID, shader);
+        if (err.empty())
         {
             erase(
                 shader->meshIDs,
                 ID);
         }
 
-        registry.RemoveContent(ID);
+        err = registry.DestroyContent(ID);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to destroy mesh '" + to_string(ID) + "'! Reason: " + err);
+        }
     }
 
     Mesh::~Mesh()

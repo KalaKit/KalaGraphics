@@ -57,7 +57,8 @@ namespace KalaGraphics::Core
         //Force-closes the application and gives a breakpoint, good for hard stops or bad user errors,
         //assigning a callback via SetExternalHandler will always use whatever is assigned there,
         //if the callback is unassigned or invalid then it falls back to the local setup
-		static void ForceClose(
+		KNORETURN
+        static void ForceClose(
 			string&& title,
 			string&& reason);
     };

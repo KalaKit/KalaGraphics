@@ -18,6 +18,7 @@
 #include "resources/kg_texture.hpp"
 #include "resources/kg_camera.hpp"
 #include "core/kg_context.hpp"
+#include "core/kg_viewport.hpp"
 #include "core/kg_core.hpp"
 
 using KalaHeaders::KalaCore::ToVar;
@@ -30,6 +31,7 @@ using KalaHeaders::KalaFile::ReadBinaryDataFromFile;
 
 using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Core::GraphicsContext;
+using KalaGraphics::Core::Viewport;
 using KalaGraphics::Core::Severity;
 
 using KalaGraphics::Resources::Vertex;
@@ -235,7 +237,7 @@ namespace KalaGraphics::Resources
 
     KalaGraphicsRegistry<Shader>& Shader::GetRegistry() { return registry; }
 
-    Shader* Shader::Initialize(u32 contextID)
+    Shader* Shader::Initialize(u32 viewportID)
     {
         VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
         if (logicalDevice == VK_NULL_HANDLE)
@@ -245,11 +247,12 @@ namespace KalaGraphics::Resources
                 "Failed to initialize shader because the logical device was invalid!");
         }
 
-        GraphicsContext* gctx = GraphicsContext::GetRegistry().GetContent(contextID);
-        if (!gctx)
+        Viewport* vp{};
+        string err = Viewport::GetRegistry().GetContent(viewportID, vp);
+        if (!err.empty())
         {
             Log::Print(
-                "Failed to initialize shader because the graphics context '" + to_string(contextID) + "' was invalid!", 
+                "Failed to initialize shader because the viewport was invalid! Reason: " + err, 
                 "KG_SHADER",
                 LogType::LOG_ERROR,
                 2);
@@ -264,16 +267,22 @@ namespace KalaGraphics::Resources
         KalaGraphicsCore::SetGlobalID(newID);
 
         shaderPtr->ID = newID;
-        shaderPtr->contextID = contextID;
+        shaderPtr->viewportID = viewportID;
 
-        //graphics context references this shader
-        gctx->shaderIDs.push_back(newID);
+        //viewport references this shader
+        vp->shaderIDs.push_back(newID);
 
-        registry.AddContent(newID, std::move(newShader));
+        err = registry.AddContent(newID, std::move(newShader));
+        if (err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics shader error",
+				"Failed to initialize shader! Reason: " + err);
+        }
 
         Log::Print(
 			"Created new shader '" + to_string(newID) 
-            + "' for graphics context '" + to_string(contextID) + "'!",
+            + "' for viewport '" + to_string(viewportID) + "'!",
 			"KG_SHADER",
 			LogType::LOG_SUCCESS);
 
@@ -282,22 +291,22 @@ namespace KalaGraphics::Resources
 
     u32 Shader::GetID() const { return ID; }
 
-    u32 Shader::GetGraphicsContextID() const { return contextID; }
-    void Shader::SetGraphicsContextID(u32 newValue)
+    u32 Shader::GetViewportID() const { return viewportID; }
+    void Shader::SetViewportID(u32 newValue)
     {
         VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
         if (logicalDevice == VK_NULL_HANDLE)
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics shader error",
-                "Failed to set shader graphics context ID "
+                "Failed to set shader viewport ID "
                 "because the logical device was invalid!");
         }
 
-        if (contextID == newValue)
+        if (viewportID == newValue)
         {
             Log::Print("Failed to set shader '" + to_string(ID) 
-                + "' graphics context ID to '" + to_string(newValue) 
+                + "' viewport ID to '" + to_string(newValue) 
                 + "' because it already is that value!",
                 "KG_SHADER",
                 LogType::LOG_ERROR,
@@ -306,13 +315,22 @@ namespace KalaGraphics::Resources
             return;
         }
 
-        GraphicsContext* oldContext = GraphicsContext::GetRegistry().GetContent(contextID);
-        GraphicsContext* newContext = GraphicsContext::GetRegistry().GetContent(newValue);
-        if (!newContext)
+        Viewport* oldVP{};
+        string err = Viewport::GetRegistry().GetContent(viewportID, oldVP);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics shader error",
+                "Failed to set viewport ID for shader '" 
+                + to_string(ID) + "' because of invalid old viewport! Reason: " + err);
+        }
+
+        Viewport* newVP{};
+        err = Viewport::GetRegistry().GetContent(newValue, newVP);
+        if (!err.empty())
         {
             Log::Print("Failed to set shader '" + to_string(ID) 
-                + "' graphics context ID to '" + to_string(newValue) 
-                + "' because it was invalid!",
+                + "' viewport ID because it was invalid! Reason: " + err,
                 "KG_SHADER",
                 LogType::LOG_ERROR,
                 2);
@@ -320,7 +338,7 @@ namespace KalaGraphics::Resources
             return;
         }
 
-        //can still switch graphics context even if there is no pipeline or shader data
+        //can still switch viewport even if there is no pipeline or shader data
         if (pipeline != VK_NULL_HANDLE)
         {
             auto add_stage = [](
@@ -355,8 +373,8 @@ namespace KalaGraphics::Resources
                     shaderModuleData.vkModule_geom);
             }
 
-            VkFormat colorFormat = scast<VkFormat>(newContext->GetDefaultColorFormat());
-            VkFormat depthFormat = scast<VkFormat>(newContext->GetDefaultDepthFormat());
+            VkFormat colorFormat = scast<VkFormat>(GraphicsContext::GetDefaultColorFormat());
+            VkFormat depthFormat = scast<VkFormat>(GraphicsContext::GetDefaultDepthFormat());
 
             VkPipelineRenderingCreateInfo pipelineRenderingInfo{};
             pipelineRenderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
@@ -386,11 +404,11 @@ namespace KalaGraphics::Resources
             if (vkResult != VK_SUCCESS)
             {
                 string message = 
-                    "Failed to set shader '" + to_string(ID) + "' graphics context "
+                    "Failed to set shader '" + to_string(ID) + "' viewport "
                     "to new value '" + to_string(newValue) + "'! Reason: " 
                     + GraphicsContext::GetVkResultMessage(vkResult);
 
-                if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
+                if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::SEVERITY_FATAL)
                 {
                     KalaGraphicsCore::ForceClose(
                         "KalaGraphics shader error",
@@ -423,19 +441,19 @@ namespace KalaGraphics::Resources
         // FINISH
         //
 
-        if (oldContext)
+        if (oldVP)
         {
             erase(
-                oldContext->shaderIDs,
+                oldVP->shaderIDs,
                 ID);
         }
-        newContext->shaderIDs.push_back(ID);
+        newVP->shaderIDs.push_back(ID);
 
-        contextID = newContext->GetID();
+        viewportID = newVP->GetID();
 
         Log::Print(
             "Set shader '" + to_string(ID) 
-            + "' graphics context ID to '" + to_string(contextID) + "'!",
+            + "' viewport ID to '" + to_string(viewportID) + "'!",
             "KG_SHADER",
             LogType::LOG_SUCCESS);
     }
@@ -444,7 +462,7 @@ namespace KalaGraphics::Resources
     const vector<u32>& Shader::GetTextureIDs() const { return textureIDs; }
     const vector<u32>& Shader::GetCameraIDs() const { return cameraIDs; }
 
-    void Shader::SetShaderData(
+    void Shader::UpdateShaderData(
         bool new2DValue,
         path&& vertPath,
         path&& fragPath,
@@ -458,12 +476,24 @@ namespace KalaGraphics::Resources
                 "Failed to set shader '" + to_string(ID) + "' data because the logical device was invalid!");
         }
 
-        GraphicsContext* gctx = GraphicsContext::GetRegistry().GetContent(contextID);
-        if (!gctx)
+        Viewport* vp{};
+        string err = Viewport::GetRegistry().GetContent(viewportID, vp);
+        if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics shader error",
-                "Failed to set shader '" + to_string(ID) + "' data because the graphics context '" + to_string(contextID) + "' was invalid!");
+                "Failed to update shader '" + to_string(ID) 
+                + "' data because its viewport was invalid! Reason: " + err);
+        }
+
+        GraphicsContext* gctx{};
+        err = GraphicsContext::GetRegistry().GetContent(viewportID, gctx);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics shader error",
+                "Failed to set shader '" + to_string(ID) 
+                + "' data because its viewports graphic context was invalid! Reason: " + err);
         }
 
         auto empty_path = [this](string_view shaderType) -> void
@@ -582,7 +612,7 @@ namespace KalaGraphics::Resources
                     Log::Print(
                         "Failed to read binary data from shader type " + string(shaderType) 
                         + "' for setting shader data for shader '" + to_string(ID) 
-                        + "' under graphics context '" + to_string(contextID) + "'! Reason : " + errMsg,
+                        + "' under viewport '" + to_string(viewportID) + "'! Reason : " + errMsg,
                         "KG_SHADER",
                         LogType::LOG_ERROR,
                         2);
@@ -607,10 +637,10 @@ namespace KalaGraphics::Resources
                     string message = 
                         "Failed to set shader '" + to_string(ID) + "' data when creating module '" 
                         + string(shaderType) + "' for shader '" + to_string(ID)
-                        + "' under graphics context '" + to_string(contextID) + "! Reason: " 
+                        + "' under viewport '" + to_string(viewportID) + "! Reason: " 
                         + GraphicsContext::GetVkResultMessage(vkResult);
 
-                    if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
+                    if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::SEVERITY_FATAL)
                     {
                         KalaGraphicsCore::ForceClose(
                             "KalaGraphics shader error",
@@ -639,7 +669,7 @@ namespace KalaGraphics::Resources
                     Log::Print(
                         "Failed to set shader '" + to_string(ID) + "' data when creating module '" 
                         + string(shaderType) + "' for shader '" + to_string(ID)
-                        + "' under graphics context '" + to_string(contextID)
+                        + "' under viewport '" + to_string(viewportID)
                         + "'! Reflect result error code: " + to_string(static_cast<int>(reflResult)),
                         "KG_SHADER",
                         LogType::LOG_ERROR,
@@ -770,7 +800,7 @@ namespace KalaGraphics::Resources
                         "Failed to get push constant block '" + to_string(i) + "' "
                         "for shader stage " + to_string(scast<int>(mod->shader_stage))
                         + " in shader '" + to_string(ID) + "' "
-                        " under graphics context '" + to_string(contextID) + "'!"
+                        " under viewport '" + to_string(viewportID) + "'!"
                         " SpvReflectResult: " + to_string(scast<int>(result)),
                         "KG_SHADER",
                         LogType::LOG_WARNING);
@@ -894,10 +924,10 @@ namespace KalaGraphics::Resources
                 string message =
                     "Failed to create descriptor set layout for set " + to_string(set)
                     + " when assigning new shader data for shader '" + to_string(ID)
-                    + "' under graphics context '" + to_string(contextID) + "'! Reason: "
+                    + "' under viewport '" + to_string(viewportID) + "'! Reason: "
                     + GraphicsContext::GetVkResultMessage(vkResult);
 
-                if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
+                if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::SEVERITY_FATAL)
                 {
                     KalaGraphicsCore::ForceClose(
                         "KalaGraphics shader error", 
@@ -970,10 +1000,10 @@ namespace KalaGraphics::Resources
 
             string message = 
                 "Failed to create pipeline layout when assigning new shader data for shader '" + to_string(ID) 
-                + "' under graphics context '" + to_string(contextID) + "'! Reason: " 
+                + "' under viewport '" + to_string(viewportID) + "'! Reason: " 
                 + GraphicsContext::GetVkResultMessage(vkResult);
 
-            if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
+            if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::SEVERITY_FATAL)
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics shader error",
@@ -1082,10 +1112,10 @@ namespace KalaGraphics::Resources
 
             string message = 
                 "Failed to create new pipeline when assigning new shader data for shader '" + to_string(ID) 
-                + "' under graphics context '" + to_string(contextID) + "'! Reason: " 
+                + "' under viewport '" + to_string(viewportID) + "'! Reason: " 
                 + GraphicsContext::GetVkResultMessage(vkResult);
 
-            if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::S_FATAL)
+            if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::SEVERITY_FATAL)
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics shader error",
@@ -1165,13 +1195,14 @@ namespace KalaGraphics::Resources
         vector<Mesh*> removedMeshes{};
         for (u32 mID : meshIDs)
         {
-            Mesh* m = Mesh::GetRegistry().GetContent(mID);
-            if (!m)
+            Mesh* m{};
+            string err = Mesh::GetRegistry().GetContent(mID, m);
+            if (!err.empty())
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics shader error",
                     "Failed to update shader '" + to_string(ID) + "' data "
-                    "because its mesh '" + to_string(mID) + "' was invalid!");
+                    "because its detach target mesh was invalid! Reason: " + err);
             }
 
             if (m->is2D != new2DValue) removedMeshes.push_back(m);
@@ -1253,15 +1284,18 @@ namespace KalaGraphics::Resources
 
         for (u32 cameraID : cameraIDs)
         {
-            Camera* camera = Camera::GetRegistry().GetContent(cameraID);
-            if (!camera)
+            Camera* camera{};
+            string err = Camera::GetRegistry().GetContent(cameraID, camera);
+            if (!err.empty())
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics shader error",
                     "Failed to update shader '" + to_string(ID) 
-                    + "' because its camera '" + to_string(cameraID) + "' was invalid!");
+                    + "' because its camera was invalid! Reason: " + err);
             }
 
+            //TODO: get active cameras per viewport
+            /*
             if (camera->isActiveCamera)
             {
                 vkCmdBindDescriptorSets(
@@ -1276,17 +1310,19 @@ namespace KalaGraphics::Resources
 
                 break;
             }
+            */
         }
 
         for (u32 meshID : meshIDs)
         {
-            Mesh* mesh = Mesh::GetRegistry().GetContent(meshID);
-            if (!mesh)
+            Mesh* mesh{};
+            string err = Mesh::GetRegistry().GetContent(meshID, mesh);
+            if (!err.empty())
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics shader error",
                     "Failed to update shader '" + to_string(ID) 
-                    + "' because its mesh '" + to_string(meshID) + "' was invalid!");
+                    + "' because its mesh was invalid! Reason: " + err);
             }
 
             if (mesh->vkVertexBuffer == VK_NULL_HANDLE)
@@ -1325,14 +1361,15 @@ namespace KalaGraphics::Resources
                 0,
                 nullptr);
 
-            Texture* texture = Texture::GetRegistry().GetContent(mesh->textureID);
-            if (!texture)
+            Texture* texture{};
+            err = Texture::GetRegistry().GetContent(mesh->textureID, texture);
+            if (!err.empty())
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics shader error",
                     "Failed to render mesh '" + to_string(meshID) 
                     + "' on shader '" + to_string(ID) 
-                    + "' because its texture '" + to_string(mesh->textureID) + "' was invalid!");
+                    + "' because its texture was invalid! Reason: " + err);
             }
 
             vkCmdBindDescriptorSets(
@@ -1410,35 +1447,45 @@ namespace KalaGraphics::Resources
     {
         for (u32 cID : cameraIDs)
         {
-            Camera* c = Camera::GetRegistry().GetContent(cID);
-            if (c) c->shaderID = 0;
+            Camera* c{};
+            string err = Camera::GetRegistry().GetContent(cID, c);
+            if (err.empty()) c->shaderID = 0;
         }
         cameraIDs.clear();
 
         for (u32 tID : textureIDs)
         {
-            Texture* t = Texture::GetRegistry().GetContent(tID);
-            if (t) t->shaderID = 0;
+            Texture* t{};
+            string err = Texture::GetRegistry().GetContent(tID, t);
+            if (err.empty()) t->shaderID = 0;
         }
         textureIDs.clear();
 
         for (u32 mID : meshIDs)
         {
-            Mesh* m = Mesh::GetRegistry().GetContent(mID);
-            if (m) m->shaderID = 0;
+            Mesh* m{};
+            string err = Mesh::GetRegistry().GetContent(mID, m);
+            if (err.empty()) m->shaderID = 0;
         }
         meshIDs.clear();
 
-        GraphicsContext* gctx = GraphicsContext::GetRegistry().GetContent(contextID);
-        if (gctx
-            && !isDestroyingGraphicsContext)
+        Viewport* vp{};
+        string err = Viewport::GetRegistry().GetContent(viewportID, vp);
+        if (err.empty()
+            && !isDestroyingViewport)
         {
             erase(
-                gctx->shaderIDs, 
+                vp->shaderIDs, 
                 ID);
         }
 
-        registry.RemoveContent(ID);
+        err = registry.DestroyContent(ID);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics shader error",
+                "Failed to destroy shader '" + to_string(ID) + "'! Reason: " + err);
+        }
     }
 
     Shader::~Shader()

@@ -18,12 +18,14 @@ KG_VK_MEM_ALLOC_IGNORE_POP
 #include "resources/kg_shader.hpp"
 #include "resources/kg_mesh.hpp"
 #include "core/kg_context.hpp"
+#include "core/kg_viewport.hpp"
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
 
 using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Core::GraphicsContext;
+using KalaGraphics::Core::Viewport;
 using KalaGraphics::Resources::PixelFormat;
 using KalaGraphics::Resources::TextureType;
 using KalaGraphics::Resources::TextureFilterMode;
@@ -177,11 +179,12 @@ namespace KalaGraphics::Resources
         u32 shaderID,
         TextureData&& textureData)
     {
-        Shader* shader = Shader::GetRegistry().GetContent(shaderID);
-        if (!shader)
+        Shader* shader{};
+        string err = Shader::GetRegistry().GetContent(shaderID, shader);
+        if (!err.empty())
         {
             Log::Print(
-                "Failed to create texture because shader '" + to_string(shaderID) + "' was invalid!",
+                "Failed to create texture because the shader was invalid! Reason: " + err,
                 "KG_TEXTURE",
                 LogType::LOG_ERROR,
                 2);
@@ -244,7 +247,13 @@ namespace KalaGraphics::Resources
         texPtr->isDirty = true;
         texPtr->UpdateTextureData();
 
-        registry.AddContent(newID, std::move(newTexture));
+        err = registry.AddContent(newID, std::move(newTexture));
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics texture error",
+				"Failed to initialize texture! Reason: " + err);
+        }
 
         Log::Print(
 			"Created new texture '" + to_string(newID) 
@@ -275,14 +284,23 @@ namespace KalaGraphics::Resources
             return;
         }
 
-        Shader* oldShader = Shader::GetRegistry().GetContent(shaderID);
-        Shader* shader = Shader::GetRegistry().GetContent(newValue);
-        if (!shader)
+        Shader* oldShader{};
+        string err = Shader::GetRegistry().GetContent(shaderID, oldShader);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics texture error",
+                "Failed to set shader ID for texture '" 
+                + to_string(ID) + "' because of invalid old shader! Reason: " + err);
+        }
+
+        Shader* shader{};
+        err = Shader::GetRegistry().GetContent(newValue, shader);
+        if (!err.empty())
         {
             Log::Print(
                 "Failed to set texture '" + to_string(ID) 
-                + "' shader ID to '" + to_string(newValue) 
-                + "' because it was invalid!",
+                + "' shader ID because it was invalid! Reason: " + err,
                 "KG_TEXTURE",
                 LogType::LOG_ERROR,
                 2);
@@ -935,23 +953,34 @@ namespace KalaGraphics::Resources
                 "because the vma allocator was invalid!");
         }
 
-        Shader* shader = Shader::GetRegistry().GetContent(shaderID);
-        if (!shader)
+        Shader* shader{};
+        string err = Shader::GetRegistry().GetContent(shaderID, shader);
+        if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(
-                "KalaGraphics shader error",
+                "KalaGraphics texture error",
                 "Failed to update texture '" + to_string(ID) 
-                + "' data because shader '" + to_string(shaderID) + "' was invalid!");
+                + "' data because its shader was invalid! Reason: " + err);
         }
 
-        GraphicsContext* gctx = GraphicsContext::GetRegistry().GetContent(shader->contextID);
-        if (!gctx)
+        Viewport* vp{};
+        err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
+        if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(
-                "KalaGraphics shader error",
+                "KalaGraphics texture error",
                 "Failed to update texture '" + to_string(ID) 
-                + "' data because shader '" + to_string(shaderID) + "' "
-                "graphics context '" + to_string(shader->contextID) + "' was invalid!");
+                + "' data because its shaders viewport was invalid! Reason: " + err);
+        }
+
+        GraphicsContext* gctx{};
+        err = GraphicsContext::GetRegistry().GetContent(vp->contextID, gctx);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics texture error",
+                "Failed to create texture '" + to_string(ID) 
+                + "' data because the graphics context on the shaders viewport was invalid! Reason: " + err);
         }
 
         bool recreateBuffer{};
@@ -1556,22 +1585,30 @@ namespace KalaGraphics::Resources
     {
         for (u32 mID : meshIDs)
         {
-            Mesh* m = Mesh::GetRegistry().GetContent(mID);
-            if (m) m->textureID = 0;
+            Mesh* m{};
+            string err = Mesh::GetRegistry().GetContent(mID, m);
+            if (err.empty()) m->textureID = 0;
         }
         meshIDs.clear();
 
         //only remove this texture from shader meshes list if the texture is still valid
 
-        Shader* shader = Shader::GetRegistry().GetContent(shaderID);
-        if (shader)
+        Shader* shader{};
+        string err = Shader::GetRegistry().GetContent(shaderID, shader);
+        if (err.empty())
         {
             erase(
                 shader->textureIDs,
                 ID);
         }
          
-        registry.RemoveContent(ID);
+        err = registry.DestroyContent(ID);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics texture error",
+                "Failed to destroy texture '" + to_string(ID) + "'! Reason: " + err);
+        }
     }
 
     Texture::~Texture()
@@ -1585,7 +1622,7 @@ namespace KalaGraphics::Resources
         if (logicalDevice == VK_NULL_HANDLE) 
         {
             KalaGraphicsCore::ForceClose(
-                "KalaGraphics shader error",
+                "KalaGraphics texture error",
                 "Failed to clear shader '" + to_string(ID) 
                 + "' data because the logical device was invalid!");
         }
