@@ -63,6 +63,6 @@ namespace KalaGraphics::Core
 #endif
 		}
 
-		abort();
+		_Exit(1);
 	}
 }
