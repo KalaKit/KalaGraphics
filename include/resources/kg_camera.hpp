@@ -67,21 +67,22 @@ namespace KalaGraphics::Resources
     friend class KalaGraphics::Core::Viewport;
     friend struct default_delete<Camera>;
     public:
-        static KalaGraphicsRegistry<Camera>& GetRegistry();
+        KNODISCARD
+		static KalaGraphicsRegistry<Camera>& GetRegistry();
 
-        static Camera* Initialize(
+        KNODISCARD
+		static Camera* Initialize(
             u32 shaderID,
             CameraType type = CameraType::CAM_PERSPECTIVE);
 
-        u32 GetID() const;
+        KNODISCARD
+		u32 GetID() const;
 
-        u32 GetShaderID() const;
-        //Changing to a shader whose 2D state doesn't match the old shader 2D state
-        //will recreate this camera data and detach mesh,
-        //Move and UpdateCameraData is called internally on success
-        void SetShaderID(u32 newValue);
+        KNODISCARD
+		u32 GetShaderID() const;
 
-        u32 GetMeshID() const;
+        KNODISCARD
+		u32 GetMeshID() const;
         void SetMeshID(u32 newValue);
 
         //Pass mouse and keyboard input to this camera,
@@ -96,30 +97,38 @@ namespace KalaGraphics::Resources
             f32 vertical = {},
             f32 deltaTime = {});
 
-        const Transform3D& GetTransform() const;
+        KNODISCARD
+		const Transform3D& GetTransform() const;
         void SetTransform(Transform3D&& newTransform);
 
-        CameraType GetCameraType() const;
+        KNODISCARD
+		CameraType GetCameraType() const;
         //Toggling camera type resets camera data and detaches attached mesh,
         //Move and UpdateCameraData is called internally on success
         void SetCameraType(CameraType type);
 
         //Is this camera 2D (orthographic) or 3D (perspective)
-        bool Is2D();
+        KNODISCARD
+		bool Is2D();
 
-        f32 GetSpeedMultiplier() const;
+        KNODISCARD
+		f32 GetSpeedMultiplier() const;
         void SetSpeedMultiplier(f32 newSpeed);
 
-        f32 GetSensitivityMultiplier() const;
+        KNODISCARD
+		f32 GetSensitivityMultiplier() const;
         void SetSensitivityMultiplier(f32 newSens);
 
-        f32 GetFOV() const;
+        KNODISCARD
+		f32 GetFOV() const;
         void SetFOV(f32 newFOV);
 
-        vec2 GetDrawDistance() const;
+        KNODISCARD
+		vec2 GetDrawDistance() const;
         void SetDrawDistance(vec2 newDraw);
 
-        const mat4& GetMatrix() const;
+        KNODISCARD
+		const mat4& GetMatrix() const;
 
         //Should be called after updating any camera data,
         //move already calls this function

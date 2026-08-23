@@ -964,7 +964,7 @@ namespace KalaGraphics::Resources
         }
 
         Viewport* vp{};
-        err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
+        err = Viewport::GetRegistry().GetContent(shader->viewportID.first, vp);
         if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(

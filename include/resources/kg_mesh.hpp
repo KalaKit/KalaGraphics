@@ -121,56 +121,73 @@ namespace KalaGraphics::Resources
     friend class Camera;
     friend struct default_delete<Mesh>;
     public:
-        static KalaGraphicsRegistry<Mesh>& GetRegistry();
+        KNODISCARD
+		static KalaGraphicsRegistry<Mesh>& GetRegistry();
 
         //Create a blank mesh,
         //all meshes require a shader even if that shader is also blank,
         //all meshes require a texture even if that texture is also a default 1x1 texture
-        static Mesh* Initialize(
+        KNODISCARD
+		static Mesh* Initialize(
             u32 shaderID,
             u32 textureID);
 
         //Import FBX, OBJ or GLTF model mesh data
-        static Mesh_Generated_Data GenerateMeshData(const path& meshPath);
+        KNODISCARD
+		static Mesh_Generated_Data GenerateMeshData(const path& meshPath);
         //Generate a cube or cylinder
-        static Mesh_Generated_Data GenerateMeshData(Mesh_Cube cubeData);
+        KNODISCARD
+		static Mesh_Generated_Data GenerateMeshData(Mesh_Cube cubeData);
         //Generate a pyramid or cone
-        static Mesh_Generated_Data GenerateMeshData(Mesh_Pyramid pyramidData);
+        KNODISCARD
+		static Mesh_Generated_Data GenerateMeshData(Mesh_Pyramid pyramidData);
         //Generate a sphere
-        static Mesh_Generated_Data GenerateMeshData(
+        KNODISCARD
+		static Mesh_Generated_Data GenerateMeshData(
             SphereType sphereType,
             Mesh_Sphere sphereData);
 
-        u32 GetID() const;
-        u32 GetCameraID() const;
+        KNODISCARD
+		u32 GetID() const;
 
+        KNODISCARD
+		u32 GetCameraID() const;
+
+        KNODISCARD
         u32 GetShaderID() const;
         //Changing to a shader whose 2D state doesn't match the old shader 2D state
         //will recreate this mesh data and detach camera,
         //UpdateMeshData is called internally on success
         void SetShaderID(u32 newID);
 
-        u32 GetTextureID() const;
+        KNODISCARD
+		u32 GetTextureID() const;
         void SetTextureID(u32 newID);
 
-        const Transform3D& GetTransform() const;
+        KNODISCARD
+		const Transform3D& GetTransform() const;
         void SetTransform(Transform3D&& newTransform);
 
-        bool Is2D() const;
+        KNODISCARD
+		bool Is2D() const;
         //Toggling 2D state resets mesh data and detaches attached camera,
         //UpdateMeshData is called internally on success
         void Set2DState(bool newState);
 
-        const vector<Vertex>& GetVertices() const;
+        KNODISCARD
+		const vector<Vertex>& GetVertices() const;
         void SetVertices(vector<Vertex>&& newVertices);
 
-        const vector<Vertex2D>& GetVertices2D() const;
+        KNODISCARD
+		const vector<Vertex2D>& GetVertices2D() const;
         void SetVertices2D(vector<Vertex2D>&& newVertices);
 
-        const vector<u32>& GetIndices() const;
+        KNODISCARD
+		const vector<u32>& GetIndices() const;
         void SetIndices(vector<u32>&& newIndices);
 
-        const mat4& GetMatrix() const;
+        KNODISCARD
+		const mat4& GetMatrix() const;
 
         //Should be called after updating any mesh data
         void UpdateMeshData();
@@ -187,9 +204,9 @@ namespace KalaGraphics::Resources
         bool isDestroyingCamera{};
 
         u32 ID{};
+        u32 cameraID{};
         u32 shaderID{};
         u32 textureID{};
-        u32 cameraID{};
 
         bool is2D{};
 

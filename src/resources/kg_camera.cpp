@@ -68,8 +68,22 @@ namespace KalaGraphics::Resources
             return nullptr;
         }
 
+        if ((newType == CameraType::CAM_PERSPECTIVE
+            && shader->is2D)
+            || (newType == CameraType::CAM_ORTHOGRAPHIC
+            && !shader->is2D))
+        {
+            Log::Print(
+                "Failed to create camera because camera type doesn't match shader 2D state! Reason: " + err,
+                "KG_CAMERA",
+                LogType::LOG_ERROR,
+                2);
+
+            return nullptr;
+        }
+
         Viewport* vp{};
-        err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
+        err = Viewport::GetRegistry().GetContent(shader->viewportID.first, vp);
         if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(
@@ -151,78 +165,7 @@ namespace KalaGraphics::Resources
     }
 
     u32 Camera::GetID() const { return ID; }
-
     u32 Camera::GetShaderID() const { return shaderID; }
-    void Camera::SetShaderID(u32 newValue)
-    {
-        if (shaderID == newValue)
-        {
-            Log::Print(
-                "Failed to set camera '" + to_string(ID) 
-                + "' shader ID to '" + to_string(newValue) 
-                + "' because it already is that value!",
-                "KG_CAMERA",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        Shader* oldShader{};
-        string err = Shader::GetRegistry().GetContent(shaderID, oldShader);
-        if (!err.empty())
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics camera error",
-                "Failed to set shader ID for camera '" 
-                + to_string(ID) + "' because of invalid old shader! Reason: " + err);
-        }
-
-        Shader* shader{};
-        err = Shader::GetRegistry().GetContent(newValue, shader);
-        if (!err.empty())
-        {
-            Log::Print(
-                "Failed to set camera '" + to_string(ID) 
-                + "' shader ID because it was invalid! Reason: " + err,
-                "KG_CAMERA",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        if (oldShader->is2D
-            != shader->is2D)
-        {
-            Log::Print(
-                "Clearing all data for camera '" + to_string(ID) 
-                + "' because new shader '" + to_string(shader->ID) 
-                + "' 2D state does not match old shader '" + to_string(oldShader->ID) + "' 2D state!",
-                "KG_MESH",
-                LogType::LOG_WARNING);
-
-            ClearAllData();
-            Move({}, {});
-        }
-
-        shaderID = newValue;
-
-        if (oldShader)
-        {
-            erase(
-                oldShader->cameraIDs,
-                ID);
-        }
-        shader->cameraIDs.push_back(ID);
-
-        Log::Print(
-            "Set camera '" + to_string(ID) 
-            + "' shader ID to '" + to_string(shaderID) + "'!",
-            "KG_CAMERA",
-            LogType::LOG_SUCCESS);
-    }
-
     u32 Camera::GetMeshID() const { return meshID; }
     void Camera::SetMeshID(u32 newValue)
     {

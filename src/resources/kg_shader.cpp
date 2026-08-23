@@ -237,7 +237,12 @@ namespace KalaGraphics::Resources
 
     KalaGraphicsRegistry<Shader>& Shader::GetRegistry() { return registry; }
 
-    Shader* Shader::Initialize(u32 viewportID)
+    Shader* Shader::Initialize(
+        u32 viewportID,
+        bool is2D,
+        path&& vertPath,
+        path&& fragPath,
+        path&& geomPath)
     {
         VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
         if (logicalDevice == VK_NULL_HANDLE)
@@ -252,7 +257,7 @@ namespace KalaGraphics::Resources
         if (!err.empty())
         {
             Log::Print(
-                "Failed to initialize shader because the viewport was invalid! Reason: " + err, 
+                "Failed to initialize shader because its viewport was invalid! Reason: " + err,
                 "KG_SHADER",
                 LogType::LOG_ERROR,
                 2);
@@ -260,266 +265,43 @@ namespace KalaGraphics::Resources
             return nullptr;
         }
 
-        unique_ptr<Shader> newShader = make_unique<Shader>();
-        Shader* shaderPtr = newShader.get();
-
-        u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
-        KalaGraphicsCore::SetGlobalID(newID);
-
-        shaderPtr->ID = newID;
-        shaderPtr->viewportID = viewportID;
-
-        //viewport references this shader
-        vp->shaderIDs.push_back(newID);
-
-        err = registry.AddContent(newID, std::move(newShader));
-        if (err.empty())
-        {
-			KalaGraphicsCore::ForceClose(
-				"KalaGraphics shader error",
-				"Failed to initialize shader! Reason: " + err);
-        }
-
-        Log::Print(
-			"Created new shader '" + to_string(newID) 
-            + "' for viewport '" + to_string(viewportID) + "'!",
-			"KG_SHADER",
-			LogType::LOG_SUCCESS);
-
-        return shaderPtr;
-    }
-
-    u32 Shader::GetID() const { return ID; }
-
-    u32 Shader::GetViewportID() const { return viewportID; }
-    void Shader::SetViewportID(u32 newValue)
-    {
-        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
-        if (logicalDevice == VK_NULL_HANDLE)
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics shader error",
-                "Failed to set shader viewport ID "
-                "because the logical device was invalid!");
-        }
-
-        if (viewportID == newValue)
-        {
-            Log::Print("Failed to set shader '" + to_string(ID) 
-                + "' viewport ID to '" + to_string(newValue) 
-                + "' because it already is that value!",
-                "KG_SHADER",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        Viewport* oldVP{};
-        string err = Viewport::GetRegistry().GetContent(viewportID, oldVP);
-        if (!err.empty())
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics shader error",
-                "Failed to set viewport ID for shader '" 
-                + to_string(ID) + "' because of invalid old viewport! Reason: " + err);
-        }
-
-        Viewport* newVP{};
-        err = Viewport::GetRegistry().GetContent(newValue, newVP);
-        if (!err.empty())
-        {
-            Log::Print("Failed to set shader '" + to_string(ID) 
-                + "' viewport ID because it was invalid! Reason: " + err,
-                "KG_SHADER",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        //can still switch viewport even if there is no pipeline or shader data
-        if (pipeline != VK_NULL_HANDLE)
-        {
-            auto add_stage = [](
-                vector<VkPipelineShaderStageCreateInfo>& stages,
-                VkShaderStageFlagBits flag,
-                VkShaderModule module) -> void
-                {
-                    VkPipelineShaderStageCreateInfo stage{};
-                    stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-                    stage.stage = flag;
-                    stage.module = module;
-                    stage.pName = "main";
-                    stages.push_back(stage);
-                };
-
-            vector<VkPipelineShaderStageCreateInfo> stages{};
-
-            add_stage(
-                stages,
-                VK_SHADER_STAGE_VERTEX_BIT,
-                shaderModuleData.vkModule_vert);
-            add_stage(
-                stages,
-                VK_SHADER_STAGE_FRAGMENT_BIT,
-                shaderModuleData.vkModule_frag);
-
-            if (shaderModuleData.usingGeom)
-            {
-                add_stage(
-                    stages,
-                    VK_SHADER_STAGE_GEOMETRY_BIT,
-                    shaderModuleData.vkModule_geom);
-            }
-
-            VkFormat colorFormat = scast<VkFormat>(GraphicsContext::GetDefaultColorFormat());
-            VkFormat depthFormat = scast<VkFormat>(GraphicsContext::GetDefaultDepthFormat());
-
-            VkPipelineRenderingCreateInfo pipelineRenderingInfo{};
-            pipelineRenderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-            pipelineRenderingInfo.colorAttachmentCount = 1;
-            pipelineRenderingInfo.pColorAttachmentFormats = &colorFormat;
-            pipelineRenderingInfo.depthAttachmentFormat = depthFormat;
-            pipelineRenderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
-
-            unique_ptr<PipelineInfo> newPipelineInfo = GetPipelineInfo(
-                is2D,
-                std::move(stages),
-                pipelineLayout,
-                VK_NULL_HANDLE);
-
-            newPipelineInfo->pipelineInfo.pNext = &pipelineRenderingInfo;
-            newPipelineInfo->pipelineInfo.renderPass = VK_NULL_HANDLE;
-
-            VkPipeline newPipeline{};
-            VkResult vkResult = vkCreateGraphicsPipelines(
-                logicalDevice,
-                VK_NULL_HANDLE,
-                1,
-                &newPipelineInfo->pipelineInfo,
-                nullptr,
-                &newPipeline);
-
-            if (vkResult != VK_SUCCESS)
-            {
-                string message = 
-                    "Failed to set shader '" + to_string(ID) + "' viewport "
-                    "to new value '" + to_string(newValue) + "'! Reason: " 
-                    + GraphicsContext::GetVkResultMessage(vkResult);
-
-                if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::SEVERITY_FATAL)
-                {
-                    KalaGraphicsCore::ForceClose(
-                        "KalaGraphics shader error",
-                        std::move(message));
-                }
-                else
-                {
-                    Log::Print(
-                        message,
-                        "KG_SHADER",
-                        LogType::LOG_ERROR,
-                        2);
-                }
-
-                return;
-            }
-
-            if (pipeline != VK_NULL_HANDLE)
-            {
-                vkDestroyPipeline(
-                    logicalDevice,
-                    pipeline,
-                    nullptr);
-            }
-
-            pipeline = newPipeline;
-        }
-
-        //
-        // FINISH
-        //
-
-        if (oldVP)
-        {
-            erase(
-                oldVP->shaderIDs,
-                ID);
-        }
-        newVP->shaderIDs.push_back(ID);
-
-        viewportID = newVP->GetID();
-
-        Log::Print(
-            "Set shader '" + to_string(ID) 
-            + "' viewport ID to '" + to_string(viewportID) + "'!",
-            "KG_SHADER",
-            LogType::LOG_SUCCESS);
-    }
-
-    const vector<u32>& Shader::GetMeshIDs() const { return meshIDs; }
-    const vector<u32>& Shader::GetTextureIDs() const { return textureIDs; }
-    const vector<u32>& Shader::GetCameraIDs() const { return cameraIDs; }
-
-    void Shader::UpdateShaderData(
-        bool new2DValue,
-        path&& vertPath,
-        path&& fragPath,
-        path&& geomPath)
-    {
-        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
-        if (logicalDevice == VK_NULL_HANDLE)
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics shader error",
-                "Failed to set shader '" + to_string(ID) + "' data because the logical device was invalid!");
-        }
-
-        Viewport* vp{};
-        string err = Viewport::GetRegistry().GetContent(viewportID, vp);
-        if (!err.empty())
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics shader error",
-                "Failed to update shader '" + to_string(ID) 
-                + "' data because its viewport was invalid! Reason: " + err);
-        }
-
         GraphicsContext* gctx{};
-        err = GraphicsContext::GetRegistry().GetContent(viewportID, gctx);
+        err = GraphicsContext::GetRegistry().GetContent(vp->contextID, gctx);
         if (!err.empty())
         {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics shader error",
-                "Failed to set shader '" + to_string(ID) 
-                + "' data because its viewports graphic context was invalid! Reason: " + err);
+            Log::Print(
+                "Failed to initialize shader because its viewports graphics context was invalid! Reason: " + err,
+                "KG_SHADER",
+                LogType::LOG_ERROR,
+                2);
+
+            return nullptr;
         }
 
-        auto empty_path = [this](string_view shaderType) -> void
+        auto empty_path = [](string_view shaderType) -> void
             {
                 Log::Print(
-                    "Failed to set shader '" + to_string(ID) + "' data because it did not contain a " 
+                    "Failed to initialize shader because it did not contain a " 
                     + string(shaderType) + " shader file!", 
                     "KG_SHADER",
                     LogType::LOG_ERROR,
                     2);
             };
-        auto bad_ext = [this](string_view shaderType) -> void
+        auto bad_ext = [](string_view shaderType) -> void
             {
                 Log::Print(
-                    "Failed to set shader '" + to_string(ID) + "' data because its " + string(shaderType) 
+                    "Failed to initialize shader because its " + string(shaderType) 
                     + " shader had a missing or incorrect extension!", 
                     "KG_SHADER",
                     LogType::LOG_ERROR,
                     2);
             };
-        auto invalid_path = [this](
+        auto invalid_path = [](
             string_view shaderType,
             string_view shaderPath) -> void
             {
                 Log::Print(
-                    "Failed to set shader '" + to_string(ID) + "' data because its " + string(shaderType) 
+                    "Failed to initialize shader because its " + string(shaderType) 
                     + " shader path '" + string(shaderPath) + "' was invalid!", 
                     "KG_SHADER",
                     LogType::LOG_ERROR,
@@ -529,35 +311,35 @@ namespace KalaGraphics::Resources
         if (vertPath.empty())
         {
             empty_path("vertex");
-            return;
+            return nullptr;
         }
         if (!vertPath.has_extension()
             || vertPath.extension() != ".spv")
         {
             bad_ext("vertex");
-            return;
+            return nullptr;
         }
         if (!exists(vertPath))
         {
             invalid_path("vertex", vertPath.string());
-            return;
+            return nullptr;
         }
 
         if (fragPath.empty())
         {
             empty_path("fragment");
-            return;
+            return nullptr;
         }
         if (!fragPath.has_extension()
             || fragPath.extension() != ".spv")
         {
             bad_ext("fragment");
-            return;
+            return nullptr;
         }
         if (!exists(fragPath))
         {
             invalid_path("fragment", fragPath.string());
-            return;
+            return nullptr;
         }
 
         if (!geomPath.empty())
@@ -566,12 +348,12 @@ namespace KalaGraphics::Resources
                 || geomPath.extension() != ".spv")
             {
                 bad_ext("geometry");
-                return;
+                return nullptr;
             }
             if (!exists(geomPath))
             {
                 invalid_path("geometry", geomPath.string());
-                return;
+                return nullptr;
             }
         }
 
@@ -596,11 +378,11 @@ namespace KalaGraphics::Resources
                     LogType::LOG_ERROR,
                     2);
 
-                return;
+                return nullptr;
             }
         }
 
-        auto create_shader_module = [&logicalDevice, this](
+        auto create_shader_module = [&logicalDevice](
             string_view shaderType, 
             const path& shaderPath) -> ShaderModule
             {
@@ -610,9 +392,8 @@ namespace KalaGraphics::Resources
                 if (!errMsg.empty())
                 {
                     Log::Print(
-                        "Failed to read binary data from shader type " + string(shaderType) 
-                        + "' for setting shader data for shader '" + to_string(ID) 
-                        + "' under viewport '" + to_string(viewportID) + "'! Reason : " + errMsg,
+                        "Failed to initialize shader because binary data "
+                        "couldn't be read from shader type " + string(shaderType) + "! Reason : " + errMsg,
                         "KG_SHADER",
                         LogType::LOG_ERROR,
                         2);
@@ -635,9 +416,8 @@ namespace KalaGraphics::Resources
                 if (vkResult != VK_SUCCESS)
                 {
                     string message = 
-                        "Failed to set shader '" + to_string(ID) + "' data when creating module '" 
-                        + string(shaderType) + "' for shader '" + to_string(ID)
-                        + "' under viewport '" + to_string(viewportID) + "! Reason: " 
+                        "Failed to initialize shader because module '" 
+                        + string(shaderType) + "' creation failed! Reason: " 
                         + GraphicsContext::GetVkResultMessage(vkResult);
 
                     if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::SEVERITY_FATAL)
@@ -667,10 +447,9 @@ namespace KalaGraphics::Resources
                 if (reflResult != SPV_REFLECT_RESULT_SUCCESS)
                 {
                     Log::Print(
-                        "Failed to set shader '" + to_string(ID) + "' data when creating module '" 
-                        + string(shaderType) + "' for shader '" + to_string(ID)
-                        + "' under viewport '" + to_string(viewportID)
-                        + "'! Reflect result error code: " + to_string(static_cast<int>(reflResult)),
+                        "Failed to initialize shader because module '" 
+                        + string(shaderType) + "' failed! Reflect result error code: " 
+                        + to_string(static_cast<int>(reflResult)),
                         "KG_SHADER",
                         LogType::LOG_ERROR,
                         2);
@@ -695,7 +474,7 @@ namespace KalaGraphics::Resources
         ShaderModuleData newShaderModuleData{};
 
         ShaderModule module_vert = create_shader_module("vertex", vertPath);
-        if (!module_vert.success) return;
+        if (!module_vert.success) return nullptr;
         else
         {
             newShaderModuleData.vkModule_vert = module_vert.vkModule;
@@ -708,7 +487,7 @@ namespace KalaGraphics::Resources
             DestroyVkShaderModules({ module_vert.vkModule });
             DestroySpvShaderModules({ module_vert.spvModule });
 
-            return;
+            return nullptr;
         }
         else
         {
@@ -734,7 +513,7 @@ namespace KalaGraphics::Resources
                         module_frag.spvModule
                     });
 
-                return;
+                return nullptr;
             }
             else
             {
@@ -799,9 +578,8 @@ namespace KalaGraphics::Resources
                     Log::Print(
                         "Failed to get push constant block '" + to_string(i) + "' "
                         "for shader stage " + to_string(scast<int>(mod->shader_stage))
-                        + " in shader '" + to_string(ID) + "' "
-                        " under viewport '" + to_string(viewportID) + "'!"
-                        " SpvReflectResult: " + to_string(scast<int>(result)),
+                        + " when initializing shader!"
+                        "SpvReflectResult: " + to_string(scast<int>(result)),
                         "KG_SHADER",
                         LogType::LOG_WARNING);
 
@@ -922,10 +700,8 @@ namespace KalaGraphics::Resources
                 DestroySpvShaderModules(badSpvShaders);
 
                 string message =
-                    "Failed to create descriptor set layout for set " + to_string(set)
-                    + " when assigning new shader data for shader '" + to_string(ID)
-                    + "' under viewport '" + to_string(viewportID) + "'! Reason: "
-                    + GraphicsContext::GetVkResultMessage(vkResult);
+                    "Failed to initialize shader because descriptor set layout creation for set " + to_string(set)
+                    + " failed! Reason: " + GraphicsContext::GetVkResultMessage(vkResult);
 
                 if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::SEVERITY_FATAL)
                 {
@@ -942,7 +718,7 @@ namespace KalaGraphics::Resources
                         2);
                 }
 
-                return;
+                return nullptr;
             }
             ++setIndex;
         }
@@ -999,8 +775,7 @@ namespace KalaGraphics::Resources
             DestroySpvShaderModules(badSpvShaders);
 
             string message = 
-                "Failed to create pipeline layout when assigning new shader data for shader '" + to_string(ID) 
-                + "' under viewport '" + to_string(viewportID) + "'! Reason: " 
+                "Failed to initialize shader because pipeline layout creation failed! Reason: " 
                 + GraphicsContext::GetVkResultMessage(vkResult);
 
             if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::SEVERITY_FATAL)
@@ -1018,7 +793,7 @@ namespace KalaGraphics::Resources
                     2);
             }
 
-            return;
+            return nullptr;
         }
 
         //
@@ -1055,7 +830,7 @@ namespace KalaGraphics::Resources
         pipelineRenderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
         unique_ptr<PipelineInfo> newPipelineInfo = GetPipelineInfo(
-            new2DValue,
+            is2D,
             std::move(stages),
             newPipelineLayout,
             VK_NULL_HANDLE);
@@ -1111,8 +886,7 @@ namespace KalaGraphics::Resources
             DestroySpvShaderModules(badSpvShaders);
 
             string message = 
-                "Failed to create new pipeline when assigning new shader data for shader '" + to_string(ID) 
-                + "' under viewport '" + to_string(viewportID) + "'! Reason: " 
+                "Failed to initialize shader because pipeline creation failed! Reason: " 
                 + GraphicsContext::GetVkResultMessage(vkResult);
 
             if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::SEVERITY_FATAL)
@@ -1130,119 +904,87 @@ namespace KalaGraphics::Resources
                     2);
             }
 
-            return;
-        }
-
-        //
-        // DELETE OLD DATA
-        //
-
-        if (pipeline != VK_NULL_HANDLE)
-        {
-            vkDestroyPipeline(
-                logicalDevice,
-                pipeline,
-                nullptr);
-        }
-        if (pipelineLayout != VK_NULL_HANDLE)
-        {
-            vkDestroyPipelineLayout(
-                logicalDevice,
-                pipelineLayout,
-                nullptr);
-        }
-        if (!descriptorSetLayouts.empty())
-        {
-            for (auto& sl : descriptorSetLayouts)
-            {
-                vkDestroyDescriptorSetLayout(
-                    logicalDevice,
-                    sl,
-                    nullptr);
-            }
-        }
-
-        if (shaderModuleData.vkModule_vert != VK_NULL_HANDLE)
-        {
-            vector<VkShaderModule> oldVkShaders = 
-            {
-                shaderModuleData.vkModule_vert,
-                shaderModuleData.vkModule_frag
-            };
-            if (shaderModuleData.usingGeom)
-            {
-                oldVkShaders.push_back(shaderModuleData.vkModule_geom);
-            }
-
-            vector<SpvReflectShaderModule*> oldSpvShaders =
-            {
-                ToVar<SpvReflectShaderModule*>(shaderModuleData.spvModule_vert),
-                ToVar<SpvReflectShaderModule*>(shaderModuleData.spvModule_frag)
-            };
-            if (shaderModuleData.usingGeom)
-            {
-                oldSpvShaders.push_back(ToVar<SpvReflectShaderModule*>(shaderModuleData.spvModule_geom));
-            }
-
-            DestroyVkShaderModules(oldVkShaders);
-            DestroySpvShaderModules(oldSpvShaders);
-        }
-
-        //
-        // DETACH INVALID 2D STATE MESHES
-        //
-
-        vector<Mesh*> removedMeshes{};
-        for (u32 mID : meshIDs)
-        {
-            Mesh* m{};
-            string err = Mesh::GetRegistry().GetContent(mID, m);
-            if (!err.empty())
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics shader error",
-                    "Failed to update shader '" + to_string(ID) + "' data "
-                    "because its detach target mesh was invalid! Reason: " + err);
-            }
-
-            if (m->is2D != new2DValue) removedMeshes.push_back(m);
-        }
-        for (Mesh* m : removedMeshes)
-        {
-            Log::Print(
-                "Destroyed mesh '" + to_string(m->ID) 
-                + "' because its shader '" + to_string(ID) 
-                + "' was updated and the shader 2D state no longer matches the mesh 2D state!",
-                "KG_SHADER",
-                LogType::LOG_WARNING);
-
-            u32 mID = m->ID;
-            m->Destroy();
-
-            erase(
-                meshIDs, 
-                mID);
+            return nullptr;
         }
 
         //
         // FINISH
         //
 
-        is2D = new2DValue;
+        unique_ptr<Shader> newShader = make_unique<Shader>();
+        Shader* shaderPtr = newShader.get();
 
-        pipeline = newPipeline;
-        pipelineLayout = newPipelineLayout;
-        descriptorSetLayouts = std::move(newDescriptorSetLayouts);
-        shaderModuleData = std::move(newShaderModuleData);
+        u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
+        KalaGraphicsCore::SetGlobalID(newID);
+
+        shaderPtr->ID = newID;
+        shaderPtr->is2D = is2D;
+        shaderPtr->pipeline = newPipeline;
+        shaderPtr->pipelineLayout = newPipelineLayout;
+        shaderPtr->descriptorSetLayouts = std::move(newDescriptorSetLayouts);
+        shaderPtr->shaderModuleData = std::move(newShaderModuleData);
+
+        if (!is2D)
+        {
+            if (vp->primary3DShaderID == 0) vp->primary3DShaderID = newID;
+            else                            vp->extra3DShaderIDs.push_back(newID);
+            
+            shaderPtr->viewportID.first = viewportID;
+            shaderPtr->viewportID.second = false;
+        }
+        else
+        {
+            if (vp->primary2DShaderID == 0) vp->primary2DShaderID = newID;
+            else                            vp->extra2DShaderIDs.push_back(newID);
+
+            shaderPtr->viewportID.first = viewportID;
+            shaderPtr->viewportID.second = true;
+        }
+
+        err = registry.AddContent(newID, std::move(newShader));
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics shader error",
+				"Failed to initialize shader! Reason: " + err);
+        }
 
         Log::Print(
-            "Updated shader '" + to_string(ID) + "' data!",
-            "KG_SHADER",
-            LogType::LOG_SUCCESS);
+			"Created new shader '" + to_string(newID) + "'!",
+			"KG_SHADER",
+			LogType::LOG_SUCCESS);
+
+        return shaderPtr;
     }
+
+    u32 Shader::GetID() const { return ID; }
+
+    pair<u32, bool> Shader::GetViewportID() const { return viewportID; }
+
+    const vector<u32>& Shader::GetMeshIDs() const { return meshIDs; }
+    const vector<u32>& Shader::GetTextureIDs() const { return textureIDs; }
+    const vector<u32>& Shader::GetCameraIDs() const { return cameraIDs; }
 
     void Shader::Update(VkCommandBuffer cmdBuffer)
     {
+        if (viewportID.first == 0)
+        {
+            if (missingViewportWarningCount < 10)
+            {
+                Log::Print(
+                    "Failed to render onto shader '" + to_string(ID) + "' "
+                    "because the viewport is unassigned! "
+                    "You should assign a viewport to use this shader. "
+                    "This warning will only be given 10 times.",
+                    "KG_SHADER",
+                    LogType::LOG_WARNING);
+
+                missingViewportWarningCount++;
+            }
+
+            return;
+        }
+
         if (pipeline == VK_NULL_HANDLE)
         {
             if (missingPipelineWarningCount < 10)
@@ -1445,6 +1187,46 @@ namespace KalaGraphics::Resources
 
     void Shader::Destroy()
     {
+        Viewport* vp{};
+        string err = Viewport::GetRegistry().GetContent(viewportID.first, vp);
+        if (err.empty()
+            && !isDestroyingViewport)
+        {
+            if (vp->primary3DShaderID == ID)
+            {
+                Log::Print(
+                    "Cannot delete shader '" + to_string(ID) 
+                    + "' because it is the primary 3D shader of viewport '" + to_string(viewportID.first) + "'!",
+                    "KG_SHADER",
+                    LogType::LOG_ERROR,
+                    2);
+
+                return;
+            }
+            if (vp->primary2DShaderID == ID)
+            {
+                Log::Print(
+                    "Cannot delete shader '" + to_string(ID) 
+                    + "' because it is the primary 2D shader of viewport '" + to_string(viewportID.first) + "'!",
+                    "KG_SHADER",
+                    LogType::LOG_ERROR,
+                    2);
+
+                return;
+            }
+
+            auto it = find(
+                vp->extra3DShaderIDs.begin(),
+                vp->extra3DShaderIDs.end(),
+                viewportID.first);
+
+            erase(
+                (it != vp->extra3DShaderIDs.end()
+                    ? vp->extra3DCameraIDs
+                    : vp->extra2DShaderIDs), 
+                ID);
+        }
+
         for (u32 cID : cameraIDs)
         {
             Camera* c{};
@@ -1468,16 +1250,6 @@ namespace KalaGraphics::Resources
             if (err.empty()) m->shaderID = 0;
         }
         meshIDs.clear();
-
-        Viewport* vp{};
-        string err = Viewport::GetRegistry().GetContent(viewportID, vp);
-        if (err.empty()
-            && !isDestroyingViewport)
-        {
-            erase(
-                vp->shaderIDs, 
-                ID);
-        }
 
         err = registry.DestroyContent(ID);
         if (!err.empty())

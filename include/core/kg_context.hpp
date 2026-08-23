@@ -141,7 +141,8 @@ namespace KalaGraphics::Core
     friend class Viewport;
     friend struct default_delete<GraphicsContext>;
     public:
-        static KalaGraphicsRegistry<GraphicsContext>& GetRegistry();
+        KNODISCARD
+		static KalaGraphicsRegistry<GraphicsContext>& GetRegistry();
 
         //Close the program, this close function is useful for
         //printing the VkResult error type that occured so it can be logged
@@ -150,54 +151,76 @@ namespace KalaGraphics::Core
             string&& reason,
             int result);
 
-        static bool IsVerboseLoggingEnabled();
+        KNODISCARD
+		static bool IsVerboseLoggingEnabled();
         static void SetVerboseLoggingState(bool state);
 
-        static string GetVkResultMessage(int result);
-        static Severity GetVkResultSeverity(int result);
+        KNODISCARD
+		static string GetVkResultMessage(int result);
+        KNODISCARD
+		static Severity GetVkResultSeverity(int result);
 
         //Global one-time Vulkan 1.4 device init,
         //needs to be called before per-window Vulkan init
         static void Initialize(VkInstance vkInstance);
-        static bool IsInitialized();
+        KNODISCARD
+		static bool IsInitialized();
 
         //Single draw call for all existing contexts,
         //handles all active meshes, light sources and cameras
         static void Update();
 
-        //Initialize a per-window Vulkan context, creates the swapchain logic
-        static GraphicsContext* InitializeInstance(GraphicsContextData&& context);
+        //Initialize a per-window Vulkan context, creates the swapchain logic,
+        //always internally initalizes a root viewport so each graphics context has a surface ready to be drawn onto
+        KNODISCARD
+		static GraphicsContext* InitializeInstance(GraphicsContextData&& context);
 
-        u32 GetID() const;
-        const vector<u32>& GetViewportIDs() const;
+        KNODISCARD
+		u32 GetID() const;
 
-        VSyncState GetVSyncState() const;
+        KNODISCARD
+        u32 GetRootViewportID() const;
+        KNODISCARD
+		const vector<u32>& GetExtraViewportIDs() const;
+
+        KNODISCARD
+		VSyncState GetVSyncState() const;
         void SetVSyncState(VSyncState newValue);
 
         //Get current Windows/X11 window true window size,
         //this is also used as VkExtent
-        vec2 GetRenderSize() const;
+        KNODISCARD
+		vec2 GetRenderSize() const;
     
-        const GraphicsContextData& GetGraphicsContextData() const;
+        KNODISCARD
+		const GraphicsContextData& GetGraphicsContextData() const;
 
         void Destroy();
     private:
         ~GraphicsContext();
 
-        static VkInstance GetInstance();
+        KNODISCARD
+		static VkInstance GetInstance();
 
-        static VkPhysicalDevice GetPhysicalDevice();
-        static VkDevice GetLogicalDevice();
-        static VmaAllocator GetVmaAllocator();
-        static VkDescriptorPool GetDescriptorPool();        
+        KNODISCARD
+		static VkPhysicalDevice GetPhysicalDevice();
+        KNODISCARD
+		static VkDevice GetLogicalDevice();
+        KNODISCARD
+		static VmaAllocator GetVmaAllocator();
+        KNODISCARD
+		static VkDescriptorPool GetDescriptorPool();        
 
-        static u32 GetDefaultColorFormat();
-        static u32 GetDefaultDepthFormat();
+        KNODISCARD
+		static u32 GetDefaultColorFormat();
+        KNODISCARD
+		static u32 GetDefaultDepthFormat();
 
         void InitializeVulkanContext();
 
         //Create and use a single time command buffer for a small batch of operations
-        VkCommandBuffer BeginSingleTimeCommands();
+        KNODISCARD
+		VkCommandBuffer BeginSingleTimeCommands();
         //Destroy and stop using the created command buffer
         void EndSingleTimeCommands(VkCommandBuffer vkCommandBuffer);
 
@@ -207,10 +230,10 @@ namespace KalaGraphics::Core
 
         u32 ID{};
 
-        //viewports that use this graphics context
-        vector<u32> viewportIDs{};
+        u32 rootViewportID{};
 
-        u8 missingShaderWarningCount{};
+        //viewports that use this graphics context
+        vector<u32> extraViewportIDs{};
 
         VSyncState vsyncState = VSyncState::VSYNC_ON_TRIPLE_BUFFERED;
 

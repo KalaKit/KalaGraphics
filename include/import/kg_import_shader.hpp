@@ -36,25 +36,30 @@ namespace KalaGraphics::Import
     {
     friend struct default_delete<ImportShader>;
     public:
-        static KalaGraphicsRegistry<ImportShader>& GetRegistry();
+        KNODISCARD
+		static KalaGraphicsRegistry<ImportShader>& GetRegistry();
 
         //Compile a raw GLSL 4.6 Vulkan shader into spirv with glslc
         static void Compile(
             path&& inPath,
             path&& outPath);
 
-        static ImportShader* Initialize(path&& shaderPath);
+        KNODISCARD
+		static ImportShader* Initialize(path&& shaderPath);
 
-        u32 GetID() const;
+        KNODISCARD
+		u32 GetID() const;
 
         void Destroy();
     private:
         ~ImportShader();
 
-        static string Init_SPV(
+        KNODISCARD
+		static string Init_SPV(
             vector<u8>&& binaryData,
             ShaderData& outShaderData);
-        static string Init_KSHA(
+        KNODISCARD
+		static string Init_KSHA(
             vector<u8>&& binaryData,
             ShaderData& outShaderData);
 

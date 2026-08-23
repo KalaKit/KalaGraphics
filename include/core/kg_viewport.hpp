@@ -68,6 +68,15 @@ namespace KalaGraphics::Core
         VP_5120_1440 = 17
     };
 
+    enum class ViewportType : u8
+    {
+        //Standard viewport
+        VP_NORMAL = 0,
+
+        //Offscreen viewport, required to always be static, requires target viewport to render to
+        VP_OFFSCREEN = 1
+    };
+
     class LIB_API Viewport
     {
     friend class KalaGraphics::Resources::Shader;
@@ -77,74 +86,128 @@ namespace KalaGraphics::Core
     friend class GraphicsContext;
     friend struct default_delete<Viewport>;
     public:
-        static KalaGraphicsRegistry<Viewport>& GetRegistry();
+        KNODISCARD
+		static KalaGraphicsRegistry<Viewport>& GetRegistry();
 
-        static string_view GetViewportStaticName(ViewportStaticSize vpSize);
-        static vec2 GetViewportStaticValue(ViewportStaticSize vpSize);
+        KNODISCARD
+		static string_view GetViewportStaticName(ViewportStaticSize vpSize);
+        KNODISCARD
+		static vec2 GetViewportStaticValue(ViewportStaticSize vpSize);
 
-        static Viewport* Initialize(
+        //Create a blank viewport with optional viewport type toggle,
+        //defaults to dynamic 100x100 viewport, must assign shaders when initializing them
+        KNODISCARD
+		static Viewport* Initialize(
             u32 contextID,
-            bool isStatic = false);
+            ViewportType type = {},
+            u32 targetViewport = {});
 
-        u32 GetID() const;
-        u32 GetContextID() const;
-        const vector<u32>& GetShaderIDs() const;
+        KNODISCARD
+		u32 GetID() const;
+
+        KNODISCARD
+		u32 GetContextID() const;
+
+        KNODISCARD
+		u32 GetPrimary3DCameraID() const;
+
+        KNODISCARD
+		const vector<u32>& GetExtra3DCameraIDs() const;
+        KNODISCARD
+		const vector<u32>& GetExtra2DCameraIDs() const;
+
+        KNODISCARD
+		u32 GetPrimary2DCameraID() const;
+
+        KNODISCARD
+		u32 GetPrimary3DShaderID() const;
+        KNODISCARD
+		u32 GetPrimary2DShaderID() const;
+
+        KNODISCARD
+		const vector<u32>& GetExtra3DShaderIDs() const;
+        KNODISCARD
+		const vector<u32>& GetExtra2DShaderIDs() const;
+
+        KNODISCARD
+        u32 GetTargetViewportID() const;
+
+        KNODISCARD
+        ViewportType GetViewportType() const;
 
         //Returns true if this viewport is the primary viewport
         //for its graphics context, it cannot be destroyed
-        bool IsRootViewport() const;
+        KNODISCARD
+		bool IsRootViewport() const;
 
-        bool IsStaticViewport() const;
-        void SetStaticViewportState(bool state);
+        //If false then viewport resizes dynamically with the true os window size
+        KNODISCARD
+		bool IsStaticViewport() const;
+        void SetStaticViewportState(bool newValue);
 
-        //Gets either static or dynamic viewport size depending on the bool state
-        vec2 GetViewportSize(bool getStatic) const;
-        //Sets static viewport size, cannot be set if viewport is dynamic
-        void SetViewportSize(ViewportStaticSize vpSize);
-        //Sets dynamic viewport size, cannot be set if viewport is static
-        void SetViewportSize(vec2 vpSize);
+        KNODISCARD
+		vec2 GetViewportSize(bool isStatic) const;
+        //Set static viewport size, only adjusts aspect ratio, scissor size and scissor offset
+        void SetViewportSize(ViewportStaticSize newValue);
+        //Set dynamic viewport size
+        void SetViewportSize(vec2 newValue);
 
-        //If true then viewport resizes dynamically with the true window size
-        bool IsDynamicViewport() const;
-        void SetDynamicViewportState(bool newValue);
+        KNODISCARD
+		vec2 GetViewportOffset() const;
+        void SetViewportOffset(vec2 newValue);
 
-        vec2 GetViewportOffset() const;
-        void SetViewportOffset(vec2 newSize);
+        KNODISCARD
+		vec2 GetScissorSize() const;
+        void SetScissorSize(vec2 newValue);
 
-        vec2 GetScissorSize() const;
-        void SetScissorSize(vec2 newOffset);
-
-        vec2 GetScissorOffset() const;
-        void SetScissorOffset(vec2 newSize);
+        KNODISCARD
+		vec2 GetScissorOffset() const;
+        void SetScissorOffset(vec2 newValue);
 
         void Destroy();
     private:
         ~Viewport();
 
+        //Initialize root viewport, separate from regular viewport initialization
+        //that requires an already existing graphics context
+        static Viewport* _Initialize();
+
+        void Update(u32 imageIndex);
+
         void _Destroy();
+
+        u32 ID{};
+        u32 contextID{};
+        u32 targetViewportID{};
+
+        u32 primary3DCameraID{};
+        u32 primary2DCameraID{};
+
+        vector<u32> extra3DCameraIDs{};
+        vector<u32> extra2DCameraIDs{};
+
+        u32 primary3DShaderID{};
+        u32 primary2DShaderID{};
+
+        vector<u32> extra3DShaderIDs{};
+        vector<u32> extra2DShaderIDs{};
 
         //used only to prevent viewport from removing its ID from
         //graphics context viewport IDs list if the graphics context
         //destroy function called the destroy function of this viewport 
         bool isDestroyingGraphicsContext{};
 
-        u32 ID{};
-        u32 contextID{};
-
-        //shaders that use this viewport
-        vector<u32> shaderIDs{};
-
         bool isRootViewport{};
 
         bool isStaticViewport = true;
 
+        ViewportType viewportType{};
+
         ViewportStaticSize viewportStaticSize = ViewportStaticSize::VP_1920_1080;
-        vec2 viewportDynamicSize{};
+        vec2 viewportDynamicSize = 100;
         
         //pushes the drawable area down and right if x and y are positive
         vec2 viewportOffset{};
-        //min and max depth
-        vec2 viewportDepth = vec2(0, 1);
 
         //pushes the clipped area down and right if x and y are positive
         vec2 scissorOffset{};

@@ -173,54 +173,71 @@ namespace KalaGraphics::Resources
     friend class Mesh;
     friend struct default_delete<Texture>;
     public:
-        static KalaGraphicsRegistry<Texture>& GetRegistry();
+        KNODISCARD
+		static KalaGraphicsRegistry<Texture>& GetRegistry();
 
         //Either initialize a blank white 1x1 texture, or pass data via textureData
-        static Texture* Initialize(
+        KNODISCARD
+		static Texture* Initialize(
             u32 shaderID,
             TextureData&& textureData = {});
 
-        u32 GetID() const;
+        KNODISCARD
+		u32 GetID() const;
 
-        u32 GetShaderID() const;
+        KNODISCARD
+		u32 GetShaderID() const;
         void SetShaderID(u32 newID);
 
-        const vector<u32>& GetMeshIDs() const;
+        KNODISCARD
+		const vector<u32>& GetMeshIDs() const;
 
-        const vector<u8>& GetPixelData() const;
+        KNODISCARD
+		const vector<u8>& GetPixelData() const;
         void SetPixelData(vector<u8>&& newPixelData);
 
-        PixelFormat GetPixelFormat() const;
+        KNODISCARD
+		PixelFormat GetPixelFormat() const;
         void SetPixelFormat(PixelFormat newFormat);
 
-        TextureType GetTextureType() const;
+        KNODISCARD
+		TextureType GetTextureType() const;
         void SetTextureType(TextureType newType);
 
-        TextureFilterMode GetFilterMode() const;
+        KNODISCARD
+		TextureFilterMode GetFilterMode() const;
         void SetFilterMode(TextureFilterMode newFilter);
 
-        TextureShadowMapMode GetShadowMapMode() const;
+        KNODISCARD
+		TextureShadowMapMode GetShadowMapMode() const;
         void SetShadowMapMode(TextureShadowMapMode newMode);
 
-        TextureWrapMode GetWrapMode() const;
+        KNODISCARD
+		TextureWrapMode GetWrapMode() const;
         void SetWrapMode(TextureWrapMode newWrap);
 
-        TextureBorderColor GetBorderColor() const;
+        KNODISCARD
+		TextureBorderColor GetBorderColor() const;
         void SetBorderColor(TextureBorderColor newColor);
 
-        bool IsAnisotropyEnabled() const;
+        KNODISCARD
+		bool IsAnisotropyEnabled() const;
         void SetAnisotropyState(bool newValue);
 
-        vec2 GetSize() const;
+        KNODISCARD
+		vec2 GetSize() const;
         void SetSize(vec2 newSize);
 
-        u32 GetDepth() const;
+        KNODISCARD
+		u32 GetDepth() const;
         void SetDepth(u32 newDepth);
 
-        u32 GetLayerCount() const;
+        KNODISCARD
+		u32 GetLayerCount() const;
         void SetLayerCount(u32 newCount);
 
-        u8 GetMipMapCount() const;
+        KNODISCARD
+		u8 GetMipMapCount() const;
         void SetMipMapCount(u8 newCount);
 
         //Should be called after updating texture data

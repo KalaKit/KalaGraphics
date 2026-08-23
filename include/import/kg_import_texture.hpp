@@ -34,23 +34,30 @@ namespace KalaGraphics::Import
     {
     friend struct default_delete<ImportTexture>;
     public:
-        static KalaGraphicsRegistry<ImportTexture>& GetRegistry();
+        KNODISCARD
+		static KalaGraphicsRegistry<ImportTexture>& GetRegistry();
 
-        static ImportTexture* Initialize(path&& texturePath);
+        KNODISCARD
+		static ImportTexture* Initialize(path&& texturePath);
 
-        u32 GetID() const;
+        KNODISCARD
+		u32 GetID() const;
 
-        const path& GetTexturePath() const;
-        const TextureData& GetTextureData() const;
+        KNODISCARD
+		const path& GetTexturePath() const;
+        KNODISCARD
+		const TextureData& GetTextureData() const;
 
         void Destroy();
     private:
         ~ImportTexture();
 
-        static string Init_PNG(
+        KNODISCARD
+		static string Init_PNG(
             vector<u8>&& binaryData,
             TextureData& outTextureData);
-        static string Init_KTEX(
+        KNODISCARD
+		static string Init_KTEX(
             vector<u8>&& binaryData,
             TextureData& outTextureData);
 

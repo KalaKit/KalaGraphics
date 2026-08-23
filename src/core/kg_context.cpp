@@ -12,14 +12,14 @@
 #include <X11/Xlib.h>
 #endif
 
+#include "vulkan/vulkan_core.h"
+
 #include <string>
 #include <unordered_map>
 #include <vector>
 #include <array>
 #include <mutex>
 #include <shared_mutex>
-
-#include "vulkan/vulkan_core.h"
 
 #include "core/kg_viewport.hpp"
 
@@ -771,7 +771,6 @@ namespace KalaGraphics::Core
         KalaGraphicsCore::SetGlobalID(newID);
 
         contextPtr->ID = newID;
-
         contextPtr->contextData = std::move(in_context);
 
         string idStr = to_string(newID);
@@ -786,6 +785,11 @@ namespace KalaGraphics::Core
                 "Failed to initialize graphics context! Reason: " + err);
         }
 
+        Viewport* vp = Viewport::_Initialize();
+        contextPtr->rootViewportID = vp->ID;
+        vp->contextID = contextPtr->ID;
+        vp->isRootViewport = true;
+
         Log::Print(
             "Created new graphics context '" + idStr + "'!",
             "KG_CONTEXT",
@@ -795,7 +799,8 @@ namespace KalaGraphics::Core
     }
 
     u32 GraphicsContext::GetID() const { return ID; }
-    const vector<u32>& GraphicsContext::GetViewportIDs() const { return viewportIDs; }
+    u32 GraphicsContext::GetRootViewportID() const { return rootViewportID; }
+    const vector<u32>& GraphicsContext::GetExtraViewportIDs() const { return extraViewportIDs; }
 
     VSyncState GraphicsContext::GetVSyncState() const { return vsyncState; }
     void GraphicsContext::SetVSyncState(VSyncState newState)
@@ -1632,134 +1637,39 @@ namespace KalaGraphics::Core
             &depInfo);
 
         //
-        // DRAW FUNCTION
+        // START DRAW
         //
 
-        auto draw = [&](bool is2D) -> void
+        Viewport* rvp{};
+        string err = Viewport::GetRegistry().GetContent(rootViewportID, rvp);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics context error",
+                "Failed to update graphics context '" + to_string(ID) 
+                + "' because its primary viewport was invalid! Reason: " + err);
+        }
+
+        rvp->Update(imageIndex);
+
+        for (u32 vpID : extraViewportIDs)
+        {
+            Viewport* vp{};
+            err = Viewport::GetRegistry().GetContent(vpID, vp);
+            if (!err.empty())
             {
-                VkViewport viewport{};
-                viewport.x = 0.0f;
-                viewport.y = 0.0f;
-                viewport.width = renderSize.x;
-                viewport.height = renderSize.y;
-                viewport.minDepth = 0.0f;
-                viewport.maxDepth = 1.0f;
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics context error",
+                    "Failed to update graphics context '" + to_string(ID) 
+                    + "' because its extra viewport was invalid! Reason: " + err);
+            }
 
-                VkRect2D scissor{};
-                scissor.offset = { scast<int>(0.0f), scast<int>(0.0f) };
-                scissor.extent = { scast<u32>(renderSize.x), scast<u32>(renderSize.y) };
+            vp->Update(imageIndex);
+        }
 
-                vkCmdSetViewport(
-                    commandBuffers[currentFrame],
-                    0,
-                    1,
-                    &viewport);
-                    
-                vkCmdSetScissor(
-                    commandBuffers[currentFrame],
-                    0,
-                    1,
-                    &scissor);
-                
-                if (Shader::GetRegistry().GetAllContent().empty())
-                {
-                    if (missingShaderWarningCount < 10)
-                    {
-                        Log::Print(
-                            "Failed to render onto graphics context '" + to_string(ID) + "' "
-                            "because there are no shaders to draw with! This warning will only be given 10 times.",
-                            "KG_CONTEXT",
-                            LogType::LOG_WARNING);
-
-                        missingShaderWarningCount++;
-                    }
-                }
-
-                for (Shader* shader : Shader::GetRegistry().GetAllContent())
-                {
-                    if (!shader)
-                    {
-                        KalaGraphicsCore::ForceClose(
-                            "KalaGraphics context error",
-                            "Failed to update graphics context '" + to_string(ID) 
-                            + "' because one of the the shaders was nullptr!");
-                    }
-
-                    if (shader->is2D == is2D)
-                    {
-                        shader->Update(commandBuffers[currentFrame]);
-                    }
-                }
-            };
-
-        // ==================================================
-        // 3D STAGE START
-        // ==================================================
-
-        VkRenderingAttachmentInfo colorAttachment{};
-        colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-        colorAttachment.imageView = swapchainImageViews[imageIndex];
-        colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachment.clearValue.color = { { 0.0f, 1.0f, 0.0f, 1.0f } };
-
-        VkRenderingAttachmentInfo depthAttachment{};
-        depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-        depthAttachment.imageView = depthImageView;
-        depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        depthAttachment.clearValue.depthStencil = { 1.0f, 0 };
-
-        VkRenderingInfo renderingInfo{};
-        renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-        renderingInfo.renderArea.offset = { 0, 0 };
-        renderingInfo.renderArea.extent = { scast<u32>(renderSize.x), scast<u32>(renderSize.y) };
-        renderingInfo.layerCount = 1;
-        renderingInfo.colorAttachmentCount = 1;
-        renderingInfo.pColorAttachments = &colorAttachment;
-        renderingInfo.pDepthAttachment = &depthAttachment;
-
-        vkCmdBeginRendering(
-            commandBuffers[currentFrame],
-            &renderingInfo);
-
-        draw(false);
-
-        vkCmdEndRendering(commandBuffers[currentFrame]);
-
-        // ==================================================
-        // 2D STAGE START
-        // ==================================================
-
-        VkRenderingAttachmentInfo colorAttachment2D{};
-        colorAttachment2D.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-        colorAttachment2D.imageView = swapchainImageViews[imageIndex];
-        colorAttachment2D.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        colorAttachment2D.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-        colorAttachment2D.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
-        VkRenderingInfo renderingInfo2D{};
-        renderingInfo2D.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-        renderingInfo2D.renderArea.offset = { 0, 0 };
-        renderingInfo2D.renderArea.extent = { scast<u32>(renderSize.x), scast<u32>(renderSize.y) };
-        renderingInfo2D.layerCount = 1;
-        renderingInfo2D.colorAttachmentCount = 1;
-        renderingInfo2D.pColorAttachments = &colorAttachment2D;
-        renderingInfo2D.pDepthAttachment = nullptr;
-
-        vkCmdBeginRendering(
-            commandBuffers[currentFrame],
-            &renderingInfo2D);
-
-        draw(true);
-
-        vkCmdEndRendering(commandBuffers[currentFrame]);
-
-        // ==================================================
-        // 2D STAGE END
-        // ==================================================
+        //
+        // END DRAW
+        //
 
         VkImageMemoryBarrier2 presentBarrier{};
         presentBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
@@ -2358,7 +2268,9 @@ namespace KalaGraphics::Core
                 VK_NULL_HANDLE);
         }
 
-        for (u32 vID : viewportIDs)
+        //TODO: rescale root viewport
+
+        for (u32 vID : extraViewportIDs)
         {
             Viewport* vp{};
             string err = Viewport::GetRegistry().GetContent(vID, vp);
@@ -2366,11 +2278,11 @@ namespace KalaGraphics::Core
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics context error",
-                    "Failed to get viewport '" + to_string(vID) 
-                    + "' while recreating Vulkan swapchain! Reason: " + err);
+                    "Failed to recreate Vulkan swapchain because extra viewport was invalid! Reason: " + err);
             }
 
-            //TODO: update active cameras from viewport
+            //TODO: rescale extra viewports
+            //TODO: update active cameras
             /*
             if (activeCamera)
             {
@@ -2398,22 +2310,36 @@ namespace KalaGraphics::Core
 
     void GraphicsContext::Destroy()
     {
-        for (u32 vID : viewportIDs)
+        Viewport* rvp{};
+        string err = Viewport::GetRegistry().GetContent(rootViewportID, rvp);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics context error",
+                "Failed to destroy graphics context '" + to_string(ID) 
+                + "' because its root viewport was invalid! Reason: " + err);
+        }
+
+        rvp->isDestroyingGraphicsContext = true;
+        rvp->Destroy();
+
+        for (u32 vID : extraViewportIDs)
         {
             Viewport* vp{};
-            string err = Viewport::GetRegistry().GetContent(vID, vp);
+            err = Viewport::GetRegistry().GetContent(vID, vp);
             if (!err.empty())
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics context error",
-                    "Failed to destroy graphics context '" + to_string(ID) + "'! Reason: " + err);
+                    "Failed to destroy graphics context '" + to_string(ID) 
+                    + "' because its extra viewport was invalid! Reason: " + err);
             }
 
             vp->isDestroyingGraphicsContext = true;
             vp->Destroy();
         }
 
-        string err = registry.DestroyContent(ID);
+        err = registry.DestroyContent(ID);
         if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(
@@ -2546,6 +2472,8 @@ namespace KalaGraphics::Core
 				"KG_CONTEXT",
 				LogType::LOG_INFO);
                 
+            Viewport::GetRegistry().DestroyAllContent();
+            Shader::GetRegistry().DestroyAllContent();
             Texture::GetRegistry().DestroyAllContent();
             Camera::GetRegistry().DestroyAllContent();
             Mesh::GetRegistry().DestroyAllContent();

@@ -34,23 +34,30 @@ namespace KalaGraphics::Import
     {
     friend struct default_delete<ImportMesh>;
     public:
-        static KalaGraphicsRegistry<ImportMesh>& GetRegistry();
+        KNODISCARD
+		static KalaGraphicsRegistry<ImportMesh>& GetRegistry();
 
-        static ImportMesh* Initialize(path&& meshPath);
+        KNODISCARD
+		static ImportMesh* Initialize(path&& meshPath);
 
-        u32 GetID() const;
+        KNODISCARD
+		u32 GetID() const;
 
-        const path& GetMeshPath() const;
-        const MeshData& GetMeshData() const;
+        KNODISCARD
+		const path& GetMeshPath() const;
+        KNODISCARD
+		const MeshData& GetMeshData() const;
 
         void Destroy();
     private:
         ~ImportMesh();
 
-        static string Init_GLTF(
+        KNODISCARD
+		static string Init_GLTF(
             vector<u8>&& binaryData,
             MeshData& outMeshData);
-        static string Init_KMOD(
+        KNODISCARD
+		static string Init_KMOD(
             vector<u8>&& binaryData,
             MeshData& outMeshData);
 
