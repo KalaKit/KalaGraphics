@@ -79,6 +79,9 @@ namespace KalaGraphics::Resources
 		u32 GetID() const;
 
         KNODISCARD
+		u32 GetViewportID() const;
+
+        KNODISCARD
 		u32 GetShaderID() const;
 
         KNODISCARD
@@ -141,6 +144,7 @@ namespace KalaGraphics::Resources
         void ClearAllData();
 
         u32 ID{};
+        u32 viewportID{};
         u32 shaderID{};
         u32 meshID{};
 
@@ -152,10 +156,6 @@ namespace KalaGraphics::Resources
         f32 sensitivityMultiplier = 1.0f;
         f32 fov = 90.0f;
         vec2 drawDistance = { 0.001f, 1000.0f };
-
-        //internal viewport size value that comes from graphics context
-        //whenever the swapchain is recreated during resize
-        vec2 viewport{};
 
         mat4 projectionMatrix{};
         mat4 orthographicMatrix{};

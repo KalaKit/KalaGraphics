@@ -228,6 +228,10 @@ namespace KalaGraphics::Core
 
         void RecreateSwapchain();
 
+        void HandleResult(
+            i32 result,
+            const string& reason);
+
         u32 ID{};
 
         u32 rootViewportID{};
@@ -241,6 +245,7 @@ namespace KalaGraphics::Core
 
         size_t currentFrame{};
 
+        vec2 oldRenderSize{};
         vec2 renderSize{};
 
         VkSwapchainKHR swapchain{};

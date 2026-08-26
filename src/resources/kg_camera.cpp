@@ -68,13 +68,10 @@ namespace KalaGraphics::Resources
             return nullptr;
         }
 
-        if ((newType == CameraType::CAM_PERSPECTIVE
-            && shader->is2D)
-            || (newType == CameraType::CAM_ORTHOGRAPHIC
-            && !shader->is2D))
+        if (shader->viewportID.second == (newType == CameraType::CAM_ORTHOGRAPHIC))
         {
             Log::Print(
-                "Failed to create camera because camera type doesn't match shader 2D state! Reason: " + err,
+                "Failed to create camera because camera type is not compatible with shader 2D state!",
                 "KG_CAMERA",
                 LogType::LOG_ERROR,
                 2);
@@ -99,17 +96,6 @@ namespace KalaGraphics::Resources
                 "KalaGraphics camera error",
                 "Failed to create camera because the graphics context "
                 "on the cameras viewport was invalid! Reason: " + err);
-        }
-
-        if (shader->is2D != (newType == CameraType::CAM_ORTHOGRAPHIC))
-        {
-            Log::Print(
-                "Failed to create camera because camera type is not compatible with shader 2D state!",
-                "KG_CAMERA",
-                LogType::LOG_ERROR,
-                2);
-
-            return nullptr;
         }
 
         //TODO: figure out a better solution
@@ -137,11 +123,26 @@ namespace KalaGraphics::Resources
         //shader references this camera
         shader->cameraIDs.push_back(newID);
 
-        cameraPtr->viewport = gctx->GetRenderSize();
         cameraPtr->type = newType;
 
         //always assign descriptor set data at camera init
         cameraPtr->isDirty = true;
+
+        if (newType == CameraType::CAM_PERSPECTIVE)
+        {
+            if (vp->primary3DCameraID == 0) vp->primary3DCameraID = newID;
+            else                            vp->extra3DCameraIDs.push_back(newID);
+
+            cameraPtr->viewportID = vp->ID;
+        }
+
+        if (newType == CameraType::CAM_ORTHOGRAPHIC)
+        {
+            if (vp->primary2DCameraID == 0) vp->primary2DCameraID = newID;
+            else                            vp->extra2DCameraIDs.push_back(newID);
+
+            cameraPtr->viewportID = vp->ID;
+        }
 
         //blank data for empty camera,
         //move also calls UpdateCameraData
@@ -165,6 +166,7 @@ namespace KalaGraphics::Resources
     }
 
     u32 Camera::GetID() const { return ID; }
+    u32 Camera::GetViewportID() const { return viewportID; }
     u32 Camera::GetShaderID() const { return shaderID; }
     u32 Camera::GetMeshID() const { return meshID; }
     void Camera::SetMeshID(u32 newValue)
@@ -329,6 +331,16 @@ namespace KalaGraphics::Resources
         f32 vertical,
         f32 deltaTime)
     {
+        Viewport* vp{};
+        string err = Viewport::GetRegistry().GetContent(viewportID, vp);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics camera error",
+                "Failed to update camera '" + to_string(ID) 
+                + "' data because its viewport was invalid! Reason: " + err);
+        }
+
         mouse = kclamp(mouse, -MOUSE_MAX, MOUSE_MAX);
         keyboard = kclamp(keyboard, -1, 1);
 
@@ -346,7 +358,7 @@ namespace KalaGraphics::Resources
 
             orthographicMatrix = ortho(
                 true,
-                viewport,
+                vp->viewportDynamicSize, //TODO: also update for static vp size
                 drawDistance.x,
                 drawDistance.y);
         }
@@ -396,11 +408,9 @@ namespace KalaGraphics::Resources
                 transform.pos_world + getdirfront(transform),
                 DIR_UP);
 
-            //Log::Print("@@@@@ viewport: " + to_string(viewport.x) + ", " + to_string(viewport.y));
-
             mat4 perspectiveMatrix = perspective(
                 true,
-                viewport,
+                vp->viewportDynamicSize, //TODO: also update for static vp size
                 fov,
                 drawDistance.x,
                 drawDistance.y);

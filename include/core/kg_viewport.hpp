@@ -25,6 +25,7 @@ namespace KalaGraphics::Resources
 namespace KalaGraphics::Core
 {
     using KalaHeaders::KalaMath::vec2;
+    using KalaHeaders::KalaMath::vec4;
 
     using std::string;
     using std::string_view;
@@ -135,6 +136,11 @@ namespace KalaGraphics::Core
         KNODISCARD
         ViewportType GetViewportType() const;
 
+        KNODISCARD
+        const vec4& GetViewportBackgroundColor() const;
+        //Assign a new background color, clamped between 0 and 1
+        void SetViewportBackgroundColor(vec4&& newColor);
+
         //Returns true if this viewport is the primary viewport
         //for its graphics context, it cannot be destroyed
         KNODISCARD
@@ -145,8 +151,22 @@ namespace KalaGraphics::Core
 		bool IsStaticViewport() const;
         void SetStaticViewportState(bool newValue);
 
+        //If true then this viewport scales dynamically
+        //relative to the size of the graphics context size,
+        //viewport size cannot be changed manually if this is true
         KNODISCARD
-		vec2 GetViewportSize(bool isStatic) const;
+        bool IsDynamicResizeEnabled() const;
+        void SetDynamicResizeState(bool newValue);
+
+        //If true then this viewport scissor size is equal to
+        //its viewport size and cannot be changed manually
+        KNODISCARD
+        bool IsScissorSizeFollowingViewportSize() const;
+        void SetScissorSizeFollowViewportSize(bool newValue);
+
+        //Returns current viewport size whether its been set as static or dynamic
+        KNODISCARD
+		vec2 GetViewportSize() const;
         //Set static viewport size, only adjusts aspect ratio, scissor size and scissor offset
         void SetViewportSize(ViewportStaticSize newValue);
         //Set dynamic viewport size
@@ -168,11 +188,9 @@ namespace KalaGraphics::Core
     private:
         ~Viewport();
 
-        //Initialize root viewport, separate from regular viewport initialization
-        //that requires an already existing graphics context
-        static Viewport* _Initialize();
-
         void Update(u32 imageIndex);
+
+        void UpdateViewportSize();
 
         void _Destroy();
 
@@ -198,10 +216,13 @@ namespace KalaGraphics::Core
         bool isDestroyingGraphicsContext{};
 
         bool isRootViewport{};
+        bool isStaticViewport{};
 
-        bool isStaticViewport = true;
+        bool isDynamicResizeEnabled = true;
 
         ViewportType viewportType{};
+
+        vec4 viewportBackgroundColor = vec4{ 0.0f, 1.0f, 0.0f, 1.0f };
 
         ViewportStaticSize viewportStaticSize = ViewportStaticSize::VP_1920_1080;
         vec2 viewportDynamicSize = 100;
@@ -209,10 +230,12 @@ namespace KalaGraphics::Core
         //pushes the drawable area down and right if x and y are positive
         vec2 viewportOffset{};
 
-        //pushes the clipped area down and right if x and y are positive
-        vec2 scissorOffset{};
+        bool scissorSizeFollowsViewportSize = true;
+
         //cuts everything outside of this area,
         //gpu can only draw clear color there
         vec2 scissorSize{};
+        //pushes the clipped area down and right if x and y are positive
+        vec2 scissorOffset{};
     };
 }

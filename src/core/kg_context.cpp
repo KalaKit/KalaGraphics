@@ -776,6 +776,7 @@ namespace KalaGraphics::Core
         string idStr = to_string(newID);
 
         contextPtr->InitializeVulkanContext();
+        contextPtr->oldRenderSize = contextPtr->renderSize; //ensure old render size is same as new render size during initial init
 
         string err = registry.AddContent(newID, std::move(newContext));
         if (!err.empty())
@@ -785,10 +786,9 @@ namespace KalaGraphics::Core
                 "Failed to initialize graphics context! Reason: " + err);
         }
 
-        Viewport* vp = Viewport::_Initialize();
-        contextPtr->rootViewportID = vp->ID;
-        vp->contextID = contextPtr->ID;
-        vp->isRootViewport = true;
+        Viewport* vp = Viewport::Initialize(newID);
+        vp->viewportDynamicSize = contextPtr->renderSize;
+        vp->scissorSize = contextPtr->renderSize;
 
         Log::Print(
             "Created new graphics context '" + idStr + "'!",
@@ -1485,10 +1485,12 @@ namespace KalaGraphics::Core
 
         //ignore if minimized
         VkSurfaceCapabilitiesKHR caps;
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+        VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
             physicalDevice,
             contextData.context_vk_surface,
             &caps);
+
+        HandleResult(result, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR");
 
         if (caps.currentExtent.width == 0
             || caps.currentExtent.height == 0)
@@ -1496,15 +1498,17 @@ namespace KalaGraphics::Core
             return;
         }
 
-        vkWaitForFences(
+        result = vkWaitForFences(
             logicalDevice,
             1,
             &inFlightFences[currentFrame],
             VK_TRUE,
             UINT64_MAX);
 
+        HandleResult(result, "vkWaitForFences");
+
         u32 imageIndex{};
-        VkResult result = vkAcquireNextImageKHR(
+        result = vkAcquireNextImageKHR(
             logicalDevice,
             swapchain,
             UINT64_MAX,
@@ -1512,78 +1516,44 @@ namespace KalaGraphics::Core
             VK_NULL_HANDLE,
             &imageIndex);
 
-        if (result != VK_SUCCESS)
-        {
-            if (result == VK_ERROR_OUT_OF_DATE_KHR
-                || result == VK_SUBOPTIMAL_KHR)
-            {
-                if (isVerboseLoggingEnabled)
-                {
-                    Log::Print(
-                        "Recreating swapchain because image aquire returned out of date or suboptimal.",
-                        "KG_CONTEXT",
-                        LogType::LOG_VERBOSE);
-                }
-
-                RecreateSwapchain();
-                return;
-            }
-
-            if (GetVkResultSeverity(result) == Severity::SEVERITY_FATAL)
-            {
-                ForceClose(
-                    "KalaGraphics context error", 
-                    "Failed to update graphics context '" + to_string(ID) 
-                    + "' because it encountered a fatal image aquire error!",
-                    result);
-            }
-            else if (GetVkResultSeverity(result) == Severity::SEVERITY_WARNING)
-            {
-#ifdef KDEBUG
-                Log::Print(
-                    "Image aquire returned a warning: " + GetVkResultMessage(result),
-                    "KG_CONTEXT",
-                    LogType::LOG_WARNING);
-#endif
-            }
-            else
-            {
-                if (isVerboseLoggingEnabled
-                    && result != VK_SUCCESS)
-                {
-                    Log::Print(
-                        "Image aquire returned a message: " + GetVkResultMessage(result),
-                        "KG_CONTEXT",
-                        LogType::LOG_VERBOSE);
-                }
-            }
-        }
+        HandleResult(result, "vkAcquireNextImageKHR");
+        if (result != VK_SUCCESS) return; //prevent reusing out of date data
 
         if (swapchainImagesInFlight[imageIndex] != VK_NULL_HANDLE)
         {
-            vkWaitForFences(
+            result = vkWaitForFences(
                 logicalDevice,
                 1,
                 &swapchainImagesInFlight[imageIndex],
                 VK_TRUE,
                 UINT64_MAX);
+
+            HandleResult(result, "vkWaitForFences [ " + to_string(imageIndex) + " ]");
         }
 
         swapchainImagesInFlight[imageIndex] = inFlightFences[currentFrame];
 
-        vkResetFences(
+        result = vkResetFences(
             logicalDevice,
             1,
             &inFlightFences[currentFrame]);
-        vkResetCommandBuffer(
+
+        HandleResult(result, "vkResetFences");
+
+        result = vkResetCommandBuffer(
             commandBuffers[currentFrame],
             0);
 
+        HandleResult(result, "vkResetCommandBuffer");
+
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        vkBeginCommandBuffer(
+
+        result = vkBeginCommandBuffer(
             commandBuffers[currentFrame],
             &beginInfo);
+
+        HandleResult(result, "vkBeginCommandBuffer");
 
         VkImageMemoryBarrier2 colorBarrier{};
         colorBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
@@ -1697,7 +1667,9 @@ namespace KalaGraphics::Core
             commandBuffers[currentFrame],
             &presentDepInfo);
 
-        vkEndCommandBuffer(commandBuffers[currentFrame]);
+        result = vkEndCommandBuffer(commandBuffers[currentFrame]);
+
+        HandleResult(result, "vkEndCommandBuffer");
 
         VkSemaphoreSubmitInfo renderSignal{};
         renderSignal.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
@@ -1722,11 +1694,13 @@ namespace KalaGraphics::Core
         submitInfo2.waitSemaphoreInfoCount = 1;
         submitInfo2.pWaitSemaphoreInfos = &imageAvailableWait;
 
-        vkQueueSubmit2(
+        result = vkQueueSubmit2(
             graphicsQueue,
             1,
             &submitInfo2,
             inFlightFences[currentFrame]);
+
+        HandleResult(result, "vkQueueSubmit2");
 
         VkPresentInfoKHR presentInfo{};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -1740,58 +1714,18 @@ namespace KalaGraphics::Core
             graphicsQueue,
             &presentInfo);
 
-        if (result != VK_SUCCESS)
-        {
-            if (result == VK_ERROR_OUT_OF_DATE_KHR
-                || result == VK_SUBOPTIMAL_KHR)
-            {
-                if (isVerboseLoggingEnabled)
-                {
-                    Log::Print(
-                        "Recreating swapchain because queue present returned out of date or suboptimal.",
-                        "KG_CONTEXT",
-                        LogType::LOG_VERBOSE);
-                }
-
-                RecreateSwapchain();
-                return;
-            }
-
-            if (GetVkResultSeverity(result) == Severity::SEVERITY_FATAL)
-            {
-                ForceClose(
-                    "KalaGraphics context error", 
-                    "Failed to update graphics context '" + to_string(ID) 
-                    + "' because it encountered a fatal queue present error!",
-                    result);
-            }
-            else if (GetVkResultSeverity(result) == Severity::SEVERITY_WARNING)
-            {
-    #ifdef KDEBUG
-                Log::Print(
-                    "Queue present returned a warning: " + GetVkResultMessage(result),
-                    "KG_CONTEXT",
-                    LogType::LOG_WARNING);
-    #endif
-            }
-            else
-            {
-                if (isVerboseLoggingEnabled
-                    && result != VK_SUCCESS)
-                {
-                    Log::Print(
-                        "Queue present returned a message: " + GetVkResultMessage(result),
-                        "KG_CONTEXT",
-                        LogType::LOG_VERBOSE);
-                }
-            }
-        }
+        HandleResult(result, "vkQueuePresentKHR");
 
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
     void GraphicsContext::RecreateSwapchain()
     {
+        Log::Print(
+            "@@@@@ start of recreate swapchain...",
+            "KG_CONTEXT",
+            LogType::LOG_VERBOSE);
+
         VkSurfaceKHR surface = contextData.context_vk_surface;
 
         if (!isInitialized)
@@ -2251,53 +2185,39 @@ namespace KalaGraphics::Core
 
         if (swapchainImageCount != oldImagesInFlightCount)
         {
-            //destroy excess fences
-            for (u32 i = swapchainImageCount; i < oldImagesInFlightCount; ++i)
-            {
-                if (swapchainImagesInFlight[i] != VK_NULL_HANDLE)
-                {
-                    vkDestroyFence(
-                        logicalDevice,
-                        swapchainImagesInFlight[i],
-                        nullptr);
-                }
-            }
-
             swapchainImagesInFlight.resize(
                 swapchainImageCount,
                 VK_NULL_HANDLE);
         }
 
-        //TODO: rescale root viewport
+        Viewport* rootVP{};
+        string err = Viewport::GetRegistry().GetContent(rootViewportID, rootVP);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics context error",
+                "Failed to recreate swapchain for graphics context '" + to_string(ID) 
+                + "' because its root viewport was invalid! Reason: " + err);
+        }
 
-        for (u32 vID : extraViewportIDs)
+        rootVP->UpdateViewportSize();
+
+        for (u32 vpID : extraViewportIDs)
         {
             Viewport* vp{};
-            string err = Viewport::GetRegistry().GetContent(vID, vp);
+            string err = Viewport::GetRegistry().GetContent(vpID, vp);
             if (!err.empty())
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics context error",
-                    "Failed to recreate Vulkan swapchain because extra viewport was invalid! Reason: " + err);
+                    "Failed to recreate swapchain for graphics context '" + to_string(ID) 
+                    + "' because its extra viewport was invalid! Reason: " + err);
             }
 
-            //TODO: rescale extra viewports
-            //TODO: update active cameras
-            /*
-            if (activeCamera)
-            {
-                u32 sid = activeCamera->shaderID;
-
-                if (ContainsValue(vp->shaderIDs, sid))
-                {
-                    activeCamera->viewport = renderSize;
-
-                    //enforce camera update with no data so orthographic/projection is updated correctly
-                    activeCamera->Move({}, {});
-                }
-            }
-            */
+            vp->UpdateViewportSize();
         }
+
+        oldRenderSize = renderSize;
 
         if (isVerboseLoggingEnabled)
         {
@@ -2305,6 +2225,61 @@ namespace KalaGraphics::Core
                 "Finished recreating Vulkan swapchain.",
                 "KG_CONTEXT",
                 LogType::LOG_VERBOSE);
+        }
+
+        Log::Print(
+            "@@@@@ end of recreate swapchain...",
+            "KG_CONTEXT",
+            LogType::LOG_VERBOSE);
+    }
+
+    void GraphicsContext::HandleResult(
+        i32 result,
+        const string& reason)
+    {
+        if (result == VK_SUCCESS) return;
+
+        if (result == VK_ERROR_OUT_OF_DATE_KHR
+            || result == VK_SUBOPTIMAL_KHR)
+        {
+            if (isVerboseLoggingEnabled)
+            {
+                Log::Print(
+                    "Recreating swapchain because of '" + reason + "'!",
+                    "KG_CONTEXT",
+                    LogType::LOG_VERBOSE);
+            }
+
+            RecreateSwapchain();
+            return;
+        }
+
+        if (GetVkResultSeverity(result) == Severity::SEVERITY_FATAL)
+        {
+            ForceClose(
+                "KalaGraphics context error", 
+                "Encountered a fatal error because of '" + reason + "'!",
+                result);
+        }
+        else if (GetVkResultSeverity(result) == Severity::SEVERITY_WARNING)
+        {
+#ifdef KDEBUG
+            Log::Print(
+                "Encountered a warning because of '" + reason + "'!\n" + GetVkResultMessage(result),
+                "KG_CONTEXT",
+                LogType::LOG_WARNING);
+#endif
+        }
+        else
+        {
+            if (isVerboseLoggingEnabled
+                && result != VK_SUCCESS)
+            {
+                Log::Print(
+                    "Encountered a message because of '" + reason + "'.\n" + GetVkResultMessage(result),
+                    "KG_CONTEXT",
+                    LogType::LOG_VERBOSE);
+            }
         }
     }
 
@@ -2321,7 +2296,7 @@ namespace KalaGraphics::Core
         }
 
         rvp->isDestroyingGraphicsContext = true;
-        rvp->Destroy();
+        rvp->_Destroy();
 
         for (u32 vID : extraViewportIDs)
         {
@@ -2336,7 +2311,7 @@ namespace KalaGraphics::Core
             }
 
             vp->isDestroyingGraphicsContext = true;
-            vp->Destroy();
+            vp->_Destroy();
         }
 
         err = registry.DestroyContent(ID);

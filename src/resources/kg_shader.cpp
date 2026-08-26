@@ -918,7 +918,7 @@ namespace KalaGraphics::Resources
         KalaGraphicsCore::SetGlobalID(newID);
 
         shaderPtr->ID = newID;
-        shaderPtr->is2D = is2D;
+        shaderPtr->viewportID.second = is2D;
         shaderPtr->pipeline = newPipeline;
         shaderPtr->pipelineLayout = newPipelineLayout;
         shaderPtr->descriptorSetLayouts = std::move(newDescriptorSetLayouts);
@@ -928,18 +928,14 @@ namespace KalaGraphics::Resources
         {
             if (vp->primary3DShaderID == 0) vp->primary3DShaderID = newID;
             else                            vp->extra3DShaderIDs.push_back(newID);
-            
-            shaderPtr->viewportID.first = viewportID;
-            shaderPtr->viewportID.second = false;
         }
         else
         {
             if (vp->primary2DShaderID == 0) vp->primary2DShaderID = newID;
             else                            vp->extra2DShaderIDs.push_back(newID);
-
-            shaderPtr->viewportID.first = viewportID;
-            shaderPtr->viewportID.second = true;
         }
+        shaderPtr->viewportID.second = !is2D;
+        shaderPtr->viewportID.first = viewportID;
 
         err = registry.AddContent(newID, std::move(newShader));
         if (!err.empty())
@@ -1024,6 +1020,16 @@ namespace KalaGraphics::Resources
             VK_PIPELINE_BIND_POINT_GRAPHICS,
             pipeline);
 
+        Viewport* vp{};
+        string err = Viewport::GetRegistry().GetContent(viewportID.first, vp);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics shader error",
+                "Failed to update shader '" + to_string(ID) 
+                + "' because its viewport was invalid! Reason: " + err);
+        }
+
         for (u32 cameraID : cameraIDs)
         {
             Camera* camera{};
@@ -1036,9 +1042,23 @@ namespace KalaGraphics::Resources
                     + "' because its camera was invalid! Reason: " + err);
             }
 
-            //TODO: get active cameras per viewport
             /*
-            if (camera->isActiveCamera)
+            string isViewport3D = viewportID.second ? "true" : "false";
+            string isCamera3D = camera->type == CameraType::CAM_PERSPECTIVE ? "true" : "false";
+
+            Log::Print(
+                "@@@@@\n"
+                "camera ID: " + to_string(cameraID) + "\n"
+                "vp->primary3DCameraID: " + to_string(vp->primary3DCameraID) + "\n"
+                "vp->primary2DCameraID: " + to_string(vp->primary2DCameraID) + "\n"
+                "is viewport type 3D: " + isViewport3D + "\n"
+                "is camera type 3D: " + isCamera3D);
+            */
+
+            if ((cameraID == vp->primary3DCameraID
+                && viewportID.second)
+                || (cameraID == vp->primary2DCameraID
+                && !viewportID.second))
             {
                 vkCmdBindDescriptorSets(
                     cmdBuffer,
@@ -1050,9 +1070,10 @@ namespace KalaGraphics::Resources
                     0,
                     nullptr);
 
+                //Log::Print("@@@@@ camera '" + to_string(cameraID) + "' was bound...");
+
                 break;
             }
-            */
         }
 
         for (u32 meshID : meshIDs)
@@ -1123,6 +1144,14 @@ namespace KalaGraphics::Resources
                 &texture->vkDescriptorSet,
                 0,
                 nullptr);
+
+            /*
+            Log::Print(
+                "@@@@@\n"
+                "mesh ID: " + to_string(mesh->ID) + "\n"
+                "vertices size: " + to_string(mesh->vertices.size()) + "\n"
+                "indices size: " + to_string(mesh->indices.size()));
+            */
 
             VkDeviceSize offset{};
             vkCmdBindVertexBuffers(

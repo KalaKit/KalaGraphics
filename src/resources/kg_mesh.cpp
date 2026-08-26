@@ -169,8 +169,8 @@ namespace KalaGraphics::Resources
             return;
         }
 
-        if (oldShader->is2D
-            != shader->is2D)
+        if (oldShader->viewportID.second
+            != shader->viewportID.second)
         {
             Log::Print(
                 "Clearing all data for mesh '" + to_string(ID) 

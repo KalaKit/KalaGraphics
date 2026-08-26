@@ -32,6 +32,8 @@ using KalaGraphics::Resources::Camera;
 using std::string_view;
 using std::to_string;
 using std::unordered_map;
+using std::min;
+using std::clamp;
 
 //
 // 4:3
@@ -192,7 +194,13 @@ namespace KalaGraphics::Core
         vpPtr->targetViewportID = targetViewport;
 
         vpPtr->contextID = contextID;
-        gctx->extraViewportIDs.push_back(newID);
+
+        if (gctx->rootViewportID == 0)
+        {
+            gctx->rootViewportID = newID;
+            vpPtr->isRootViewport = true;
+        }
+        else gctx->extraViewportIDs.push_back(newID);
 
         err = registry.AddContent(newID, std::move(newVP));
         if (!err.empty())
@@ -202,25 +210,10 @@ namespace KalaGraphics::Core
 				"Failed to initialize viewport! Reason: " + err);
         }
 
-        return vpPtr;
-    }
-    Viewport* Viewport::_Initialize()
-    {
-        unique_ptr<Viewport> newVP = make_unique<Viewport>();
-        Viewport* vpPtr = newVP.get();
-
-        u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
-        KalaGraphicsCore::SetGlobalID(newID);
-
-        vpPtr->ID = newID;
-
-        string err = registry.AddContent(newID, std::move(newVP));
-        if (!err.empty())
-        {
-			KalaGraphicsCore::ForceClose(
-				"KalaGraphics viewport error",
-				"Failed to initialize viewport! Reason: " + err);
-        }
+        Log::Print(
+            "Created new viewport '" + to_string(newID) + "'!",
+            "KG_VIEWPORT",
+            LogType::LOG_SUCCESS);
 
         return vpPtr;
     }
@@ -244,6 +237,12 @@ namespace KalaGraphics::Core
     u32 Viewport::GetTargetViewportID() const { return targetViewportID; }
 
     ViewportType Viewport::GetViewportType() const { return viewportType; }
+
+    const vec4& Viewport::GetViewportBackgroundColor() const { return viewportBackgroundColor; }
+    void Viewport::SetViewportBackgroundColor(vec4&& newColor)
+    {
+        viewportBackgroundColor = std::move(kclamp(newColor, 0, 1));
+    }
 
     bool Viewport::IsRootViewport() const { return isRootViewport; }
 
@@ -284,14 +283,78 @@ namespace KalaGraphics::Core
             LogType::LOG_SUCCESS);
     }
 
-    vec2 Viewport::GetViewportSize(bool isStatic) const
+    bool Viewport::IsDynamicResizeEnabled() const { return isDynamicResizeEnabled; }
+    void Viewport::SetDynamicResizeState(bool newValue)
     {
-        return isStatic 
+        if (isRootViewport)
+        {
+            Log::Print(
+                "Failed to set viewport '" + to_string(ID) 
+                + "' dynamic resize state because it is a root viewport!", 
+                "KG_VIEWPORT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        isDynamicResizeEnabled = newValue;
+
+        string val = isDynamicResizeEnabled ? "true" : "false";
+
+        Log::Print(
+            "Set viewport '" + to_string(contextID) + "' "
+            "dynamic resize state to " + val + "!", 
+            "KG_VIEWPORT",
+            LogType::LOG_SUCCESS);
+    }
+
+    bool Viewport::IsScissorSizeFollowingViewportSize() const { return scissorSizeFollowsViewportSize; }
+    void Viewport::SetScissorSizeFollowViewportSize(bool newValue)
+    {
+        if (isRootViewport)
+        {
+            Log::Print(
+                "Failed to set viewport '" + to_string(ID) 
+                + "' scissor size follows viewport state because it is a root viewport!", 
+                "KG_VIEWPORT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        scissorSizeFollowsViewportSize = newValue;
+
+        string val = scissorSizeFollowsViewportSize ? "true" : "false";
+
+        Log::Print(
+            "Set viewport '" + to_string(contextID) + "' "
+            "scissor size follows viewport state to " + val + "!", 
+            "KG_VIEWPORT",
+            LogType::LOG_SUCCESS);
+    }
+
+    vec2 Viewport::GetViewportSize() const
+    {
+        return isStaticViewport 
             ? vpSizes[viewportStaticSize]
             : viewportDynamicSize;
     }
     void Viewport::SetViewportSize(ViewportStaticSize vpSize)
     {
+        if (!isStaticViewport)
+        {
+            Log::Print(
+                "Failed to set viewport '" + to_string(ID) 
+                + "' static size because it is not static!", 
+                "KG_VIEWPORT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
         GraphicsContext* gctx{};
         string err = GraphicsContext::GetRegistry().GetContent(contextID, gctx);
         if (!err.empty())
@@ -318,6 +381,12 @@ namespace KalaGraphics::Core
 
         viewportStaticSize = vpSize;
 
+        if (scissorSizeFollowsViewportSize)
+        {
+            //TODO: verify if this even works as expected, call UpdateViewportSize right after it?
+            scissorSize = GetViewportStaticValue(viewportStaticSize);
+        }
+
         Log::Print(
             "Set viewport '" + to_string(ID) 
             + "' static size to '" + string(GetViewportStaticName(viewportStaticSize)) + "'!", 
@@ -341,6 +410,17 @@ namespace KalaGraphics::Core
             Log::Print(
                 "Failed to set viewport '" + to_string(ID) 
                 + "' dynamic size because it is a root viewport!", 
+                "KG_VIEWPORT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+        if (isStaticViewport)
+        {
+            Log::Print(
+                "Failed to set viewport '" + to_string(ID) 
+                + "' dynamic size because it is static!", 
                 "KG_VIEWPORT",
                 LogType::LOG_ERROR,
                 2);
@@ -383,6 +463,11 @@ namespace KalaGraphics::Core
             newValue,
             0,
             gctx->renderSize - viewportOffset);
+
+        if (scissorSizeFollowsViewportSize)
+        {
+            scissorSize = viewportDynamicSize;
+        }
 
         Log::Print(
             "Set viewport '" + to_string(ID) 
@@ -493,6 +578,17 @@ namespace KalaGraphics::Core
             Log::Print(
                 "Failed to set viewport '" + to_string(ID) 
                 + "' scissor size because it is static!", 
+                "KG_VIEWPORT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+        if (scissorSizeFollowsViewportSize)
+        {
+            Log::Print(
+                "Failed to set viewport '" + to_string(ID) 
+                + "' scissor size because scissor size follows viewport size!", 
                 "KG_VIEWPORT",
                 LogType::LOG_ERROR,
                 2);
@@ -614,9 +710,6 @@ namespace KalaGraphics::Core
             &gctx](bool is2D) -> void
             {
                 VkViewport viewport{};
-                viewport.x = viewportOffset.x;
-                viewport.y = viewportOffset.y;
-
                 if (isStaticViewport)
                 {
                     vec2 size = GetViewportStaticValue(viewportStaticSize);
@@ -629,20 +722,33 @@ namespace KalaGraphics::Core
                     viewport.height = viewportDynamicSize.y;
                 }
 
+                viewport.x = viewportOffset.x;
+                viewport.y = viewportOffset.y;
+
                 viewport.minDepth = 0.0f;
                 viewport.maxDepth = 1.0f;
 
                 VkRect2D scissor{};
-                scissor.offset = 
-                { 
-                    scast<int>(scissorOffset.x), 
-                    scast<int>(scissorOffset.y) 
-                };
                 scissor.extent = 
                 { 
                     scast<u32>(scissorSize.x), 
                     scast<u32>(scissorSize.y) 
                 };
+                scissor.offset = 
+                { 
+                    scast<int>(scissorOffset.x), 
+                    scast<int>(scissorOffset.y) 
+                };
+
+                /*
+                Log::Print(
+                    "@@@@@\n"
+                    "viewport ID: " + to_string(ID) + "\n"
+                    "viewport size: " + to_string(viewport.width) + "x" + to_string(viewport.height) + "\n"
+                    "viewport offset: " + to_string(viewport.x) + "x" + to_string(viewport.y) + "\n"
+                    "scissor size: " + to_string(scissor.extent.width) + "x" + to_string(scissor.extent.height) + "\n"
+                    "scissor offset: " + to_string(scissor.offset.x) + "x" + to_string(scissor.offset.y) + "\n");
+                */
 
                 vkCmdSetViewport(
                     gctx->commandBuffers[gctx->currentFrame],
@@ -726,7 +832,15 @@ namespace KalaGraphics::Core
         colorAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachment.clearValue.color = { { 0.0f, 1.0f, 0.0f, 1.0f } };
+        colorAttachment.clearValue.color = 
+        { 
+            { 
+                viewportBackgroundColor.x, 
+                viewportBackgroundColor.y, 
+                viewportBackgroundColor.z, 
+                viewportBackgroundColor.w
+            } 
+        };
 
         VkRenderingAttachmentInfo depthAttachment{};
         depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -738,8 +852,16 @@ namespace KalaGraphics::Core
 
         VkRenderingInfo renderingInfo{};
         renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-        renderingInfo.renderArea.offset = { 0, 0 };
-        renderingInfo.renderArea.extent = { scast<u32>(gctx->renderSize.x), scast<u32>(gctx->renderSize.y) };
+        renderingInfo.renderArea.offset = 
+        { 
+            scast<i32>(viewportOffset.x), 
+            scast<i32>(viewportOffset.y) 
+        };
+        renderingInfo.renderArea.extent = 
+        { 
+            scast<u32>(viewportDynamicSize.x), 
+            scast<u32>(viewportDynamicSize.y) 
+        };
         renderingInfo.layerCount = 1;
         renderingInfo.colorAttachmentCount = 1;
         renderingInfo.pColorAttachments = &colorAttachment;
@@ -799,6 +921,114 @@ namespace KalaGraphics::Core
         _Destroy();
     }
 
+    void Viewport::UpdateViewportSize()
+    {
+        GraphicsContext* gctx{};
+        string err = GraphicsContext::GetRegistry().GetContent(contextID, gctx);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics viewport error",
+                "Failed to resize viewport '" + to_string(ID) 
+                + "' because its graphics context was invalid! Reason: " + err);
+        }
+
+        if (isStaticViewport)
+        {
+            //TODO: resize static viewport
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics viewport error",
+                "UNIMPLEMENTED FEATURE: UpdateViewportSize static branch");
+        }
+        else
+        {
+            if (isDynamicResizeEnabled)
+            {
+                vec2 scaleFactor =
+                {
+                    gctx->renderSize.x / gctx->oldRenderSize.x,
+                    gctx->renderSize.y / gctx->oldRenderSize.y
+                };
+
+                viewportDynamicSize.x *= scaleFactor.x;
+                viewportDynamicSize.y *= scaleFactor.y;
+
+                viewportOffset.x *= scaleFactor.x;
+                viewportOffset.y *= scaleFactor.y;
+            }
+
+            if (scissorSizeFollowsViewportSize)
+            {
+                scissorSize = viewportDynamicSize;
+            }
+
+            viewportDynamicSize.x = min(
+                viewportDynamicSize.x,
+                gctx->renderSize.x 
+                - viewportOffset.x);
+
+            viewportDynamicSize.y = min(
+                viewportDynamicSize.y,
+                gctx->renderSize.y 
+                - viewportOffset.y);
+
+            viewportOffset = kclamp(
+                viewportOffset, 
+                0.0f, 
+                gctx->renderSize);
+        }
+
+        Camera* c3d{};
+        err = Camera::GetRegistry().GetContent(primary3DCameraID, c3d);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics viewport error",
+                "Failed to resize viewport '" + to_string(ID) 
+                + "' because its primary 3D camera was invalid! Reason: " + err);
+        }
+        c3d->Move({}, {});
+
+        for (u32 cID : extra3DCameraIDs)
+        {
+            Camera* ec3d{};
+            err = Camera::GetRegistry().GetContent(cID, ec3d);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics viewport error",
+                    "Failed to resize viewport '" + to_string(ID) 
+                    + "' because its extra 3D camera was invalid! Reason: " + err);
+            }
+            ec3d->Move({}, {});
+        }
+
+        Camera* c2d{};
+        err = Camera::GetRegistry().GetContent(primary2DCameraID, c2d);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics viewport error",
+                "Failed to resize viewport '" + to_string(ID) 
+                + "' because its primary 2D camera was invalid! Reason: " + err);
+        }
+        c2d->Move({}, {});
+
+        for (u32 cID : extra3DCameraIDs)
+        {
+            Camera* ec2d{};
+            err = Camera::GetRegistry().GetContent(cID, ec2d);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics viewport error",
+                    "Failed to resize viewport '" + to_string(ID) 
+                    + "' because its extra 2D camera was invalid! Reason: " + err);
+            }
+            ec2d->Move({}, {});
+        }
+    }
+
     void Viewport::_Destroy()
     {
 		Log::Print(
@@ -842,8 +1072,8 @@ namespace KalaGraphics::Core
                 "its primary 2D shader was invalid! Reason: " + err);
         }
 
-        p3d->isDestroyingViewport = true;
-        p3d->Destroy();
+        p2d->isDestroyingViewport = true;
+        p2d->Destroy();
 
         for (u32 sID : extra3DShaderIDs)
         {
@@ -943,7 +1173,7 @@ namespace KalaGraphics::Core
     Viewport::~Viewport()
     {
 		Log::Print(
-			"Destroying graphics context '" + to_string(ID) + "'.",
+			"Destroying viewport '" + to_string(ID) + "'.",
 			"KG_VIEWPORT",
 			LogType::LOG_INFO);
     }

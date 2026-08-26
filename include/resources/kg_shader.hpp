@@ -117,15 +117,17 @@ namespace KalaGraphics::Resources
         //destroy function called the destroy function of this shader 
         bool isDestroyingViewport{};
 
+        bool hasDrawn3DCamera{};
+        bool hasDrawn2DCamera{};
+
         u32 ID{};
 
+        //first is viewport ID, second is viewport stage type (2D or 3D)
         pair<u32, bool> viewportID{};
 
         vector<u32> textureIDs{};
         vector<u32> cameraIDs{};
         vector<u32> meshIDs{};
-
-        bool is2D{};
 
         u8 missingViewportWarningCount{};
         u8 missingPipelineWarningCount{};
