@@ -198,7 +198,14 @@ static unique_ptr<PipelineInfo> GetPipelineInfo(
         | VK_COLOR_COMPONENT_G_BIT
         | VK_COLOR_COMPONENT_B_BIT
         | VK_COLOR_COMPONENT_A_BIT;
-    pi->colorBlendAttachment.blendEnable = VK_FALSE;
+
+    pi->colorBlendAttachment.blendEnable = VK_TRUE;
+    pi->colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+    pi->colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    pi->colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+    pi->colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    pi->colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    pi->colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
     pi->colorBlend.sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     pi->colorBlend.attachmentCount = 1;
@@ -1075,6 +1082,8 @@ namespace KalaGraphics::Resources
                 break;
             }
         }
+
+        //TODO: sort transparent meshes
 
         for (u32 meshID : meshIDs)
         {

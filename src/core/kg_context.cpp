@@ -1120,7 +1120,14 @@ namespace KalaGraphics::Core
         swapchainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         swapchainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
         swapchainInfo.preTransform = capabilities.currentTransform;
-        swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        if (capabilities.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR)
+        {
+            swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR;
+        }
+        else
+        {
+            swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        }
         swapchainInfo.presentMode = chosenPresentMode;
         swapchainInfo.clipped = VK_TRUE;
         swapchainInfo.oldSwapchain = VK_NULL_HANDLE;
@@ -1721,11 +1728,6 @@ namespace KalaGraphics::Core
 
     void GraphicsContext::RecreateSwapchain()
     {
-        Log::Print(
-            "@@@@@ start of recreate swapchain...",
-            "KG_CONTEXT",
-            LogType::LOG_VERBOSE);
-
         VkSurfaceKHR surface = contextData.context_vk_surface;
 
         if (!isInitialized)
@@ -1970,7 +1972,14 @@ namespace KalaGraphics::Core
         swapchainInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         swapchainInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
         swapchainInfo.preTransform = capabilities.currentTransform;
-        swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        if (capabilities.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR)
+        {
+            swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR;
+        }
+        else
+        {
+            swapchainInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        }
         swapchainInfo.presentMode = chosenPresentMode;
         swapchainInfo.clipped = VK_TRUE;
         swapchainInfo.oldSwapchain = swapchain;
@@ -2226,11 +2235,6 @@ namespace KalaGraphics::Core
                 "KG_CONTEXT",
                 LogType::LOG_VERBOSE);
         }
-
-        Log::Print(
-            "@@@@@ end of recreate swapchain...",
-            "KG_CONTEXT",
-            LogType::LOG_VERBOSE);
     }
 
     void GraphicsContext::HandleResult(

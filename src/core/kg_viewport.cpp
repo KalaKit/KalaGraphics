@@ -130,7 +130,7 @@ namespace KalaGraphics::Core
 
     KalaGraphicsRegistry<Viewport>& Viewport::GetRegistry() { return registry; }
 
-    string_view Viewport::GetViewportStaticName(ViewportStaticSize vpSize)
+    string_view Viewport::GetStaticName(ViewportStaticSize vpSize)
     {   
         string_view out{};
         string err = EnumToString(vpSize, vpNames, out);
@@ -147,7 +147,7 @@ namespace KalaGraphics::Core
 
         return out;
     }
-    vec2 Viewport::GetViewportStaticValue(ViewportStaticSize vpSize)
+    vec2 Viewport::GetStaticValue(ViewportStaticSize vpSize)
     {
 		auto it = vpSizes.find(vpSize);
 		if (it == vpSizes.end())
@@ -236,52 +236,72 @@ namespace KalaGraphics::Core
 
     u32 Viewport::GetTargetViewportID() const { return targetViewportID; }
 
-    ViewportType Viewport::GetViewportType() const { return viewportType; }
+    ViewportType Viewport::GetType() const { return viewportType; }
+    void Viewport::SetType(ViewportType newType)
+    {
+        string typeStr{};
 
-    const vec4& Viewport::GetViewportBackgroundColor() const { return viewportBackgroundColor; }
-    void Viewport::SetViewportBackgroundColor(vec4&& newColor)
+        switch (newType)
+        {
+        case ViewportType::VP_FILL:
+            typeStr = "fill";
+            viewportType = ViewportType::VP_FILL;
+            break;
+        case ViewportType::VP_FIT:
+            typeStr = "fit";
+            viewportType = ViewportType::VP_FIT;
+            break;
+        case ViewportType::VP_CENTER:
+            typeStr = "center";
+            viewportType = ViewportType::VP_CENTER;
+            break;
+        case ViewportType::VP_CUSTOM:
+            typeStr = "custom";
+            viewportType = ViewportType::VP_CUSTOM;
+            break;
+        };
+
+        UpdateViewportSize();
+
+        Log::Print(
+            "Set viewport '" + to_string(ID) + "' type to '" + typeStr + "'!",
+            "KG_VIEWPORT",
+            LogType::LOG_SUCCESS);
+    }
+
+    const vec4& Viewport::GetBackgroundColor() const { return viewportBackgroundColor; }
+    void Viewport::SetBackgroundColor(vec4&& newColor)
     {
         viewportBackgroundColor = std::move(kclamp(newColor, 0, 1));
+
+        Log::Print(
+            "Set background color to '" 
+            + to_string(viewportBackgroundColor.x) + ", "
+            + to_string(viewportBackgroundColor.y) + ", "
+            + to_string(viewportBackgroundColor.z) + ", "
+            + to_string(viewportBackgroundColor.w) + "'!",
+            "KG_VIEWPORT",
+            LogType::LOG_SUCCESS);
+    }
+
+    const vec4& Viewport::GetLetterboxColor() const { return viewportLetterboxColor; }
+    void Viewport::SetLetterboxColor(vec4&& newColor)
+    {
+        viewportLetterboxColor = std::move(kclamp(newColor, 0, 1));
+
+        Log::Print(
+            "Set letterbox color to '" 
+            + to_string(viewportLetterboxColor.x) + ", "
+            + to_string(viewportLetterboxColor.y) + ", "
+            + to_string(viewportLetterboxColor.z) + ", "
+            + to_string(viewportLetterboxColor.w) + "'!",
+            "KG_VIEWPORT",
+            LogType::LOG_SUCCESS);
     }
 
     bool Viewport::IsRootViewport() const { return isRootViewport; }
 
-    bool Viewport::IsStaticViewport() const { return isStaticViewport; }
-    void Viewport::SetStaticViewportState(bool newValue)
-    {
-        if (isRootViewport)
-        {
-            Log::Print(
-                "Failed to set viewport '" + to_string(ID) 
-                + "' static state because it is a root viewport!", 
-                "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-        if (viewportType == ViewportType::VP_OFFSCREEN)
-        {
-            Log::Print(
-                "Failed to set viewport '" + to_string(ID) 
-                + "' static state because it is an offscreen viewport!", 
-                "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        isStaticViewport = newValue;
-
-        string val = isStaticViewport ? "true" : "false";
-
-        Log::Print(
-            "Set viewport '" + to_string(contextID) + "' "
-            "static state to " + val + "!", 
-            "KG_VIEWPORT",
-            LogType::LOG_SUCCESS);
-    }
+    bool Viewport::IsOffscreenViewport() const { return isOffscreenViewport; }
 
     bool Viewport::IsDynamicResizeEnabled() const { return isDynamicResizeEnabled; }
     void Viewport::SetDynamicResizeState(bool newValue)
@@ -309,52 +329,9 @@ namespace KalaGraphics::Core
             LogType::LOG_SUCCESS);
     }
 
-    bool Viewport::IsScissorSizeFollowingViewportSize() const { return scissorSizeFollowsViewportSize; }
-    void Viewport::SetScissorSizeFollowViewportSize(bool newValue)
+    vec2 Viewport::GetSize() const { return viewportDynamicSize; }
+    void Viewport::SetSize(ViewportStaticSize vpSize)
     {
-        if (isRootViewport)
-        {
-            Log::Print(
-                "Failed to set viewport '" + to_string(ID) 
-                + "' scissor size follows viewport state because it is a root viewport!", 
-                "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        scissorSizeFollowsViewportSize = newValue;
-
-        string val = scissorSizeFollowsViewportSize ? "true" : "false";
-
-        Log::Print(
-            "Set viewport '" + to_string(contextID) + "' "
-            "scissor size follows viewport state to " + val + "!", 
-            "KG_VIEWPORT",
-            LogType::LOG_SUCCESS);
-    }
-
-    vec2 Viewport::GetViewportSize() const
-    {
-        return isStaticViewport 
-            ? vpSizes[viewportStaticSize]
-            : viewportDynamicSize;
-    }
-    void Viewport::SetViewportSize(ViewportStaticSize vpSize)
-    {
-        if (!isStaticViewport)
-        {
-            Log::Print(
-                "Failed to set viewport '" + to_string(ID) 
-                + "' static size because it is not static!", 
-                "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
         GraphicsContext* gctx{};
         string err = GraphicsContext::GetRegistry().GetContent(contextID, gctx);
         if (!err.empty())
@@ -365,7 +342,7 @@ namespace KalaGraphics::Core
                 + "' static size because its graphics context was invalid! Reason: " + err);
         }
 
-        vec2 realSize = GetViewportStaticValue(vpSize);
+        vec2 realSize = GetStaticValue(vpSize);
         if (realSize.x + viewportOffset.x > gctx->renderSize.x
             || realSize.y + viewportOffset.y > gctx->renderSize.y)
         {
@@ -381,19 +358,15 @@ namespace KalaGraphics::Core
 
         viewportStaticSize = vpSize;
 
-        if (scissorSizeFollowsViewportSize)
-        {
-            //TODO: verify if this even works as expected, call UpdateViewportSize right after it?
-            scissorSize = GetViewportStaticValue(viewportStaticSize);
-        }
+        UpdateViewportSize();
 
         Log::Print(
             "Set viewport '" + to_string(ID) 
-            + "' static size to '" + string(GetViewportStaticName(viewportStaticSize)) + "'!", 
+            + "' static size to '" + string(GetStaticName(viewportStaticSize)) + "'!", 
             "KG_VIEWPORT",
             LogType::LOG_SUCCESS);
     }
-    void Viewport::SetViewportSize(vec2 newValue)
+    void Viewport::SetSize(vec2 newValue)
     {
         GraphicsContext* gctx{};
         string err = GraphicsContext::GetRegistry().GetContent(contextID, gctx);
@@ -416,18 +389,7 @@ namespace KalaGraphics::Core
 
             return;
         }
-        if (isStaticViewport)
-        {
-            Log::Print(
-                "Failed to set viewport '" + to_string(ID) 
-                + "' dynamic size because it is static!", 
-                "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-        if (viewportType == ViewportType::VP_OFFSCREEN)
+        if (isOffscreenViewport)
         {
             Log::Print(
                 "Failed to set viewport '" + to_string(ID) 
@@ -464,10 +426,12 @@ namespace KalaGraphics::Core
             0,
             gctx->renderSize - viewportOffset);
 
-        if (scissorSizeFollowsViewportSize)
+        if (viewportType == ViewportType::VP_FILL)
         {
             scissorSize = viewportDynamicSize;
         }
+
+        UpdateViewportSize();
 
         Log::Print(
             "Set viewport '" + to_string(ID) 
@@ -478,8 +442,8 @@ namespace KalaGraphics::Core
             LogType::LOG_SUCCESS);
     }
 
-    vec2 Viewport::GetViewportOffset() const { return viewportOffset; }
-    void Viewport::SetViewportOffset(vec2 newValue)
+    vec2 Viewport::GetOffset() const { return viewportOffset; }
+    void Viewport::SetOffset(vec2 newValue)
     {
         GraphicsContext* gctx{};
         string err = GraphicsContext::GetRegistry().GetContent(contextID, gctx);
@@ -502,7 +466,7 @@ namespace KalaGraphics::Core
 
             return;
         }
-        if (viewportType == ViewportType::VP_OFFSCREEN)
+        if (isOffscreenViewport)
         {
             Log::Print(
                 "Failed to set viewport '" + to_string(ID) 
@@ -539,6 +503,8 @@ namespace KalaGraphics::Core
             0,
             gctx->renderSize - viewportDynamicSize);
 
+        UpdateViewportSize();
+
         Log::Print(
             "Set viewport '" + to_string(ID) 
             + "' offset to " 
@@ -562,7 +528,7 @@ namespace KalaGraphics::Core
 
             return;
         }
-        if (viewportType == ViewportType::VP_OFFSCREEN)
+        if (isOffscreenViewport)
         {
             Log::Print(
                 "Failed to set viewport '" + to_string(ID) 
@@ -573,22 +539,11 @@ namespace KalaGraphics::Core
 
             return;
         }
-        if (isStaticViewport)
+        if (viewportType != ViewportType::VP_CUSTOM)
         {
             Log::Print(
                 "Failed to set viewport '" + to_string(ID) 
-                + "' scissor size because it is static!", 
-                "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-        if (scissorSizeFollowsViewportSize)
-        {
-            Log::Print(
-                "Failed to set viewport '" + to_string(ID) 
-                + "' scissor size because scissor size follows viewport size!", 
+                + "' scissor size because it is not a custom type!", 
                 "KG_VIEWPORT",
                 LogType::LOG_ERROR,
                 2);
@@ -621,6 +576,8 @@ namespace KalaGraphics::Core
             0, 
             (viewportOffset + viewportDynamicSize) - scissorOffset);
 
+        UpdateViewportSize();
+
         Log::Print(
             "Set viewport '" + to_string(ID) 
             + "' scissor size to " 
@@ -644,7 +601,7 @@ namespace KalaGraphics::Core
 
             return;
         }
-        if (viewportType == ViewportType::VP_OFFSCREEN)
+        if (isOffscreenViewport)
         {
             Log::Print(
                 "Failed to set viewport '" + to_string(ID) 
@@ -655,11 +612,11 @@ namespace KalaGraphics::Core
 
             return;
         }
-        if (isStaticViewport)
+        if (viewportType != ViewportType::VP_CUSTOM)
         {
             Log::Print(
                 "Failed to set viewport '" + to_string(ID) 
-                + "' scissor offset because it is static!", 
+                + "' scissor offset because it is not a custom type!", 
                 "KG_VIEWPORT",
                 LogType::LOG_ERROR,
                 2);
@@ -691,6 +648,8 @@ namespace KalaGraphics::Core
             viewportOffset, 
             (viewportOffset + viewportDynamicSize) - scissorSize);
 
+        UpdateViewportSize();
+
         Log::Print(
             "Set viewport '" + to_string(ID) 
             + "' scissor offset to " 
@@ -705,22 +664,124 @@ namespace KalaGraphics::Core
         GraphicsContext* gctx{};
         string _ = GraphicsContext::GetRegistry().GetContent(contextID, gctx);
 
-        auto draw = [
-            this,
-            &gctx](bool is2D) -> void
+        //
+        // BLACK BORDERS FOR STATIC MODE
+        //
+
+        if (viewportType != ViewportType::VP_FILL)
+        {
+            /*
+            Log::Print(
+                "@@@@@\n"
+                "STATIC VIEWPORT DEBUG\n"
+                "viewportDynamicSize: " + to_string(viewportDynamicSize.x) + "x" + to_string(viewportDynamicSize.y) + "\n"
+                "viewportOffset: " + to_string(viewportOffset.x) + "x" + to_string(viewportOffset.y) + "\n"
+                "scissorSize: " + to_string(scissorSize.x) + "x" + to_string(scissorSize.y) + "\n"
+                "scissorOffset: " + to_string(scissorOffset.x) + "x" + to_string(scissorOffset.y) + "\n"
+                "renderSize: " + to_string(gctx->renderSize.x) + "x" + to_string(gctx->renderSize.y));
+            */
+
+            VkRenderingAttachmentInfo barClear{};
+            barClear.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+            barClear.imageView = gctx->swapchainImageViews[imageIndex];
+            barClear.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            barClear.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            barClear.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            barClear.clearValue.color = 
+            { 
+                { 
+                    viewportLetterboxColor.x, 
+                    viewportLetterboxColor.y, 
+                    viewportLetterboxColor.z, 
+                    viewportLetterboxColor.w 
+                } 
+            };
+
+            vec2 barSize = 
+            {
+                min(viewportDynamicSize.x,
+                    gctx->renderSize.x - viewportOffset.x),
+                min(viewportDynamicSize.y, 
+                    gctx->renderSize.y - viewportOffset.y)
+            };
+            vec2 barOffset =
+            {
+                min(viewportOffset.x,
+                    gctx->renderSize.x),
+                min(viewportOffset.y,
+                    gctx->renderSize.y)
+            };
+
+            VkRenderingInfo barInfo{};
+            barInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+            barInfo.renderArea.offset = 
+            {
+                scast<i32>(barOffset.x),
+                scast<i32>(barOffset.y)
+            };
+            barInfo.renderArea.extent = 
+            {
+                scast<u32>(barSize.x),
+                scast<u32>(barSize.y)
+            };
+            barInfo.layerCount = 1;
+            barInfo.colorAttachmentCount = 1;
+            barInfo.pColorAttachments = &barClear;
+            barInfo.pDepthAttachment = nullptr;
+
+            vkCmdBeginRendering(
+                gctx->commandBuffers[gctx->currentFrame],
+                &barInfo);
+            vkCmdEndRendering(gctx->commandBuffers[gctx->currentFrame]);
+        }
+
+        //
+        // RESOLVE DRAW AREA
+        //
+
+        vec2 drawSize{};
+        vec2 drawOffset{};
+
+        if (viewportType == ViewportType::VP_FILL)
+        {
+            drawSize = viewportDynamicSize;
+            drawOffset = viewportOffset;
+        }
+        else if (viewportType == ViewportType::VP_CUSTOM)
+        {
+            drawSize = scissorSize;
+            drawOffset = scissorOffset;
+        }
+        else
+        {
+            drawSize = scissorSize;
+            drawOffset = vec2{ 
+                viewportOffset.x + scissorOffset.x,
+                viewportOffset.y + scissorOffset.y };
+        }
+
+        drawSize.x = min(
+            drawSize.x,
+            gctx->renderSize.x - drawOffset.x);
+        drawSize.y = min(
+            drawSize.y,
+            gctx->renderSize.y - drawOffset.y);
+        drawOffset.x = min(
+            drawOffset.x,
+            gctx->renderSize.x);
+        drawOffset.y = min(
+            drawOffset.y,
+            gctx->renderSize.y);
+
+        //
+        // ACTUAL DRAW FUNCTION
+        //
+
+        auto draw = [&](bool is2D) -> void
             {
                 VkViewport viewport{};
-                if (isStaticViewport)
-                {
-                    vec2 size = GetViewportStaticValue(viewportStaticSize);
-                    viewport.width = size.x;
-                    viewport.height = size.y;
-                }
-                else
-                {
-                    viewport.width = viewportDynamicSize.x;
-                    viewport.height = viewportDynamicSize.y;
-                }
+                viewport.width = viewportDynamicSize.x;
+                viewport.height = viewportDynamicSize.y;
 
                 viewport.x = viewportOffset.x;
                 viewport.y = viewportOffset.y;
@@ -731,13 +792,13 @@ namespace KalaGraphics::Core
                 VkRect2D scissor{};
                 scissor.extent = 
                 { 
-                    scast<u32>(scissorSize.x), 
-                    scast<u32>(scissorSize.y) 
+                    scast<u32>(drawSize.x), 
+                    scast<u32>(drawSize.y) 
                 };
                 scissor.offset = 
                 { 
-                    scast<int>(scissorOffset.x), 
-                    scast<int>(scissorOffset.y) 
+                    scast<int>(drawOffset.x), 
+                    scast<int>(drawOffset.y) 
                 };
 
                 /*
@@ -822,9 +883,9 @@ namespace KalaGraphics::Core
                 }
             };
 
-        // ==================================================
+        //
         // 3D STAGE
-        // ==================================================
+        //
 
         VkRenderingAttachmentInfo colorAttachment{};
         colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -854,13 +915,13 @@ namespace KalaGraphics::Core
         renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
         renderingInfo.renderArea.offset = 
         { 
-            scast<i32>(viewportOffset.x), 
-            scast<i32>(viewportOffset.y) 
+            scast<i32>(drawOffset.x), 
+            scast<i32>(drawOffset.y) 
         };
         renderingInfo.renderArea.extent = 
         { 
-            scast<u32>(viewportDynamicSize.x), 
-            scast<u32>(viewportDynamicSize.y) 
+            scast<u32>(drawSize.x), 
+            scast<u32>(drawSize.y) 
         };
         renderingInfo.layerCount = 1;
         renderingInfo.colorAttachmentCount = 1;
@@ -875,9 +936,9 @@ namespace KalaGraphics::Core
 
         vkCmdEndRendering(gctx->commandBuffers[gctx->currentFrame]);
 
-        // ==================================================
+        //
         // 2D STAGE
-        // ==================================================
+        //
 
         VkRenderingAttachmentInfo colorAttachment2D{};
         colorAttachment2D.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -888,8 +949,16 @@ namespace KalaGraphics::Core
 
         VkRenderingInfo renderingInfo2D{};
         renderingInfo2D.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-        renderingInfo2D.renderArea.offset = { 0, 0 };
-        renderingInfo2D.renderArea.extent = { scast<u32>(gctx->renderSize.x), scast<u32>(gctx->renderSize.y) };
+        renderingInfo2D.renderArea.offset = 
+        { 
+            scast<i32>(drawOffset.x), 
+            scast<i32>(drawOffset.y) 
+        };
+        renderingInfo2D.renderArea.extent = 
+        { 
+            scast<u32>(drawSize.x), 
+            scast<u32>(drawSize.y) 
+        };
         renderingInfo2D.layerCount = 1;
         renderingInfo2D.colorAttachmentCount = 1;
         renderingInfo2D.pColorAttachments = &colorAttachment2D;
@@ -904,23 +973,6 @@ namespace KalaGraphics::Core
         vkCmdEndRendering(gctx->commandBuffers[gctx->currentFrame]);
     }
 
-    void Viewport::Destroy()
-    {
-        if (isRootViewport)
-        {
-            Log::Print(
-                "Failed to destroy viewport '" + to_string(ID) 
-                + "' because it is a root viewport of graphics context '" + to_string(contextID) + "'!", 
-                "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        _Destroy();
-    }
-
     void Viewport::UpdateViewportSize()
     {
         GraphicsContext* gctx{};
@@ -933,50 +985,84 @@ namespace KalaGraphics::Core
                 + "' because its graphics context was invalid! Reason: " + err);
         }
 
-        if (isStaticViewport)
+        if (isDynamicResizeEnabled)
         {
-            //TODO: resize static viewport
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics viewport error",
-                "UNIMPLEMENTED FEATURE: UpdateViewportSize static branch");
-        }
-        else
-        {
-            if (isDynamicResizeEnabled)
+            vec2 scaleFactor =
             {
-                vec2 scaleFactor =
-                {
-                    gctx->renderSize.x / gctx->oldRenderSize.x,
-                    gctx->renderSize.y / gctx->oldRenderSize.y
-                };
+                gctx->renderSize.x / gctx->oldRenderSize.x,
+                gctx->renderSize.y / gctx->oldRenderSize.y
+            };
 
-                viewportDynamicSize.x *= scaleFactor.x;
-                viewportDynamicSize.y *= scaleFactor.y;
+            viewportDynamicSize.x *= scaleFactor.x;
+            viewportDynamicSize.y *= scaleFactor.y;
 
-                viewportOffset.x *= scaleFactor.x;
-                viewportOffset.y *= scaleFactor.y;
+            viewportOffset.x *= scaleFactor.x;
+            viewportOffset.y *= scaleFactor.y;
+        }
+
+        viewportDynamicSize.x = min(
+            viewportDynamicSize.x,
+            gctx->renderSize.x 
+            - viewportOffset.x);
+
+        viewportDynamicSize.y = min(
+            viewportDynamicSize.y,
+            gctx->renderSize.y 
+            - viewportOffset.y);
+
+        viewportOffset = kclamp(
+            viewportOffset, 
+            0.0f, 
+            gctx->renderSize);        
+
+        if (viewportType == ViewportType::VP_FIT
+            || viewportType == ViewportType::VP_CENTER)
+        {
+            vec2 viewportRealStaticSize = GetStaticValue(viewportStaticSize);
+
+            const f32 targetAspect = 
+                scast<f32>(viewportRealStaticSize.x) /
+                scast<f32>(viewportRealStaticSize.y);
+
+            const f32 viewportAspect = 
+                viewportDynamicSize.x /
+                viewportDynamicSize.y;
+
+            vec2 fittedSize{};
+
+            //viewport is wider than target aspect - pillarbox
+            if (viewportAspect > targetAspect)
+            {
+                fittedSize.y = viewportDynamicSize.y;
+                fittedSize.x = floorf(viewportDynamicSize.y * targetAspect);
+            }
+            //viewport is taller than target aspect - letterbox
+            else
+            {
+                fittedSize.x = viewportDynamicSize.x;
+                fittedSize.y = floorf(viewportDynamicSize.x / targetAspect);
             }
 
-            if (scissorSizeFollowsViewportSize)
+            if (viewportType == ViewportType::VP_CENTER)
             {
-                scissorSize = viewportDynamicSize;
+                //clamp to max static size
+                fittedSize.x = min(
+                    fittedSize.x, 
+                    viewportRealStaticSize.x);
+                fittedSize.y = min(
+                    fittedSize.y,
+                    viewportRealStaticSize.y);
             }
 
-            viewportDynamicSize.x = min(
-                viewportDynamicSize.x,
-                gctx->renderSize.x 
-                - viewportOffset.x);
-
-            viewportDynamicSize.y = min(
-                viewportDynamicSize.y,
-                gctx->renderSize.y 
-                - viewportOffset.y);
-
-            viewportOffset = kclamp(
-                viewportOffset, 
-                0.0f, 
-                gctx->renderSize);
+            //center within the current viewports coordinate space
+            scissorSize = fittedSize;
+            scissorOffset = 
+            {
+                floorf((viewportDynamicSize.x - fittedSize.x) * 0.5f),
+                floorf((viewportDynamicSize.y - fittedSize.y) * 0.5f)
+            };
         }
+        else if (viewportType == ViewportType::VP_FILL) scissorSize = viewportDynamicSize;
 
         Camera* c3d{};
         err = Camera::GetRegistry().GetContent(primary3DCameraID, c3d);
@@ -1014,7 +1100,7 @@ namespace KalaGraphics::Core
         }
         c2d->Move({}, {});
 
-        for (u32 cID : extra3DCameraIDs)
+        for (u32 cID : extra2DCameraIDs)
         {
             Camera* ec2d{};
             err = Camera::GetRegistry().GetContent(cID, ec2d);
@@ -1029,6 +1115,23 @@ namespace KalaGraphics::Core
         }
     }
 
+    void Viewport::Destroy()
+    {
+        if (isRootViewport)
+        {
+            Log::Print(
+                "Failed to destroy viewport '" + to_string(ID) 
+                + "' because it is a root viewport of graphics context '" + to_string(contextID) + "'!", 
+                "KG_VIEWPORT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        _Destroy();
+    }
+
     void Viewport::_Destroy()
     {
 		Log::Print(
@@ -1036,7 +1139,7 @@ namespace KalaGraphics::Core
 			"KG_VIEWPORT",
 			LogType::LOG_INFO);
 
-        if (viewportType == ViewportType::VP_OFFSCREEN)
+        if (isOffscreenViewport)
         {
             Viewport* target{};
             string err = registry.GetContent(targetViewportID, target);

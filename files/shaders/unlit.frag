@@ -9,5 +9,6 @@ layout(location = 0) out vec4 outColor;
 
 void main()
 {
-    outColor = texture(uTexture, inUV) * inColor;
+    vec4 baseColor = texture(uTexture, inUV) * inColor;
+    outColor = vec4(baseColor.rgb * baseColor.a, baseColor.a);
 }
