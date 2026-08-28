@@ -168,6 +168,7 @@ namespace KalaGraphics::Resources
     u32 Camera::GetID() const { return ID; }
     u32 Camera::GetViewportID() const { return viewportID; }
     u32 Camera::GetShaderID() const { return shaderID; }
+    
     u32 Camera::GetMeshID() const { return meshID; }
     void Camera::SetMeshID(u32 newValue)
     {

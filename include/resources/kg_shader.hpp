@@ -86,20 +86,18 @@ namespace KalaGraphics::Resources
 
         KNODISCARD
 		u32 GetID() const;
-
         KNODISCARD
         //.second is true if this shader belongs to the viewport 3D shaders container 
 		pair<u32, bool> GetViewportID() const;
-
-        KNODISCARD
-		bool Is2D() const;
-
         KNODISCARD
 		const vector<u32>& GetMeshIDs() const;
         KNODISCARD
 		const vector<u32>& GetTextureIDs() const;
         KNODISCARD
 		const vector<u32>& GetCameraIDs() const;
+
+        KNODISCARD
+		bool Is2D() const;
 
         KNODISCARD
 		const vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts();

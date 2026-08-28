@@ -77,10 +77,8 @@ namespace KalaGraphics::Resources
 
         KNODISCARD
 		u32 GetID() const;
-
         KNODISCARD
 		u32 GetViewportID() const;
-
         KNODISCARD
 		u32 GetShaderID() const;
 

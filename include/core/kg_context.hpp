@@ -139,6 +139,7 @@ namespace KalaGraphics::Core
     friend class KalaGraphics::Resources::Texture;
     friend class KalaGraphics::Resources::Camera;
     friend class Viewport;
+    friend class HitTest;
     friend struct default_delete<GraphicsContext>;
     public:
         KNODISCARD
@@ -166,9 +167,14 @@ namespace KalaGraphics::Core
         KNODISCARD
 		static bool IsInitialized();
 
-        //Single draw call for all existing contexts,
-        //handles all active meshes, light sources and cameras
-        static void Update();
+        //What happens BEFORE KalaGraphics hit testing and graphics context logic
+        static void EarlyUpdate(const function<void()>& globalEarlyUpdate = {});
+
+		//What happens IN BETWEEN KalaGraphics hit testing and graphics context logic
+        static void Update(const function<void()>& globalUpdate = {});
+
+        //What happens AFTER KalaGraphics hit testing and graphics context logic
+        static void LateUpdate(const function<void()>& globalLateUpdate = {});
 
         //Initialize a per-window Vulkan context, creates the swapchain logic,
         //always internally initalizes a root viewport so each graphics context has a surface ready to be drawn onto
@@ -177,6 +183,8 @@ namespace KalaGraphics::Core
 
         KNODISCARD
 		u32 GetID() const;
+        KNODISCARD
+        u32 GetHitTestID() const;
 
         KNODISCARD
         u32 GetRootViewportID() const;
@@ -233,7 +241,7 @@ namespace KalaGraphics::Core
             const string& reason);
 
         u32 ID{};
-
+        u32 hitTestID{};
         u32 rootViewportID{};
 
         //viewports that use this graphics context

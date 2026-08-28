@@ -24,6 +24,11 @@ using VmaAllocation = VmaAllocation_T*;
 struct VkDescriptorSet_T;
 using VkDescriptorSet = VkDescriptorSet_T*;
 
+namespace KalaGraphics::Core
+{
+    class HitTest;
+}
+
 namespace KalaGraphics::Resources
 {
     using KalaHeaders::KalaMath::Transform3D;
@@ -119,6 +124,7 @@ namespace KalaGraphics::Resources
     friend class Shader;
     friend class Texture;
     friend class Camera;
+    friend class KalaGraphics::Core::HitTest;
     friend struct default_delete<Mesh>;
     public:
         KNODISCARD
@@ -149,7 +155,8 @@ namespace KalaGraphics::Resources
 
         KNODISCARD
 		u32 GetID() const;
-
+        KNODISCARD
+        u32 GetHitTestID() const;
         KNODISCARD
 		u32 GetCameraID() const;
 
@@ -204,8 +211,9 @@ namespace KalaGraphics::Resources
         bool isDestroyingCamera{};
 
         u32 ID{};
-        u32 cameraID{};
         u32 shaderID{};
+        u32 hitTestID{};
+        u32 cameraID{};
         u32 textureID{};
 
         bool is2D{};

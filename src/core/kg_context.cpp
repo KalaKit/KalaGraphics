@@ -3,6 +3,13 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include <array>
+#include <mutex>
+#include <shared_mutex>
+
 #include "core/kg_context.hpp"
 
 #if defined(KWIN_ANY)
@@ -13,13 +20,6 @@
 #endif
 
 #include "vulkan/vulkan_core.h"
-
-#include <string>
-#include <unordered_map>
-#include <vector>
-#include <array>
-#include <mutex>
-#include <shared_mutex>
 
 #include "core/kg_viewport.hpp"
 
@@ -53,6 +53,7 @@ KG_VK_MEM_ALLOC_IGNORE_POP
 #include "math_utils.hpp"
 
 #include "core/kg_registry.hpp"
+#include "core/kg_hit_test.hpp"
 #include "resources/kg_shader.hpp"
 #include "resources/kg_texture.hpp"
 #include "resources/kg_mesh.hpp"
@@ -99,6 +100,10 @@ static constexpr array<VkFormat, 2> DEPTH_FORMAT_CANDIDATES =
 
 static bool isInitialized{};
 static bool isVerboseLoggingEnabled{};
+
+static bool didEarlyUpdate{};
+static bool didUpdate{};
+static bool didLateUpdate{};
 
 static u32 graphicsFamily = UINT32_MAX;
 
@@ -668,19 +673,86 @@ namespace KalaGraphics::Core
 
     bool GraphicsContext::IsInitialized() { return isInitialized; }
 
-    void GraphicsContext::Update()
+    void GraphicsContext::EarlyUpdate(const function<void()>& globalEarlyUpdate)
     {
+        if (!didEarlyUpdate
+            && (didUpdate
+            || didLateUpdate))
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics context error",
+                "Failed to update KalaGraphics because EarlyUpdate, Update and LateUpdate were called out of order!");
+        }
+
+        didEarlyUpdate = true;
+        didUpdate = false;
+        didLateUpdate = false;
+
+        if (globalEarlyUpdate) globalEarlyUpdate();
+
         for (GraphicsContext* gctx : registry.GetAllContent())
         {
             if (!gctx)
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics context error",
-                    "Failed to update graphics contexts because one of those was nullptr");
+                    "Failed to update a graphics context during early global update because it was invalid!");
+            }
+
+            HitTest* hitTest{};
+            string err = HitTest::GetRegistry().GetContent(gctx->hitTestID, hitTest);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics context error",
+                    "Failed to update graphics context '" + to_string(gctx->ID) 
+                    + "' hit test during early global update because it was invalid!");
+            }
+
+            hitTest->Update();
+        }
+    }
+
+    void GraphicsContext::Update(const function<void()>& globalUpdate)
+    {
+        if (!didEarlyUpdate
+            || didLateUpdate)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics context error",
+                "Failed to update KalaGraphics because EarlyUpdate, Update and LateUpdate were called out of order!");
+        }
+
+        didUpdate = true;
+
+        if (globalUpdate) globalUpdate();
+
+        for (GraphicsContext* gctx : registry.GetAllContent())
+        {
+            if (!gctx)
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics context error",
+                    "Failed to update a graphics context during global update because it was invalid!");
             }
 
             gctx->UpdateInstance();
         }
+    }
+
+    void GraphicsContext::LateUpdate(const function<void()>& globalLateUpdate)
+    {
+        if (!didEarlyUpdate
+            || !didUpdate)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics context error",
+                "Failed to update KalaGraphics because EarlyUpdate, Update and LateUpdate were called out of order!");
+        }
+
+        didLateUpdate = true;
+
+        if (globalLateUpdate) globalLateUpdate();
     }
 
     GraphicsContext* GraphicsContext::InitializeInstance(GraphicsContextData&& in_context)
@@ -790,6 +862,8 @@ namespace KalaGraphics::Core
         vp->viewportDynamicSize = contextPtr->renderSize;
         vp->scissorSize = contextPtr->renderSize;
 
+        HitTest* _ = HitTest::Initialize(newID);
+
         Log::Print(
             "Created new graphics context '" + idStr + "'!",
             "KG_CONTEXT",
@@ -799,6 +873,8 @@ namespace KalaGraphics::Core
     }
 
     u32 GraphicsContext::GetID() const { return ID; }
+    u32 GraphicsContext::GetHitTestID() const { return hitTestID; }
+
     u32 GraphicsContext::GetRootViewportID() const { return rootViewportID; }
     const vector<u32>& GraphicsContext::GetExtraViewportIDs() const { return extraViewportIDs; }
 
@@ -2289,8 +2365,20 @@ namespace KalaGraphics::Core
 
     void GraphicsContext::Destroy()
     {
+        HitTest* ht{};
+        string err = HitTest::GetRegistry().GetContent(hitTestID, ht);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics context error",
+                "Failed to destroy graphics context '" + to_string(ID) 
+                + "' because its hit test was invalid! Reason: " + err);
+        }
+
+        ht->Destroy();
+
         Viewport* rvp{};
-        string err = Viewport::GetRegistry().GetContent(rootViewportID, rvp);
+        err = Viewport::GetRegistry().GetContent(rootViewportID, rvp);
         if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(

@@ -961,12 +961,12 @@ namespace KalaGraphics::Resources
     }
 
     u32 Shader::GetID() const { return ID; }
-
     pair<u32, bool> Shader::GetViewportID() const { return viewportID; }
-
     const vector<u32>& Shader::GetMeshIDs() const { return meshIDs; }
     const vector<u32>& Shader::GetTextureIDs() const { return textureIDs; }
     const vector<u32>& Shader::GetCameraIDs() const { return cameraIDs; }
+
+    bool Shader::Is2D() const { return !viewportID.second; }
 
     void Shader::Update(VkCommandBuffer cmdBuffer)
     {

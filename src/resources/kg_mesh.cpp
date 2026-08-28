@@ -129,6 +129,7 @@ namespace KalaGraphics::Resources
     }
 
     u32 Mesh::GetID() const { return ID; }
+    u32 Mesh::GetHitTestID() const { return hitTestID; }
     u32 Mesh::GetCameraID() const { return cameraID; }
 
     u32 Mesh::GetShaderID() const { return shaderID; }

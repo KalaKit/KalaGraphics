@@ -33,7 +33,6 @@ using std::string_view;
 using std::to_string;
 using std::unordered_map;
 using std::min;
-using std::clamp;
 
 //
 // 4:3
@@ -219,8 +218,8 @@ namespace KalaGraphics::Core
     }
 
     u32 Viewport::GetID() const { return ID; }
-
     u32 Viewport::GetContextID() const { return contextID; }
+    u32 Viewport::GetHitTestID() const { return hitTestID; }
 
     u32 Viewport::GetPrimary3DCameraID() const { return primary3DCameraID; }
     u32 Viewport::GetPrimary2DCameraID() const { return primary2DCameraID; }

@@ -94,6 +94,7 @@ namespace KalaGraphics::Core
     friend class KalaGraphics::Resources::Mesh;
     friend class KalaGraphics::Resources::Texture;
     friend class KalaGraphics::Resources::Camera;
+    friend class HitTest;
     friend class GraphicsContext;
     friend struct default_delete<Viewport>;
     public:
@@ -115,20 +116,20 @@ namespace KalaGraphics::Core
 
         KNODISCARD
 		u32 GetID() const;
-
         KNODISCARD
 		u32 GetContextID() const;
+        KNODISCARD
+        u32 GetHitTestID() const;
 
         KNODISCARD
 		u32 GetPrimary3DCameraID() const;
+        KNODISCARD
+		u32 GetPrimary2DCameraID() const;
 
         KNODISCARD
 		const vector<u32>& GetExtra3DCameraIDs() const;
         KNODISCARD
 		const vector<u32>& GetExtra2DCameraIDs() const;
-
-        KNODISCARD
-		u32 GetPrimary2DCameraID() const;
 
         KNODISCARD
 		u32 GetPrimary3DShaderID() const;
@@ -207,6 +208,7 @@ namespace KalaGraphics::Core
 
         u32 ID{};
         u32 contextID{};
+        u32 hitTestID{};
         u32 targetViewportID{};
 
         u32 primary3DCameraID{};
