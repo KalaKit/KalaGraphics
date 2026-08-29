@@ -33,6 +33,19 @@ namespace KalaGraphics::Core
     using std::array;
     using std::default_delete;
 
+    enum class ViewportAnchorPosition : u8
+    {
+        P_DEFAULT = 0,
+
+        P_BOTTOM_LEFT = 1,
+        P_BOTTOM_RIGHT = 2,
+
+        P_TOP_LEFT = 3,
+        P_TOP_RIGHT = 4,
+        
+        P_CENTER = 5
+    };
+
     enum class ViewportStaticSize : u8
     {
         //4:3
@@ -145,15 +158,6 @@ namespace KalaGraphics::Core
 		const vector<u32>& GetExtra2DShaderIDs() const;
 
         KNODISCARD
-        u8 GetDrawOrderIndex() const;
-        //Set the viewport draw order, set sortNow to true
-        //if you want this call to sort all viewports, 
-        //otherwise the next global update will sort all viewports
-        void SetDrawOrderIndex(
-            u8 newValue,
-            bool sortNow = false);
-
-        KNODISCARD
         bool IsVisible() const;
         void SetVisibleState(bool newValue);
 
@@ -180,6 +184,15 @@ namespace KalaGraphics::Core
         void SetType(ViewportType newType);
 
         KNODISCARD
+        u8 GetDrawOrderIndex() const;
+        //Set the viewport draw order, set sortNow to true
+        //if you want this call to sort all viewports, 
+        //otherwise the next global update will sort all viewports
+        void SetDrawOrderIndex(
+            u8 newValue,
+            bool sortNow = false);
+
+        KNODISCARD
         const vec4& GetBackgroundColor() const;
         //Assign a new background color, clamped between 0 and 1
         void SetBackgroundColor(vec4&& newColor);
@@ -188,6 +201,11 @@ namespace KalaGraphics::Core
         const vec4& GetLetterboxColor() const;
         //Assign a new color to the scissor area, clamped between 0 and 1
         void SetLetterboxColor(vec4&& newColor);
+
+        //Returns the true pixel coordinates of the requested position
+        //relative to letterboxing, useful for accurate 2D UI position calculations
+        KNODISCARD
+        vec2 GetAnchorPosition(ViewportAnchorPosition pos) const;
 
         //Returns current viewport size whether its been set as static or dynamic
         KNODISCARD
@@ -237,9 +255,6 @@ namespace KalaGraphics::Core
         vector<u32> extra3DShaderIDs{};
         vector<u32> extra2DShaderIDs{};
 
-        //always starts at 1, can never be 0 except for root viewport
-        u8 drawOrderIndex = 1;
-
         //used only to prevent viewport from removing its ID from
         //graphics context viewport IDs list if the graphics context
         //destroy function called the destroy function of this viewport 
@@ -253,6 +268,15 @@ namespace KalaGraphics::Core
         bool isDynamicResizeEnabled = true;
 
         ViewportType viewportType{};
+
+        vec2 posTopLeft{};
+        vec2 posTopRight{};
+        vec2 posBottomLeft{};
+        vec2 posBottomRight{};
+        vec2 posCenter{};
+
+        //always starts at 1, can never be 0 except for root viewport
+        u8 drawOrderIndex = 1;
 
         vec4 viewportBackgroundColor = vec4{ 0.0f, 1.0f, 0.0f, 1.0f };
         vec4 viewportLetterboxColor = vec4{ 0.0f, 0.0f, 0.0f, 1.0f };

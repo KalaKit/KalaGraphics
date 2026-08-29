@@ -203,6 +203,10 @@ namespace KalaGraphics::Core
         KNODISCARD
 		const GraphicsContextData& GetGraphicsContextData() const;
 
+        //Ask this graphics context to recreate swapchain,
+        //ignored if this frame already calls swapchain recreation
+        void RequestRecreateSwapchain();
+
         void Destroy();
     private:
         ~GraphicsContext();
@@ -247,6 +251,9 @@ namespace KalaGraphics::Core
         u32 rootViewportID{};
 
         bool isViewportSortDirty{};
+
+        bool requestedSwapchainRecreation{};
+        bool swapchainWasRecreated{};
 
         //viewports that use this graphics context
         vector<u32> extraViewportIDs{};

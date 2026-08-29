@@ -901,6 +901,8 @@ namespace KalaGraphics::Core
 
     const GraphicsContextData& GraphicsContext::GetGraphicsContextData() const { return contextData; }
 
+    void GraphicsContext::RequestRecreateSwapchain() { requestedSwapchainRecreation = true; }
+
     VkInstance GraphicsContext::GetInstance()
     {
         if (vkInstance == VK_NULL_HANDLE)
@@ -1837,6 +1839,15 @@ namespace KalaGraphics::Core
         HandleResult(result, "vkQueuePresentKHR");
 
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+
+        if (requestedSwapchainRecreation
+            && !swapchainWasRecreated)
+        {
+            RecreateSwapchain();
+        }
+
+        requestedSwapchainRecreation = false;
+        swapchainWasRecreated = false;
     }
 
     void GraphicsContext::RecreateSwapchain()
@@ -1915,6 +1926,14 @@ namespace KalaGraphics::Core
             physicalDevice, 
             surface,
             &capabilities);
+
+        /*
+        Log::Print(
+            "@@@@@ surface extent: "
+            + to_string(capabilities.currentExtent.width)
+            + "x"
+            + to_string(capabilities.currentExtent.height));
+        */
 
         u32 formatCount{};
         vkGetPhysicalDeviceSurfaceFormatsKHR(
@@ -2348,6 +2367,8 @@ namespace KalaGraphics::Core
                 "KG_CONTEXT",
                 LogType::LOG_VERBOSE);
         }
+
+        swapchainWasRecreated = true;
     }
 
     void GraphicsContext::HandleResult(

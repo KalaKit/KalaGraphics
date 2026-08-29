@@ -16,6 +16,7 @@ KG_VK_MEM_ALLOC_IGNORE_POP
 
 #include "resources/kg_mesh.hpp"
 #include "core/kg_context.hpp"
+#include "core/kg_viewport.hpp"
 #include "resources/kg_shader.hpp"
 #include "resources/kg_texture.hpp"
 #include "resources/kg_camera.hpp"
@@ -34,6 +35,7 @@ using KalaHeaders::KalaMath::combine3d;
 
 using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Core::GraphicsContext;
+using KalaGraphics::Core::Viewport;
 
 using std::to_string;
 using std::unique_ptr;
@@ -258,6 +260,22 @@ namespace KalaGraphics::Resources
             LogType::LOG_SUCCESS);
     }
 
+    bool Mesh::IsVisible() const { return isVisible; }
+    void Mesh::SetVisibleState(bool newValue)
+    {
+        isVisible = newValue;
+
+        string val = isVisible ? "true" : "false";
+
+        Log::Print(
+            "Set mesh '" + to_string(ID) + "' "
+            "visible state to " + val + "!", 
+            "KG_MESH",
+            LogType::LOG_SUCCESS);
+    }
+
+    bool Mesh::Is2D() const { return is2D; }
+
     u16 Mesh::GetDrawOrderIndex() const { return drawOrderIndex; }
     void Mesh::SetDrawOrderIndex(
         u16 newValue,
@@ -296,23 +314,107 @@ namespace KalaGraphics::Resources
             LogType::LOG_SUCCESS);
     }
 
-    bool Mesh::IsVisible() const { return isVisible; }
-    void Mesh::SetVisibleState(bool newValue)
-    {
-        isVisible = newValue;
+    Transform3D& Mesh::GetTransform() { return transform; }
 
-        string val = isVisible ? "true" : "false";
+    AnchorPosition Mesh::GetLocalAnchorPosition() const { return localAnchor; }
+    void Mesh::SetLocalAnchorPosition(AnchorPosition newValue)
+    { 
+        if (!is2D)
+        {
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) 
+                + "' local anchor position because it is a 3D mesh!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        localAnchor = newValue;
+
+        string val{};
+        switch (newValue)
+        {
+        default:
+        case AnchorPosition::P_DEFAULT:
+            val = "default";
+            break;
+
+        case AnchorPosition::P_BOTTOM_LEFT:
+            val = "bottom left";
+            break;
+        case AnchorPosition::P_BOTTOM_RIGHT:
+            val = "bottom right";
+            break;
+
+        case AnchorPosition::P_TOP_LEFT:
+            val = "top left";
+            break;
+        case AnchorPosition::P_TOP_RIGHT:
+            val = "top right";
+            break;
+
+        case AnchorPosition::P_CENTER:
+            val = "center";
+            break;
+        }
 
         Log::Print(
-            "Set mesh '" + to_string(ID) + "' "
-            "visible state to " + val + "!", 
+            "Set mesh '" + to_string(ID) + "' local anchor position to '" + val + "'!",
             "KG_MESH",
             LogType::LOG_SUCCESS);
     }
 
-    bool Mesh::Is2D() const { return is2D; }
+    AnchorPosition Mesh::GetViewportAnchorPosition() const { return viewportAnchor; }
+    void Mesh::SetViewportAnchorPosition(AnchorPosition newValue)
+    { 
+        if (!is2D)
+        {
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) 
+                + "' viewport anchor position because it is a 3D mesh!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
 
-    Transform3D& Mesh::GetTransform() { return transform; }
+            return;
+        }
+
+        viewportAnchor = newValue;
+
+        string val{};
+        switch (newValue)
+        {
+        default:
+        case AnchorPosition::P_DEFAULT:
+            val = "default";
+            break;
+
+        case AnchorPosition::P_BOTTOM_LEFT:
+            val = "bottom left";
+            break;
+        case AnchorPosition::P_BOTTOM_RIGHT:
+            val = "bottom right";
+            break;
+
+        case AnchorPosition::P_TOP_LEFT:
+            val = "top left";
+            break;
+        case AnchorPosition::P_TOP_RIGHT:
+            val = "top right";
+            break;
+
+        case AnchorPosition::P_CENTER:
+            val = "center";
+            break;
+        }
+
+        Log::Print(
+            "Set mesh '" + to_string(ID) + "' viewport anchor position to '" + val + "'!",
+            "KG_MESH",
+            LogType::LOG_SUCCESS);
+    }
 
     const vector<Vertex>& Mesh::GetVertices() const { return vertices; }
     void Mesh::SetVertices(vector<Vertex>&& newVertices)
@@ -357,6 +459,11 @@ namespace KalaGraphics::Resources
         vertices = std::move(newVertices);
 
         isVertexDataDirty = true;
+
+        Log::Print(
+            "Updated 3D vertices for mesh '" + to_string(ID) + "'!",
+            "KG_MESH",
+            LogType::LOG_SUCCESS);
     }
 
     const vector<Vertex2D>& Mesh::GetVertices2D() const { return vertices2D; }
@@ -402,6 +509,11 @@ namespace KalaGraphics::Resources
         vertices2D = std::move(newVertices);
 
         isVertexDataDirty = true;
+
+        Log::Print(
+            "Updated 2D vertices for mesh '" + to_string(ID) + "'!",
+            "KG_MESH",
+            LogType::LOG_SUCCESS);
     }
 
     const vector<u32>& Mesh::GetIndices() const { return indices; }
@@ -422,6 +534,11 @@ namespace KalaGraphics::Resources
         indices = std::move(newIndices);
 
         isIndexDataDirty = true;
+
+        Log::Print(
+            "Updated indices for mesh '" + to_string(ID) + "'!",
+            "KG_MESH",
+            LogType::LOG_SUCCESS);
     }
 
     const mat4& Mesh::GetMatrix() const { return meshMatrix; }
@@ -560,6 +677,16 @@ namespace KalaGraphics::Resources
                 + "' data because its shader was invalid! Reason: " + err);
         }
 
+        Viewport* vp{};
+        err = Viewport::GetRegistry().GetContent(shader->viewportID.first, vp);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to update mesh '" + to_string(ID) 
+                + "' data because its shader '" + to_string(shaderID) + "' viewport was invalid! Reason: " + err);
+        }
+
         if (is2D)
         {
             bool hasInvalidValues{};
@@ -686,10 +813,78 @@ namespace KalaGraphics::Resources
             meshUBOMappedPtr = allocResult.pMappedData;
         }
 
-        meshMatrix = createmodelmatrix(
-            transform.pos_world, 
-            transform.rot_world, 
-            transform.size_world);
+        if (is2D)
+        {
+            f32 fullWidth = isnear(transform.size_world.x) ? 0 : transform.size_world.x;
+            f32 fullHeight = isnear(transform.size_world.y) ? 0 : transform.size_world.y;
+
+            f32 halfWidth = fullWidth * 0.5f;
+            f32 halfHeight = fullHeight * 0.5f;
+
+            vec2 localAnchorPos{};
+            switch (localAnchor)
+            {
+            default:
+            case AnchorPosition::P_DEFAULT:
+            case AnchorPosition::P_CENTER:
+                break;
+
+            case AnchorPosition::P_BOTTOM_LEFT:
+                localAnchorPos = { -halfWidth, -halfHeight };
+                break;
+
+            case AnchorPosition::P_BOTTOM_RIGHT:
+                localAnchorPos = { halfWidth, -halfHeight };
+                break;
+
+            case AnchorPosition::P_TOP_LEFT:
+                localAnchorPos = { -halfWidth, halfHeight };
+                break;
+
+            case AnchorPosition::P_TOP_RIGHT:
+                localAnchorPos = { halfWidth, halfHeight };
+                break;
+            }
+
+            vec2 viewportAnchorPos{};
+            switch (viewportAnchor)
+            {
+            default:
+            case AnchorPosition::P_DEFAULT:
+                viewportAnchorPos = 0;
+                break;
+
+            case AnchorPosition::P_BOTTOM_LEFT:
+                viewportAnchorPos = vp->posBottomLeft;
+                break;
+            case AnchorPosition::P_BOTTOM_RIGHT:
+                viewportAnchorPos = vp->posBottomRight;
+                break;
+
+            case AnchorPosition::P_TOP_LEFT:
+                viewportAnchorPos = vp->posTopLeft;
+                break;
+            case AnchorPosition::P_TOP_RIGHT:
+                viewportAnchorPos = vp->posTopRight;
+                break;
+
+            case AnchorPosition::P_CENTER:
+                viewportAnchorPos = vp->posCenter;
+                break;
+            }
+
+            meshMatrix = createmodelmatrix(
+                transform.pos_world - localAnchorPos + viewportAnchorPos, 
+                transform.rot_world, 
+                transform.size_world);
+        }
+        else
+        {
+            meshMatrix = createmodelmatrix(
+                transform.pos_world,
+                transform.rot_world, 
+                transform.size_world);
+        }
 
         memcpy(
             meshUBOMappedPtr,

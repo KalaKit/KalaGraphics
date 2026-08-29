@@ -13,7 +13,6 @@
 #include "math_utils.hpp"
 
 #include "core/kg_registry.hpp"
-#include "resources/kg_shader.hpp"
 
 struct VkBuffer_T;
 using VkBuffer = VkBuffer_T*;
@@ -33,6 +32,7 @@ namespace KalaGraphics::Resources
 {
     using KalaHeaders::KalaMath::Transform3D;
     using KalaHeaders::KalaMath::mat4;
+    using KalaHeaders::KalaMath::vec4;
     using KalaHeaders::KalaMath::vec3;
     using KalaHeaders::KalaMath::vec2;
 
@@ -42,6 +42,19 @@ namespace KalaGraphics::Resources
     using std::string;
     using std::filesystem::path;
     using std::default_delete;
+
+    enum class AnchorPosition : u8
+    {
+        P_DEFAULT = 0,
+
+        P_BOTTOM_LEFT = 1,
+        P_BOTTOM_RIGHT = 2,
+
+        P_TOP_LEFT = 3,
+        P_TOP_RIGHT = 4,
+        
+        P_CENTER = 5
+    };
 
     struct LIB_API Mesh_Cube
     {
@@ -169,6 +182,13 @@ namespace KalaGraphics::Resources
         void SetTextureID(u32 newID);
 
         KNODISCARD
+        bool IsVisible() const;
+        void SetVisibleState(bool newValue);
+
+        KNODISCARD
+		bool Is2D() const;
+
+        KNODISCARD
         u16 GetDrawOrderIndex() const;
         //Set the mesh draw order, set sortNow to true
         //if you want this call to sort all meshes, 
@@ -179,14 +199,17 @@ namespace KalaGraphics::Resources
             bool sortNow = false);
 
         KNODISCARD
-        bool IsVisible() const;
-        void SetVisibleState(bool newValue);
-
-        KNODISCARD
-		bool Is2D() const;
-
-        KNODISCARD
 		Transform3D& GetTransform();
+
+        AnchorPosition GetLocalAnchorPosition() const;
+        //Automatically always updates this mesh transform position relative to local anchor,
+        //not used for 3D meshes
+        void SetLocalAnchorPosition(AnchorPosition pos);
+
+        AnchorPosition GetViewportAnchorPosition() const;
+        //Automatically always updates this mesh transform position relative to viewport anchor,
+        //not used for 3D meshes
+        void SetViewportAnchorPosition(AnchorPosition pos);
 
         KNODISCARD
 		const vector<Vertex>& GetVertices() const;
@@ -233,6 +256,9 @@ namespace KalaGraphics::Resources
         bool is2D{};
 
         Transform3D transform{};
+
+        AnchorPosition localAnchor{};
+        AnchorPosition viewportAnchor{};
 
         //vertex data
 

@@ -22,6 +22,7 @@ using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
 
 using KalaHeaders::KalaMath::vec2;
+using KalaHeaders::KalaMath::isnear;
 
 using KalaGraphics::Core::ViewportStaticSize;
 using KalaGraphics::Core::KalaGraphicsCore;
@@ -237,56 +238,6 @@ namespace KalaGraphics::Core
     const vector<u32>& Viewport::GetExtra3DShaderIDs() const { return extra3DShaderIDs; }
     const vector<u32>& Viewport::GetExtra2DShaderIDs() const { return extra2DShaderIDs; }
 
-    u8 Viewport::GetDrawOrderIndex() const { return drawOrderIndex; }
-    void Viewport::SetDrawOrderIndex(
-        u8 newValue,
-        bool sortNow)
-    {
-        GraphicsContext* gctx{};
-        string err = GraphicsContext::GetRegistry().GetContent(contextID, gctx);
-        if (!err.empty())
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics viewport error",
-                "Failed to set viewport '" + to_string(ID) 
-                + "' draw order index because its graphics context was invalid! Reason: " + err);
-        }
-
-        if (isRootViewport)
-        {
-            Log::Print(
-                "Failed to set viewport '" + to_string(ID) 
-                + "' draw order index because it is a root viewport!", 
-                "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-        else if (!isRootViewport
-                 && newValue == 0)
-        {
-            Log::Print(
-                "Failed to set viewport '" + to_string(ID) 
-                + "' draw order index because 0 can only be applied to root viewport!", 
-                "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        drawOrderIndex = newValue;
-
-        if (!sortNow) gctx->isViewportSortDirty = true;
-        else gctx->SortViewports();
-
-        Log::Print(
-            "Set viewport '" + to_string(ID) + "' draw order index to '" + to_string(drawOrderIndex) + "'.",
-            "KG_VIEWPORT",
-            LogType::LOG_SUCCESS);
-    }
-
     bool Viewport::IsVisible() const { return isVisible; }
     void Viewport::SetVisibleState(bool newValue)
     {
@@ -376,6 +327,56 @@ namespace KalaGraphics::Core
             LogType::LOG_SUCCESS);
     }
 
+    u8 Viewport::GetDrawOrderIndex() const { return drawOrderIndex; }
+    void Viewport::SetDrawOrderIndex(
+        u8 newValue,
+        bool sortNow)
+    {
+        GraphicsContext* gctx{};
+        string err = GraphicsContext::GetRegistry().GetContent(contextID, gctx);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics viewport error",
+                "Failed to set viewport '" + to_string(ID) 
+                + "' draw order index because its graphics context was invalid! Reason: " + err);
+        }
+
+        if (isRootViewport)
+        {
+            Log::Print(
+                "Failed to set viewport '" + to_string(ID) 
+                + "' draw order index because it is a root viewport!", 
+                "KG_VIEWPORT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+        else if (!isRootViewport
+                 && newValue == 0)
+        {
+            Log::Print(
+                "Failed to set viewport '" + to_string(ID) 
+                + "' draw order index because 0 can only be applied to root viewport!", 
+                "KG_VIEWPORT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        drawOrderIndex = newValue;
+
+        if (!sortNow) gctx->isViewportSortDirty = true;
+        else gctx->SortViewports();
+
+        Log::Print(
+            "Set viewport '" + to_string(ID) + "' draw order index to '" + to_string(drawOrderIndex) + "'.",
+            "KG_VIEWPORT",
+            LogType::LOG_SUCCESS);
+    }
+
     const vec4& Viewport::GetBackgroundColor() const { return viewportBackgroundColor; }
     void Viewport::SetBackgroundColor(vec4&& newColor)
     {
@@ -404,6 +405,26 @@ namespace KalaGraphics::Core
             + to_string(viewportLetterboxColor.w) + "'!",
             "KG_VIEWPORT",
             LogType::LOG_SUCCESS);
+    }
+
+    vec2 Viewport::GetAnchorPosition(ViewportAnchorPosition pos) const 
+    { 
+        switch (pos)
+        {
+        default:
+        case ViewportAnchorPosition::P_DEFAULT:
+            return 0;
+        case ViewportAnchorPosition::P_BOTTOM_LEFT:
+            return posBottomLeft;
+        case ViewportAnchorPosition::P_BOTTOM_RIGHT:
+            return posBottomRight;
+        case ViewportAnchorPosition::P_TOP_LEFT:
+            return posTopLeft;
+        case ViewportAnchorPosition::P_TOP_RIGHT:
+            return posTopRight;
+        case ViewportAnchorPosition::P_CENTER:
+            return posCenter;
+        }
     }
 
     vec2 Viewport::GetSize() const { return viewportDynamicSize; }
@@ -1095,13 +1116,13 @@ namespace KalaGraphics::Core
         viewportOffset = kclamp(
             viewportOffset, 
             0.0f, 
-            gctx->renderSize);        
+            gctx->renderSize);
+            
+        vec2 viewportRealStaticSize = GetStaticValue(viewportStaticSize);
 
         if (viewportType == ViewportType::VP_FIT
             || viewportType == ViewportType::VP_CENTER)
         {
-            vec2 viewportRealStaticSize = GetStaticValue(viewportStaticSize);
-
             const f32 targetAspect = 
                 scast<f32>(viewportRealStaticSize.x) /
                 scast<f32>(viewportRealStaticSize.y);
@@ -1144,7 +1165,82 @@ namespace KalaGraphics::Core
                 floorf((viewportDynamicSize.y - fittedSize.y) * 0.5f)
             };
         }
-        else if (viewportType == ViewportType::VP_FILL) scissorSize = viewportDynamicSize;
+        else if (viewportType == ViewportType::VP_FILL)
+        {
+            scissorSize = viewportDynamicSize;
+            scissorOffset = {};
+        }
+
+        posTopLeft =
+        {
+            posBottomLeft.x,
+            posBottomLeft.y + scissorSize.y
+        };
+        posTopRight =
+        {
+            posBottomLeft.x + scissorSize.x,
+            posBottomLeft.y + scissorSize.y
+        };
+        posBottomLeft =
+        {
+            viewportOffset.x + scissorOffset.x,
+            gctx->renderSize.y
+                - viewportOffset.y
+                - scissorOffset.y
+                - scissorSize.y
+        };
+        posBottomRight =
+        {
+            posBottomLeft.x + scissorSize.x,
+            posBottomLeft.y
+        };
+        posCenter =
+        {
+            posBottomLeft.x + scissorSize.x * 0.5f,
+            posBottomLeft.y + scissorSize.y * 0.5f
+        };
+
+        if (isnear(posTopLeft.x)) posTopLeft.x = 0;
+        if (isnear(posTopLeft.y)) posTopLeft.y = 0;
+
+        if (isnear(posTopRight.x)) posTopRight.x = 0;
+        if (isnear(posTopRight.y)) posTopRight.y = 0;
+
+        if (isnear(posBottomLeft.x)) posBottomLeft.x = 0;
+        if (isnear(posBottomLeft.y)) posBottomLeft.y = 0;
+
+        if (isnear(posBottomRight.x)) posBottomRight.x = 0;
+        if (isnear(posBottomRight.y)) posBottomRight.y = 0;
+
+        if (isnear(posCenter.x)) posCenter.x = 0;
+        if (isnear(posCenter.y)) posCenter.y = 0;
+
+        /*
+        Log::Print("@@@@@ gctx '" + to_string(contextID) + "' render size: "
+            + to_string(gctx->renderSize.x) + "x" 
+            + to_string(gctx->renderSize.y)
+            + "\nvp '" + to_string(ID) + "' dynamic size: "
+            + to_string(viewportDynamicSize.x) + "x" 
+            + to_string(viewportDynamicSize.y)
+            + "\nvp static size: "
+            + to_string(viewportRealStaticSize.x) + "x" 
+            + to_string(viewportRealStaticSize.y)
+            + "\nvp top left: " 
+            + to_string(posTopLeft.x) + "x" 
+            + to_string(posTopLeft.y)
+            + "\nvp top right: " 
+            + to_string(posTopRight.x) + "x" 
+            + to_string(posTopRight.y)
+            + "\nvp bottom left: " 
+            + to_string(posBottomLeft.x) + "x" 
+            + to_string(posBottomLeft.y)
+            + "\nvp bottom right: " 
+            + to_string(posBottomRight.x) + "x" 
+            + to_string(posBottomRight.y)
+            + "\nvp center: " 
+            + to_string(posCenter.x) + "x" 
+            + to_string(posCenter.y));
+        */
 
         Camera* c3d{};
         err = Camera::GetRegistry().GetContent(primary3DCameraID, c3d);
