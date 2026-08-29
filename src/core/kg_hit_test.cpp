@@ -179,6 +179,9 @@ namespace KalaGraphics::Core
                     + "' viewport was invalid! Reason: " + err);
             }
 
+            //ignore hidden viewports
+            if (!vp->isVisible) continue;
+
             if (is_inside(vp->viewportOffset, vp->viewportDynamicSize))
             {
                 collidedViewports.push_back(vp);

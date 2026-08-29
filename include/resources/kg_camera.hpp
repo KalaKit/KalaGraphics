@@ -99,14 +99,10 @@ namespace KalaGraphics::Resources
             f32 deltaTime = {});
 
         KNODISCARD
-		const Transform3D& GetTransform() const;
-        void SetTransform(Transform3D&& newTransform);
+		Transform3D& GetTransform();
 
         KNODISCARD
 		CameraType GetCameraType() const;
-        //Toggling camera type resets camera data and detaches attached mesh,
-        //Move and UpdateCameraData is called internally on success
-        void SetCameraType(CameraType type);
 
         //Is this camera 2D (orthographic) or 3D (perspective)
         KNODISCARD
@@ -131,15 +127,13 @@ namespace KalaGraphics::Resources
         KNODISCARD
 		const mat4& GetMatrix() const;
 
-        //Should be called after updating any camera data,
-        //move already calls this function
-        void UpdateCameraData();
-
         void Destroy();
     private:
         ~Camera();
 
         void ClearAllData();
+
+        void UpdateCameraData();
 
         u32 ID{};
         u32 viewportID{};

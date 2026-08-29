@@ -26,12 +26,14 @@ using KalaHeaders::KalaMath::vec2;
 using KalaGraphics::Core::ViewportStaticSize;
 using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Core::GraphicsContext;
+using KalaGraphics::Core::Viewport;
 using KalaGraphics::Resources::Shader;
 using KalaGraphics::Resources::Camera;
 
 using std::string_view;
 using std::to_string;
 using std::unordered_map;
+using std::vector;
 using std::min;
 
 //
@@ -221,6 +223,8 @@ namespace KalaGraphics::Core
     u32 Viewport::GetContextID() const { return contextID; }
     u32 Viewport::GetHitTestID() const { return hitTestID; }
 
+    u32 Viewport::GetTargetViewportID() const { return targetViewportID; }
+
     u32 Viewport::GetPrimary3DCameraID() const { return primary3DCameraID; }
     u32 Viewport::GetPrimary2DCameraID() const { return primary2DCameraID; }
 
@@ -233,7 +237,111 @@ namespace KalaGraphics::Core
     const vector<u32>& Viewport::GetExtra3DShaderIDs() const { return extra3DShaderIDs; }
     const vector<u32>& Viewport::GetExtra2DShaderIDs() const { return extra2DShaderIDs; }
 
-    u32 Viewport::GetTargetViewportID() const { return targetViewportID; }
+    u8 Viewport::GetDrawOrderIndex() const { return drawOrderIndex; }
+    void Viewport::SetDrawOrderIndex(
+        u8 newValue,
+        bool sortNow)
+    {
+        GraphicsContext* gctx{};
+        string err = GraphicsContext::GetRegistry().GetContent(contextID, gctx);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics viewport error",
+                "Failed to set viewport '" + to_string(ID) 
+                + "' draw order index because its graphics context was invalid! Reason: " + err);
+        }
+
+        if (isRootViewport)
+        {
+            Log::Print(
+                "Failed to set viewport '" + to_string(ID) 
+                + "' draw order index because it is a root viewport!", 
+                "KG_VIEWPORT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+        else if (!isRootViewport
+                 && newValue == 0)
+        {
+            Log::Print(
+                "Failed to set viewport '" + to_string(ID) 
+                + "' draw order index because 0 can only be applied to root viewport!", 
+                "KG_VIEWPORT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        drawOrderIndex = newValue;
+
+        if (!sortNow) gctx->isViewportSortDirty = true;
+        else gctx->SortViewports();
+
+        Log::Print(
+            "Set viewport '" + to_string(ID) + "' draw order index to '" + to_string(drawOrderIndex) + "'.",
+            "KG_VIEWPORT",
+            LogType::LOG_SUCCESS);
+    }
+
+    bool Viewport::IsVisible() const { return isVisible; }
+    void Viewport::SetVisibleState(bool newValue)
+    {
+        if (isRootViewport)
+        {
+            Log::Print(
+                "Failed to set viewport '" + to_string(ID) 
+                + "' visible state because it is a root viewport!", 
+                "KG_VIEWPORT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        isVisible = newValue;
+
+        string val = isVisible ? "true" : "false";
+
+        Log::Print(
+            "Set viewport '" + to_string(ID) + "' "
+            "visible state to " + val + "!", 
+            "KG_VIEWPORT",
+            LogType::LOG_SUCCESS);
+    }
+
+    bool Viewport::IsRootViewport() const { return isRootViewport; }
+
+    bool Viewport::IsOffscreenViewport() const { return isOffscreenViewport; }
+
+    bool Viewport::IsDynamicResizeEnabled() const { return isDynamicResizeEnabled; }
+    void Viewport::SetDynamicResizeState(bool newValue)
+    {
+        if (isRootViewport)
+        {
+            Log::Print(
+                "Failed to set viewport '" + to_string(ID) 
+                + "' dynamic resize state because it is a root viewport!", 
+                "KG_VIEWPORT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        isDynamicResizeEnabled = newValue;
+
+        string val = isDynamicResizeEnabled ? "true" : "false";
+
+        Log::Print(
+            "Set viewport '" + to_string(contextID) + "' "
+            "dynamic resize state to " + val + "!", 
+            "KG_VIEWPORT",
+            LogType::LOG_SUCCESS);
+    }
 
     ViewportType Viewport::GetType() const { return viewportType; }
     void Viewport::SetType(ViewportType newType)
@@ -294,36 +402,6 @@ namespace KalaGraphics::Core
             + to_string(viewportLetterboxColor.y) + ", "
             + to_string(viewportLetterboxColor.z) + ", "
             + to_string(viewportLetterboxColor.w) + "'!",
-            "KG_VIEWPORT",
-            LogType::LOG_SUCCESS);
-    }
-
-    bool Viewport::IsRootViewport() const { return isRootViewport; }
-
-    bool Viewport::IsOffscreenViewport() const { return isOffscreenViewport; }
-
-    bool Viewport::IsDynamicResizeEnabled() const { return isDynamicResizeEnabled; }
-    void Viewport::SetDynamicResizeState(bool newValue)
-    {
-        if (isRootViewport)
-        {
-            Log::Print(
-                "Failed to set viewport '" + to_string(ID) 
-                + "' dynamic resize state because it is a root viewport!", 
-                "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        isDynamicResizeEnabled = newValue;
-
-        string val = isDynamicResizeEnabled ? "true" : "false";
-
-        Log::Print(
-            "Set viewport '" + to_string(contextID) + "' "
-            "dynamic resize state to " + val + "!", 
             "KG_VIEWPORT",
             LogType::LOG_SUCCESS);
     }
@@ -660,6 +738,9 @@ namespace KalaGraphics::Core
 
     void Viewport::Update(u32 imageIndex)
     {
+        //don't draw hidden viewports
+        if (!isVisible) return;
+
         GraphicsContext* gctx{};
         string _ = GraphicsContext::GetRegistry().GetContent(contextID, gctx);
 
@@ -974,6 +1055,8 @@ namespace KalaGraphics::Core
 
     void Viewport::UpdateViewportSize()
     {
+        if (!isVisible) return;
+
         GraphicsContext* gctx{};
         string err = GraphicsContext::GetRegistry().GetContent(contextID, gctx);
         if (!err.empty())
@@ -1133,11 +1216,6 @@ namespace KalaGraphics::Core
 
     void Viewport::_Destroy()
     {
-		Log::Print(
-			"Destroying viewport '" + to_string(ID) + "'.",
-			"KG_VIEWPORT",
-			LogType::LOG_INFO);
-
         if (isOffscreenViewport)
         {
             Viewport* target{};

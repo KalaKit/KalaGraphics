@@ -232,6 +232,8 @@ namespace KalaGraphics::Core
         //Destroy and stop using the created command buffer
         void EndSingleTimeCommands(VkCommandBuffer vkCommandBuffer);
 
+        void SortViewports();
+
         void UpdateInstance();
 
         void RecreateSwapchain();
@@ -243,6 +245,8 @@ namespace KalaGraphics::Core
         u32 ID{};
         u32 hitTestID{};
         u32 rootViewportID{};
+
+        bool isViewportSortDirty{};
 
         //viewports that use this graphics context
         vector<u32> extraViewportIDs{};

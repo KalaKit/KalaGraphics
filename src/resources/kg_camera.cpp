@@ -125,6 +125,11 @@ namespace KalaGraphics::Resources
 
         cameraPtr->type = newType;
 
+        if (cameraPtr->type == CameraType::CAM_ORTHOGRAPHIC)
+        {
+            cameraPtr->drawDistance = { -1, 1 };
+        }
+
         //always assign descriptor set data at camera init
         cameraPtr->isDirty = true;
 
@@ -359,7 +364,7 @@ namespace KalaGraphics::Resources
 
             orthographicMatrix = ortho(
                 true,
-                vp->viewportDynamicSize, //TODO: also update for static vp size
+                vp->viewportDynamicSize,
                 drawDistance.x,
                 drawDistance.y);
         }
@@ -411,7 +416,7 @@ namespace KalaGraphics::Resources
 
             mat4 perspectiveMatrix = perspective(
                 true,
-                vp->viewportDynamicSize, //TODO: also update for static vp size
+                vp->viewportDynamicSize,
                 fov,
                 drawDistance.x,
                 drawDistance.y);
@@ -433,61 +438,11 @@ namespace KalaGraphics::Resources
             Log::Print(pmStr + ", " + tpos);
             */
         }
-
-        UpdateCameraData();
     }
 
-    const Transform3D& Camera::GetTransform() const { return transform; }
-    void Camera::SetTransform(Transform3D&& newTransform)
-    {
-        //TODO: figure out if transform safety checks are even needed
-        transform = std::move(newTransform);
-    }
+    Transform3D& Camera::GetTransform() { return transform; }
 
     CameraType Camera::GetCameraType() const { return type; }
-    void Camera::SetCameraType(CameraType newValue)
-    {
-        if (type == newValue)
-        {
-            Log::Print(
-                "Failed to set camera '" + to_string(ID) 
-                + "' state because it already is the same value!",
-                "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        Log::Print(
-            "Clearing all data for camera '" + to_string(ID) 
-            + "' because its camera type was changed!",
-            "KG_MESH",
-            LogType::LOG_WARNING);
-
-        string camType{};
-
-        switch (newValue)
-        {
-        default:
-        case CameraType::CAM_ORTHOGRAPHIC:
-            camType = "orthographic";
-            type = CameraType::CAM_ORTHOGRAPHIC;
-            break;
-        case CameraType::CAM_PERSPECTIVE:
-            camType = "perspective";
-            type = CameraType::CAM_PERSPECTIVE;
-            break;
-        }
-
-        ClearAllData();
-        Move({}, {});
-
-        Log::Print(
-            "Set camera '" + to_string(ID) + "' type to '" + camType + "'.",
-            "KG_CAMERA",
-            LogType::LOG_SUCCESS);
-    }
 
     bool Camera::Is2D() { return type == CameraType::CAM_ORTHOGRAPHIC; }
 
@@ -563,11 +518,36 @@ namespace KalaGraphics::Resources
     vec2 Camera::GetDrawDistance() const { return drawDistance; }
     void Camera::SetDrawDistance(vec2 newValue)
     {
+        if (type == CameraType::CAM_ORTHOGRAPHIC)
+        {
+            Log::Print(
+                "Failed to set camera '" + to_string(ID) 
+                + "' draw distance because it is an orthographic camera!",
+                "KG_CAMERA",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
         if (newValue < DRAW_DISTANCE_MIN
             || newValue > DRAW_DISTANCE_MAX)
         {
             Log::Print(
-                "Failed to set camera '" + to_string(ID) + "' draw distance because new value is out of allowed range!",
+                "Failed to set camera '" + to_string(ID) 
+                + "' draw distance because new value is out of allowed range!",
+                "KG_CAMERA",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (newValue.x >= newValue.y)
+        {
+            Log::Print(
+                "Failed to set camera '" + to_string(ID) 
+                + "' draw distance because near distance cannot be equal to or more than far distance!",
                 "KG_CAMERA",
                 LogType::LOG_ERROR,
                 2);
@@ -588,6 +568,57 @@ namespace KalaGraphics::Resources
         return type == CameraType::CAM_ORTHOGRAPHIC
             ? orthographicMatrix
             : projectionMatrix;
+    }
+
+    void Camera::ClearAllData()
+    {
+        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
+        if (logicalDevice == VK_NULL_HANDLE)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics camera error",
+                "Failed to clear camera '" + to_string(ID) 
+                + "' data because the logical device was invalid!");
+        }
+
+        VmaAllocator allocator = GraphicsContext::GetVmaAllocator();
+        if (!allocator)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics camera error",
+                "Failed to clear camera '" + to_string(ID) + "' data "
+                "because the vma allocator was invalid!");
+        }
+
+        //drain the gpu before destroying this camera
+        VkResult vkResult = vkDeviceWaitIdle(logicalDevice);
+        if (vkResult != VK_SUCCESS)
+        {
+            GraphicsContext::ForceClose(
+                "KalaGraphics camera error",
+                "Failed to clear camera '" + to_string(ID) 
+                + "' data because vkDeviceWaitIdle did not succeed!",
+                vkResult);
+        }
+
+        if (vmaCameraUBOAllocation != VK_NULL_HANDLE)
+        {
+            vmaDestroyBuffer(
+                allocator,
+                vkCameraUBOBuffer,
+                vmaCameraUBOAllocation);
+
+            cameraUBOMappedPtr = nullptr;
+        }
+
+        if (vkDescriptorSet != VK_NULL_HANDLE)
+        {
+            vkFreeDescriptorSets(
+                logicalDevice,
+                GraphicsContext::GetDescriptorPool(),
+                1,
+                &vkDescriptorSet);
+        }
     }
 
     void Camera::UpdateCameraData()
@@ -721,64 +752,6 @@ namespace KalaGraphics::Resources
 
             isDirty = false;
         }
-
-        /*
-        Log::Print(
-            "Updated camera '" + to_string(ID) + "' data!",
-            "KG_CAMERA",
-            LogType::LOG_SUCCESS);
-        */
-    }
-
-    void Camera::ClearAllData()
-    {
-        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
-        if (logicalDevice == VK_NULL_HANDLE)
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics camera error",
-                "Failed to clear camera '" + to_string(ID) 
-                + "' data because the logical device was invalid!");
-        }
-
-        VmaAllocator allocator = GraphicsContext::GetVmaAllocator();
-        if (!allocator)
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics camera error",
-                "Failed to clear camera '" + to_string(ID) + "' data "
-                "because the vma allocator was invalid!");
-        }
-
-        //drain the gpu before destroying this camera
-        VkResult vkResult = vkDeviceWaitIdle(logicalDevice);
-        if (vkResult != VK_SUCCESS)
-        {
-            GraphicsContext::ForceClose(
-                "KalaGraphics camera error",
-                "Failed to clear camera '" + to_string(ID) 
-                + "' data because vkDeviceWaitIdle did not succeed!",
-                vkResult);
-        }
-
-        if (vmaCameraUBOAllocation != VK_NULL_HANDLE)
-        {
-            vmaDestroyBuffer(
-                allocator,
-                vkCameraUBOBuffer,
-                vmaCameraUBOAllocation);
-
-            cameraUBOMappedPtr = nullptr;
-        }
-
-        if (vkDescriptorSet != VK_NULL_HANDLE)
-        {
-            vkFreeDescriptorSets(
-                logicalDevice,
-                GraphicsContext::GetDescriptorPool(),
-                1,
-                &vkDescriptorSet);
-        }
     }
 
     void Camera::Destroy()
@@ -811,18 +784,6 @@ namespace KalaGraphics::Resources
             "Destroying camera '" + to_string(ID) + "'.",
             "KG_CAMERA",
             LogType::LOG_INFO);
-
-        //TODO: log for viewport camera?
-        /*
-        if (!registry.GetAllContent().empty()
-            && isActiveCamera)
-        {
-            Log::Print(
-                "Active camera was destroyed! You must assign a new active camera or else nothing can be drawn on screen.",
-                "KG_CAMERA",
-                LogType::LOG_WARNING);
-        }
-        */
 
         ClearAllData();
     }

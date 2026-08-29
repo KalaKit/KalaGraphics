@@ -1556,6 +1556,41 @@ namespace KalaGraphics::Core
             &vkCommandBuffer);
     }
 
+    void GraphicsContext::SortViewports()
+    {
+        isViewportSortDirty = false;
+
+        vector<Viewport*> latestViewports{};
+
+        for (u32 vpID : extraViewportIDs)
+        {
+            Viewport* vp{};
+            string err = Viewport::GetRegistry().GetContent(vpID, vp);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics context error", 
+                    "Failed to sort viewport '" + to_string(vpID) 
+                    + "' because it was invalid! Reason: " + err);
+            }
+
+            latestViewports.push_back(vp);
+        }
+
+        sort(latestViewports.begin(), 
+            latestViewports.end(),
+            [](Viewport* a, Viewport* b)
+        {
+            return a->drawOrderIndex < b->drawOrderIndex;
+        });
+
+        extraViewportIDs.clear();
+        for (Viewport* vp : latestViewports)
+        {
+            extraViewportIDs.push_back(vp->ID);
+        }
+    }
+
     void GraphicsContext::UpdateInstance()
     {
         if (logicalDevice == VK_NULL_HANDLE)
@@ -1580,6 +1615,8 @@ namespace KalaGraphics::Core
         {
             return;
         }
+
+        if (isViewportSortDirty) SortViewports();
 
         result = vkWaitForFences(
             logicalDevice,
@@ -1836,7 +1873,7 @@ namespace KalaGraphics::Core
         // DELETE OLD DATA
         //
 
-        //dont delete, just clear
+        //don't delete, just clear
         swapchainImages.clear();
 
         for (auto& view : swapchainImageViews)
@@ -2508,7 +2545,7 @@ namespace KalaGraphics::Core
                 depthAllocation);
         }
 
-        //dont delete, just clear
+        //don't delete, just clear
         swapchainImages.clear();
 
         for (auto& view : swapchainImageViews)

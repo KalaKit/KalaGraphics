@@ -138,9 +138,6 @@ namespace KalaGraphics::Resources
             u32 shaderID,
             u32 textureID);
 
-        //Import FBX, OBJ or GLTF model mesh data
-        KNODISCARD
-		static Mesh_Generated_Data GenerateMeshData(const path& meshPath);
         //Generate a cube or cylinder
         KNODISCARD
 		static Mesh_Generated_Data GenerateMeshData(Mesh_Cube cubeData);
@@ -172,14 +169,24 @@ namespace KalaGraphics::Resources
         void SetTextureID(u32 newID);
 
         KNODISCARD
-		const Transform3D& GetTransform() const;
-        void SetTransform(Transform3D&& newTransform);
+        u16 GetDrawOrderIndex() const;
+        //Set the mesh draw order, set sortNow to true
+        //if you want this call to sort all meshes, 
+        //otherwise the next global update will sort all meshes,
+        //not used for 3D meshes
+        void SetDrawOrderIndex(
+            u16 newValue,
+            bool sortNow = false);
+
+        KNODISCARD
+        bool IsVisible() const;
+        void SetVisibleState(bool newValue);
 
         KNODISCARD
 		bool Is2D() const;
-        //Toggling 2D state resets mesh data and detaches attached camera,
-        //UpdateMeshData is called internally on success
-        void Set2DState(bool newState);
+
+        KNODISCARD
+		Transform3D& GetTransform();
 
         KNODISCARD
 		const vector<Vertex>& GetVertices() const;
@@ -196,25 +203,32 @@ namespace KalaGraphics::Resources
         KNODISCARD
 		const mat4& GetMatrix() const;
 
-        //Should be called after updating any mesh data
-        void UpdateMeshData();
-
         void Destroy();
     private:
         ~Mesh();
 
         void ClearAllData();
 
+        void UpdateMeshData();
+
         void UpdateVertices();
         void UpdateIndices();
-
-        bool isDestroyingCamera{};
 
         u32 ID{};
         u32 shaderID{};
         u32 hitTestID{};
         u32 cameraID{};
         u32 textureID{};
+
+        u16 drawOrderIndex{};
+
+        bool isBufferDataDirty{};
+        bool isVertexDataDirty{};
+        bool isIndexDataDirty{};
+
+        bool isVisible = true;
+
+        bool isDestroyingCamera{};
 
         bool is2D{};
 
@@ -241,8 +255,6 @@ namespace KalaGraphics::Resources
         //mesh matrix data
 
         mat4 meshMatrix{};
-
-        bool isDirty{};
 
         VkBuffer vkMeshUBOBuffer{};
         VmaAllocation vmaMeshUBOAllocation{};

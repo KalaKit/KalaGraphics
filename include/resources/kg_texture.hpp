@@ -240,12 +240,11 @@ namespace KalaGraphics::Resources
 		u8 GetMipMapCount() const;
         void SetMipMapCount(u8 newCount);
 
-        //Should be called after updating texture data
-        void UpdateTextureData();
-
         void Destroy();
     private:
         ~Texture();
+
+        void UpdateTextureData();
 
         void UploadPixelData(VkCommandBuffer vkCommandBuffer);
         void GenerateMipMaps(VkCommandBuffer vkCommandBuffer);

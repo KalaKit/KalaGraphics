@@ -9,25 +9,20 @@ layout(set = 0, binding = 0) uniform CameraUBO
     mat4 projectionMatrix;
 } camera;
 
-layout(set = 1, binding = 0) uniform Rect
+layout(set = 1, binding = 0) uniform Mesh
 {
-    vec2 offset;
-    vec2 size;
-} rectData;
+    mat4 modelMatrix;
+} meshData;
 
 layout(location = 0) out vec2 outUV;
 layout(location = 1) out vec4 outColor;
 
 void main()
 {
-    vec2 pos =
-        inPosition
-        * rectData.size
-        + rectData.offset;
-
     gl_Position =
         camera.projectionMatrix
-        * vec4(pos, 0.0, 1.0);
+        * meshData.modelMatrix
+        * vec4(inPosition, 0.0, 1.0);
 
     outUV = inUV;
     outColor = inColor;

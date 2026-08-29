@@ -1361,11 +1361,6 @@ namespace KalaGraphics::Resources
 
             isDirty = false;
         }
-
-        Log::Print(
-            "Updated texture '" + to_string(ID) + "' data!",
-            "KG_TEXTURE",
-            LogType::LOG_SUCCESS);
     }
 
     void Texture::UploadPixelData(VkCommandBuffer vkCommandBuffer)

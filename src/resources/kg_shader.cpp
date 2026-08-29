@@ -170,7 +170,7 @@ static unique_ptr<PipelineInfo> GetPipelineInfo(
 
     pi->rasterization.sType       = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     pi->rasterization.polygonMode = VK_POLYGON_MODE_FILL;
-    pi->rasterization.cullMode    = VK_CULL_MODE_BACK_BIT;
+    pi->rasterization.cullMode    = is2D ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT;
     pi->rasterization.frontFace   = VK_FRONT_FACE_CLOCKWISE;
     pi->rasterization.lineWidth   = 1.0f;
 
@@ -968,6 +968,41 @@ namespace KalaGraphics::Resources
 
     bool Shader::Is2D() const { return !viewportID.second; }
 
+    void Shader::Sort2DMeshes()
+    {
+        is2DMeshSortDirty = false;
+
+        vector<Mesh*> latestMeshes{};
+
+        for (u32 mID : meshIDs)
+        {
+            Mesh* m{};
+            string err = Mesh::GetRegistry().GetContent(mID, m);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics shader error", 
+                    "Failed to sort 2D mesh '" + to_string(mID) 
+                    + "' because it was invalid! Reason: " + err);
+            }
+
+            latestMeshes.push_back(m);
+        }
+
+        sort(latestMeshes.begin(), 
+            latestMeshes.end(),
+            [](Mesh* a, Mesh* b)
+        {
+            return a->drawOrderIndex < b->drawOrderIndex;
+        });
+
+        meshIDs.clear();
+        for (Mesh* m : latestMeshes)
+        {
+            meshIDs.push_back(m->ID);
+        }
+    }
+
     void Shader::Update(VkCommandBuffer cmdBuffer)
     {
         if (viewportID.first == 0)
@@ -1022,6 +1057,8 @@ namespace KalaGraphics::Resources
             return;
         }
 
+        if (is2DMeshSortDirty) Sort2DMeshes();
+
         vkCmdBindPipeline(
             cmdBuffer,
             VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -1035,6 +1072,23 @@ namespace KalaGraphics::Resources
                 "KalaGraphics shader error",
                 "Failed to update shader '" + to_string(ID) 
                 + "' because its viewport was invalid! Reason: " + err);
+        }
+
+        for (u32 texID : textureIDs)
+        {
+            Texture* tex{};
+            string err = Texture::GetRegistry().GetContent(texID, tex);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics shader error",
+                    "Failed to update shader '" + to_string(ID) 
+                    + "' because its texture was invalid! Reason: " + err);
+            }
+
+            if (tex->meshIDs.empty()) continue;
+
+            tex->UpdateTextureData();
         }
 
         for (u32 cameraID : cameraIDs)
@@ -1067,6 +1121,8 @@ namespace KalaGraphics::Resources
                 || (cameraID == vp->primary2DCameraID
                 && !viewportID.second))
             {
+                camera->UpdateCameraData();
+
                 vkCmdBindDescriptorSets(
                     cmdBuffer,
                     VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -1096,6 +1152,11 @@ namespace KalaGraphics::Resources
                     "Failed to update shader '" + to_string(ID) 
                     + "' because its mesh was invalid! Reason: " + err);
             }
+
+            //don't draw hidden 2D meshes
+            if (!mesh->isVisible) continue;
+
+            mesh->UpdateMeshData();
 
             if (mesh->vkVertexBuffer == VK_NULL_HANDLE)
             {
@@ -1174,7 +1235,9 @@ namespace KalaGraphics::Resources
             {
                 vkCmdDraw(
                     cmdBuffer,
-                    mesh->vertices.size(),
+                    mesh->is2D
+                        ? scast<u32>(mesh->vertices2D.size())
+                        : scast<u32>(mesh->vertices.size()),
                     1,
                     0,
                     0);

@@ -108,12 +108,16 @@ namespace KalaGraphics::Resources
 
         static void DestroyVkShaderModules(vector<VkShaderModule> modules);
 
+        void Sort2DMeshes();
+
         void Update(VkCommandBuffer buffer);
 
         //used only to prevent shader from removing its ID from
         //viewport shader IDs list if the viewport
         //destroy function called the destroy function of this shader 
         bool isDestroyingViewport{};
+
+        bool is2DMeshSortDirty{};
 
         bool hasDrawn3DCamera{};
         bool hasDrawn2DCamera{};
