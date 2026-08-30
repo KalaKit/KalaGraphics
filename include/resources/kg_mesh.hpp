@@ -43,6 +43,60 @@ namespace KalaGraphics::Resources
     using std::filesystem::path;
     using std::default_delete;
 
+    static constexpr u8 MIN_CUBE_EDGE_COUNT = 3;
+    static constexpr u8 MAX_CUBE_EDGE_COUNT = 32;
+
+    static constexpr u8 MIN_PYRAMID_EDGE_COUNT = 3;
+    static constexpr u8 MAX_PYRAMID_EDGE_COUNT = 32;
+
+    static constexpr u8 MIN_SPHERE_DETAIL_LEVEL = 1;
+    static constexpr u8 MAX_SPHERE_DETAIL_LEVEL = 8;
+
+    enum class FaceDirection : u8
+    {
+        //faces and normals point outwards
+        F_OUT = 0,
+        //faces and normals point inwards
+        F_IN = 1
+    };
+
+    enum class NormalType : u8
+    {
+        //one normal per face, often requiring duplicated vertices
+        N_FLAT = 0,
+        //one normal per shared vertex, with interpolation between them
+        N_SMOOTH = 1
+    };
+
+    struct LIB_API Mesh_Cube
+    {
+        //clamped from 3 to 32,
+        //used for top and bottom edges
+        u8 edgeCount = 3;
+
+        FaceDirection faceDir{};
+        NormalType normalType{};
+    };
+
+    struct LIB_API Mesh_Pyramid
+    {
+        //clamped from 3 to 32,
+        //used for bottom edges
+        u8 edgeCount = 3;
+
+        FaceDirection faceDir{};
+        NormalType normalType{};
+    };
+
+    struct LIB_API Mesh_Sphere
+    {
+        //clamped from 1 to 8
+        u8 detailLevel = 1;
+
+        FaceDirection faceDir{};
+        NormalType normalType = NormalType::N_SMOOTH;
+    };
+
     enum class AnchorPosition : u8
     {
         P_DEFAULT = 0,
@@ -54,42 +108,6 @@ namespace KalaGraphics::Resources
         P_TOP_RIGHT = 4,
         
         P_CENTER = 5
-    };
-
-    struct LIB_API Mesh_Cube
-    {
-        //ranges from 3 to 255,
-        //used for top and bottom edges
-        u8 edgeCount{};
-    };
-
-    struct LIB_API Mesh_Pyramid
-    {
-        //clamped from 0.01f to 10000.0f
-        f32 bottomRadius = 1.0f;
-
-        //clamped from 0.01f to 10000.0f
-        f32 height = 1.0f;
-
-        //ranges from 3 to 255,
-        //used for bottom edges
-        u8 edgeCount{};
-    };
-
-    enum class SphereType : u8
-    {
-        SPHERE_UV = 0,
-        SPHERE_ICO = 1,
-        SPHERE_QUAD = 2
-    };
-    struct LIB_API Mesh_Sphere
-    {
-        //clamped from 0.01f to 10000.0f
-        f32 radius = 0.5f;
-        //clamped from 1 to 255
-        u8 detailLevel{};
-
-        SphereType type{};
     };
 
     struct LIB_API Transform
@@ -124,9 +142,10 @@ namespace KalaGraphics::Resources
     };
 
     //Output after generating a meshes data
-    struct LIB_API Mesh_Generated_Data
+    struct LIB_API MeshData
     {
-        vector<Vertex> vertices{};
+        vector<Vertex> vertices3D{};
+        vector<Vertex2D> vertices2D{};
         vector<u32> indices{};
     };
 
@@ -151,17 +170,18 @@ namespace KalaGraphics::Resources
             u32 shaderID,
             u32 textureID);
 
-        //Generate a cube or cylinder
+        //Generate a 2D quad
         KNODISCARD
-		static Mesh_Generated_Data GenerateMeshData(Mesh_Cube cubeData);
-        //Generate a pyramid or cone
+		static MeshData GenerateMeshData();
+        //Generate a 3D cube or 3D cylinder
         KNODISCARD
-		static Mesh_Generated_Data GenerateMeshData(Mesh_Pyramid pyramidData);
-        //Generate a sphere
+		static MeshData GenerateMeshData(Mesh_Cube cubeData);
+        //Generate a 3D pyramid or 3D cone
         KNODISCARD
-		static Mesh_Generated_Data GenerateMeshData(
-            SphereType sphereType,
-            Mesh_Sphere sphereData);
+		static MeshData GenerateMeshData(Mesh_Pyramid pyramidData);
+        //Generate a 3D sphere
+        KNODISCARD
+		static MeshData GenerateMeshData(Mesh_Sphere sphereData);
 
         KNODISCARD
 		u32 GetID() const;
@@ -213,15 +233,12 @@ namespace KalaGraphics::Resources
 
         KNODISCARD
 		const vector<Vertex>& GetVertices() const;
-        void SetVertices(vector<Vertex>&& newVertices);
-
         KNODISCARD
 		const vector<Vertex2D>& GetVertices2D() const;
-        void SetVertices2D(vector<Vertex2D>&& newVertices);
-
         KNODISCARD
 		const vector<u32>& GetIndices() const;
-        void SetIndices(vector<u32>&& newIndices);
+
+        void SetMeshData(MeshData&& meshData);
 
         KNODISCARD
 		const mat4& GetMatrix() const;
@@ -234,9 +251,6 @@ namespace KalaGraphics::Resources
 
         void UpdateMeshData();
 
-        void UpdateVertices();
-        void UpdateIndices();
-
         u32 ID{};
         u32 shaderID{};
         u32 hitTestID{};
@@ -246,8 +260,7 @@ namespace KalaGraphics::Resources
         u16 drawOrderIndex{};
 
         bool isBufferDataDirty{};
-        bool isVertexDataDirty{};
-        bool isIndexDataDirty{};
+        bool isMeshDataDirty{};
 
         bool isVisible = true;
 

@@ -894,7 +894,8 @@ namespace KalaGraphics::Core
 
         vsyncState = newState;
 
-        RecreateSwapchain();
+        //dont force, just request, prevents potential double-creation
+        RequestRecreateSwapchain();
     }
 
     vec2 GraphicsContext::GetRenderSize() const { return renderSize; }
