@@ -1196,8 +1196,16 @@ namespace KalaGraphics::Core
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
         if (requestedSwapchainRecreation
+            && swapchainWasRecreated)
+        {
+            //Log::Print("@@@@@ swapchain recreate request was denied...");
+        }
+
+        if (requestedSwapchainRecreation
             && !swapchainWasRecreated)
         {
+            //Log::Print("@@@@@ swapchain recreate request was approved...");
+
             _RecreateSwapchain();
             return true;
         }
