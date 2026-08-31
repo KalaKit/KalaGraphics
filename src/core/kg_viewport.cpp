@@ -763,7 +763,7 @@ namespace KalaGraphics::Core
         if (!isVisible) return;
 
         GraphicsContext* gctx{};
-        string _ = GraphicsContext::GetRegistry().GetContent(contextID, gctx);
+        (void)GraphicsContext::GetRegistry().GetContent(contextID, gctx);
 
         //
         // BLACK BORDERS FOR STATIC MODE
@@ -1216,7 +1216,8 @@ namespace KalaGraphics::Core
         if (isnear(posCenter.y)) posCenter.y = 0;
 
         /*
-        Log::Print("@@@@@ gctx '" + to_string(contextID) + "' render size: "
+        Log::Print("@@@@@\n"
+            "gctx '" + to_string(contextID) + "' render size: "
             + to_string(gctx->renderSize.x) + "x" 
             + to_string(gctx->renderSize.y)
             + "\nvp '" + to_string(ID) + "' dynamic size: "

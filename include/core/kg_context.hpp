@@ -203,9 +203,30 @@ namespace KalaGraphics::Core
         KNODISCARD
 		const GraphicsContextData& GetGraphicsContextData() const;
 
-        //Ask this graphics context to recreate swapchain,
-        //ignored if this frame already calls swapchain recreation
+        //Full update call for this context, do not call manually every frame,
+        //it is already called internally every frame, exposed for moments where
+        //calling more than once per frame is necessary,
+        //returns true if it recreated the swapchain
+        KNODISCARD
+        bool _UpdateInstance();
+
+        //Do not call once per frame, only call alongside _UpdateInstance
+        //if _UpdateInstance needs to be called more than once per frame 
+        void _RecreateSwapchain();
+
+        //Cheap, can be called as much as you like,
+        //asks if recreateswapchain has already been called,
+        //if it has then this is ignored and reset at the end of the frame
         void RequestRecreateSwapchain();
+
+		//What happens before per-context logic
+		//but after global early update
+		void SetEarlyUpdateCallback(function<void()>&& newValue);
+		//What happens after this context logic
+		//but before global update
+		void SetUpdateCallback(function<void()>&& newValue);
+		//What happens after global update but before global late update
+		void SetLateUpdateCallback(function<void()>&& newValue);
 
         void Destroy();
     private:
@@ -238,10 +259,6 @@ namespace KalaGraphics::Core
 
         void SortViewports();
 
-        void UpdateInstance();
-
-        void RecreateSwapchain();
-
         void HandleResult(
             i32 result,
             const string& reason);
@@ -266,6 +283,10 @@ namespace KalaGraphics::Core
 
         vec2 oldRenderSize{};
         vec2 renderSize{};
+
+		function<void()> earlyUpdateCallback{};
+		function<void()> updateCallback{};
+		function<void()> lateUpdateCallback{};
 
         VkSwapchainKHR swapchain{};
         u32 swapchainFormat{};
