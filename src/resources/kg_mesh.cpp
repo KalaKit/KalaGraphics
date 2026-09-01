@@ -28,11 +28,11 @@ using KalaHeaders::KalaMath::mat4;
 using KalaHeaders::KalaMath::quat;
 using KalaHeaders::KalaMath::createmodelmatrix;
 using KalaHeaders::KalaMath::isnear;
-using KalaHeaders::KalaMath::normalize_q;
-using KalaHeaders::KalaMath::toeuler3;
-using KalaHeaders::KalaMath::toquat;
-using KalaHeaders::KalaMath::combine3d;
 using KalaHeaders::KalaMath::PI64;
+using KalaHeaders::KalaMath::epsilon;
+using KalaHeaders::KalaMath::PosTarget;
+using KalaHeaders::KalaMath::RotTarget;
+using KalaHeaders::KalaMath::SizeTarget;
 
 using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Core::GraphicsContext;
@@ -1695,9 +1695,8 @@ namespace KalaGraphics::Resources
 
         if (is2D)
         {
-            bool hasInvalidValues{};
-            
-            if (transform.pos_world.z != 0)
+            vec3 pos = transform.getpos(PosTarget::POS_LOCAL);
+            if (pos.z != 0)
             {
                 Log::Print(
                     "Transform position Z value for 2D mesh '" + to_string(ID) 
@@ -1705,13 +1704,10 @@ namespace KalaGraphics::Resources
                     "KG_MESH",
                     LogType::LOG_WARNING);
 
-                transform.pos_world.z = 0;
-
-                hasInvalidValues = true;
+                transform.setpos({ pos.x, pos.y, 0 });
             }
 
-            quat q = normalize_q(transform.rot_world);
-            vec3 rot = toeuler3(q);
+            vec3 rot = transform.getroteuler(RotTarget::ROT_LOCAL);
             if (!isnear(rot.x)
                 || !isnear(rot.y))
             {
@@ -1721,30 +1717,20 @@ namespace KalaGraphics::Resources
                     "KG_MESH",
                     LogType::LOG_WARNING);
 
-                transform.rot_world = normalize_q(toquat(
-                { 
-                    0, 
-                    0, 
-                    rot.z 
-                }));
-
-                hasInvalidValues = true;
+                transform.setroteuler({ 0, 0, rot.z });
             }
             
-            if (transform.size_world.z != 0)
+            vec3 size = transform.getsize(SizeTarget::SIZE_LOCAL);
+            if (!isnear(size.z))
             {
                 Log::Print(
                     "Transform size Z value for 2D mesh '" + to_string(ID) 
-                    + "' must not be anything other than 0! Value was reset to 0.",
+                    + "' must not be anything other than epsilon! Value was reset to epsilon.",
                     "KG_MESH",
                     LogType::LOG_WARNING);
 
-                transform.size_world.z = 0;
-
-                hasInvalidValues = true;
+                transform.setsize({ size.x, size.y, epsilon });
             }
-
-            if (hasInvalidValues) combine3d(transform, {});
         }
 
         if (vkDescriptorSet == VK_NULL_HANDLE)
@@ -1819,10 +1805,14 @@ namespace KalaGraphics::Resources
             meshUBOMappedPtr = allocResult.pMappedData;
         }
 
+        vec3 pos_world = transform.getpos(PosTarget::POS_WORLD);
+        quat rot_world = transform.getrotquat(RotTarget::ROT_WORLD);
+        vec3 size_world = transform.getsize(SizeTarget::SIZE_WORLD);
+    
         if (is2D)
         {
-            f32 fullWidth = isnear(transform.size_world.x) ? 0 : transform.size_world.x;
-            f32 fullHeight = isnear(transform.size_world.y) ? 0 : transform.size_world.y;
+            f32 fullWidth = isnear(size_world.x) ? 0 : size_world.x;
+            f32 fullHeight = isnear(size_world.y) ? 0 : size_world.y;
 
             f32 halfWidth = fullWidth * 0.5f;
             f32 halfHeight = fullHeight * 0.5f;
@@ -1880,16 +1870,16 @@ namespace KalaGraphics::Resources
             }
 
             meshMatrix = createmodelmatrix(
-                transform.pos_world - localAnchorPos + viewportAnchorPos, 
-                transform.rot_world, 
-                transform.size_world);
+                pos_world - localAnchorPos + viewportAnchorPos, 
+                rot_world, 
+                size_world);
         }
         else
         {
             meshMatrix = createmodelmatrix(
-                transform.pos_world,
-                transform.rot_world, 
-                transform.size_world);
+                pos_world,
+                rot_world, 
+                size_world);
         }
 
         memcpy(

@@ -24,6 +24,8 @@ using KalaHeaders::KalaCore::ToVar;
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
 
+using KalaHeaders::KalaMath::RotTarget;
+
 using KalaGraphics::Resources::Mesh;
 
 using std::unique_ptr;
@@ -149,13 +151,43 @@ namespace KalaGraphics::Core
 
         if (mousePos < 0) return;
 
-        auto is_inside = [&mousePos](vec2 pos, vec2 size) -> bool
+        auto hit_viewport = [&mousePos](vec2 pos, vec2 size) -> bool
             {
                 return 
                     mousePos.x >= pos.x 
                     && mousePos.x < pos.x + size.x
                     && mousePos.y >= pos.y
                     && mousePos.y < pos.y + size.y;
+            };
+
+        auto hit_2d_rect = [&mousePos](
+            vec2 pos,
+            vec2 size,
+            Mesh* m) -> bool
+            {
+                //move mouse into rectangle-local space
+                vec2 local = mousePos - pos;
+
+                f32 rotation = m->GetTransform().getroteuler(RotTarget::ROT_WORLD).z;
+
+                //inverse-rotate mouse around rectangle center
+                const f32 c = cos(-rotation);
+                const f32 s = sin(-rotation);
+
+                vec2 rotated
+                {
+                    local.x * c - local.y * s,
+                    local.x * s + local.y * c
+                };
+
+                //rectangle is now axis-aligned
+                const vec2 halfSize = size * 0.5f;
+
+                return 
+                    rotated.x >= -halfSize.x 
+                    && rotated.x < halfSize.x
+                    && rotated.y >= -halfSize.y
+                    && rotated.y < halfSize.y;
             };
 
         vector<u32> existingViewports{};
@@ -182,7 +214,7 @@ namespace KalaGraphics::Core
             //ignore hidden viewports
             if (!vp->isVisible) continue;
 
-            if (is_inside(vp->viewportOffset, vp->viewportDynamicSize))
+            if (hit_viewport(vp->viewportOffset, vp->viewportDynamicSize))
             {
                 collidedViewports.push_back(vp);
             }

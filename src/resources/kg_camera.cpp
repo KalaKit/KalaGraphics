@@ -24,14 +24,7 @@ using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
 
 using KalaHeaders::KalaMath::DIR_UP;
-using KalaHeaders::KalaMath::PosTarget::POS_WORLD;
-using KalaHeaders::KalaMath::RotTarget::ROT_WORLD;
-using KalaHeaders::KalaMath::addpos3d;
-using KalaHeaders::KalaMath::addyaw;
-using KalaHeaders::KalaMath::addpitch;
-using KalaHeaders::KalaMath::addpos3d;
-using KalaHeaders::KalaMath::getdirfront;
-using KalaHeaders::KalaMath::getdirright;
+using KalaHeaders::KalaMath::PosTarget;
 using KalaHeaders::KalaMath::view;
 using KalaHeaders::KalaMath::ortho;
 using KalaHeaders::KalaMath::perspective;
@@ -356,11 +349,7 @@ namespace KalaGraphics::Resources
                 keyboard.x * speedMultiplier,
                 keyboard.y * speedMultiplier);
 
-            addpos3d(
-                transform,
-                {},
-                POS_WORLD,
-                move);
+            transform.addpos(move);
 
             orthographicMatrix = ortho(
                 true,
@@ -373,16 +362,8 @@ namespace KalaGraphics::Resources
             if (!isnear(mouse.x)
                 || !isnear(mouse.y))
             {
-                addyaw(
-                    transform,
-                    {},
-                    ROT_WORLD,
-                    -mouse.x * sensitivityMultiplier);
-                addpitch(
-                    transform,
-                    {},
-                    ROT_WORLD,
-                    -mouse.y * sensitivityMultiplier);
+                transform.addyaw(-mouse.x * sensitivityMultiplier);
+                transform.addpitch(-mouse.y * sensitivityMultiplier);
             }
 
             vec3 kb3{keyboard.x, vertical, keyboard.y};
@@ -394,24 +375,22 @@ namespace KalaGraphics::Resources
                 kb3 /= len;
             }
 
-            vec3 move = getdirfront(transform)
+            vec3 move = transform.getdirfront()
                 * kb3.z
-                + getdirright(transform)
+                + transform.getdirright()
                 * kb3.x;
 
             move += DIR_UP * kb3.y;
 
             move *= speedMultiplier * deltaTime;
 
-            addpos3d(
-                transform,
-                {},
-                POS_WORLD,
-                move);
+            transform.addpos(move);
+
+            vec3 pos = transform.getpos(PosTarget::POS_WORLD);
 
             mat4 viewMatrix = view(
-                transform.pos_world,
-                transform.pos_world + getdirfront(transform),
+                pos,
+                pos + transform.getdirfront(),
                 DIR_UP);
 
             mat4 perspectiveMatrix = perspective(
