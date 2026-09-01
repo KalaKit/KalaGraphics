@@ -25,6 +25,7 @@ using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
 
 using KalaHeaders::KalaMath::RotTarget;
+using KalaHeaders::KalaMath::Transform2D;
 
 using KalaGraphics::Resources::Mesh;
 
@@ -168,7 +169,9 @@ namespace KalaGraphics::Core
                 //move mouse into rectangle-local space
                 vec2 local = mousePos - pos;
 
-                f32 rotation = m->GetTransform().getroteuler(RotTarget::ROT_WORLD).z;
+                f32 rotation = 
+                    scast<Transform2D&>(m->GetTransform())
+                    .getrot(RotTarget::ROT_WORLD);
 
                 //inverse-rotate mouse around rectangle center
                 const f32 c = cos(-rotation);

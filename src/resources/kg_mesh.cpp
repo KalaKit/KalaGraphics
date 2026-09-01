@@ -24,12 +24,9 @@ KG_VK_MEM_ALLOC_IGNORE_POP
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
 
-using KalaHeaders::KalaMath::mat4;
-using KalaHeaders::KalaMath::quat;
-using KalaHeaders::KalaMath::createmodelmatrix;
 using KalaHeaders::KalaMath::isnear;
+using KalaHeaders::KalaMath::mat4;
 using KalaHeaders::KalaMath::PI64;
-using KalaHeaders::KalaMath::epsilon;
 using KalaHeaders::KalaMath::PosTarget;
 using KalaHeaders::KalaMath::RotTarget;
 using KalaHeaders::KalaMath::SizeTarget;
@@ -1372,7 +1369,15 @@ namespace KalaGraphics::Resources
             LogType::LOG_SUCCESS);
     }
 
-    Transform3D& Mesh::GetTransform() { return transform; }
+    Transform Mesh::GetTransform()
+    {
+        return
+        {
+            transform3D,
+            transform2D,
+            is2D
+        };
+    }
 
     AnchorPosition Mesh::GetLocalAnchorPosition() const { return localAnchor; }
     void Mesh::SetLocalAnchorPosition(AnchorPosition newValue)
@@ -1693,46 +1698,6 @@ namespace KalaGraphics::Resources
                 + "' data because its shader '" + to_string(shaderID) + "' viewport was invalid! Reason: " + err);
         }
 
-        if (is2D)
-        {
-            vec3 pos = transform.getpos(PosTarget::POS_LOCAL);
-            if (pos.z != 0)
-            {
-                Log::Print(
-                    "Transform position Z value for 2D mesh '" + to_string(ID) 
-                    + "' must not be anything other than 0! Value was reset to 0.",
-                    "KG_MESH",
-                    LogType::LOG_WARNING);
-
-                transform.setpos({ pos.x, pos.y, 0 });
-            }
-
-            vec3 rot = transform.getroteuler(RotTarget::ROT_LOCAL);
-            if (!isnear(rot.x)
-                || !isnear(rot.y))
-            {
-                Log::Print(
-                    "Transform rotation euler angle X or Y value for 2D mesh '" + to_string(ID) 
-                    + "' must not be anything other than 0! Values were reset to 0.",
-                    "KG_MESH",
-                    LogType::LOG_WARNING);
-
-                transform.setroteuler({ 0, 0, rot.z });
-            }
-            
-            vec3 size = transform.getsize(SizeTarget::SIZE_LOCAL);
-            if (!isnear(size.z))
-            {
-                Log::Print(
-                    "Transform size Z value for 2D mesh '" + to_string(ID) 
-                    + "' must not be anything other than epsilon! Value was reset to epsilon.",
-                    "KG_MESH",
-                    LogType::LOG_WARNING);
-
-                transform.setsize({ size.x, size.y, epsilon });
-            }
-        }
-
         if (vkDescriptorSet == VK_NULL_HANDLE)
         {
             //
@@ -1804,13 +1769,13 @@ namespace KalaGraphics::Resources
             vmaMeshUBOAllocation = newAllocation;
             meshUBOMappedPtr = allocResult.pMappedData;
         }
-
-        vec3 pos_world = transform.getpos(PosTarget::POS_WORLD);
-        quat rot_world = transform.getrotquat(RotTarget::ROT_WORLD);
-        vec3 size_world = transform.getsize(SizeTarget::SIZE_WORLD);
     
         if (is2D)
         {
+            vec2 pos_world = transform2D.getpos(PosTarget::POS_WORLD);
+            f32 rot_world = transform2D.getrot(RotTarget::ROT_WORLD);
+            vec2 size_world = transform2D.getsize(SizeTarget::SIZE_WORLD);
+
             f32 fullWidth = isnear(size_world.x) ? 0 : size_world.x;
             f32 fullHeight = isnear(size_world.y) ? 0 : size_world.y;
 
@@ -1876,10 +1841,10 @@ namespace KalaGraphics::Resources
         }
         else
         {
-            meshMatrix = createmodelmatrix(
-                pos_world,
-                rot_world, 
-                size_world);
+            meshMatrix = createmodelmatrix3d(
+                transform3D.getpos(PosTarget::POS_WORLD),
+                transform3D.getrotquat(RotTarget::ROT_WORLD), 
+                transform3D.getsize(SizeTarget::SIZE_WORLD));
         }
 
         memcpy(

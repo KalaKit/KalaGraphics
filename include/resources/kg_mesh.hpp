@@ -12,6 +12,7 @@
 #include "core_utils.hpp"
 #include "math_utils.hpp"
 
+#include "core/kg_core.hpp"
 #include "core/kg_registry.hpp"
 
 struct VkBuffer_T;
@@ -31,16 +32,19 @@ namespace KalaGraphics::Core
 namespace KalaGraphics::Resources
 {
     using KalaHeaders::KalaMath::Transform3D;
+    using KalaHeaders::KalaMath::Transform2D;
     using KalaHeaders::KalaMath::mat4;
     using KalaHeaders::KalaMath::vec4;
     using KalaHeaders::KalaMath::vec3;
     using KalaHeaders::KalaMath::vec2;
 
+    using KalaGraphics::Core::KalaGraphicsCore;
     using KalaGraphics::Core::KalaGraphicsRegistry;
 
     using std::vector;
     using std::string;
     using std::filesystem::path;
+    using std::same_as;
     using std::default_delete;
 
     static constexpr u8 MIN_CUBE_EDGE_COUNT = 3;
@@ -110,7 +114,7 @@ namespace KalaGraphics::Resources
         P_CENTER = 5
     };
 
-    struct LIB_API Transform
+    struct LIB_API TransformData
     {
         //X, Y, Z (Z is unused for 2D)
         vec3 pos{};
@@ -150,6 +154,55 @@ namespace KalaGraphics::Resources
     };
 
     //TODO: add instancing
+
+    template<typename T>
+    concept TransformType =
+        same_as<T, Transform2D>
+        || same_as<T, Transform3D>;
+
+    struct LIB_API Transform
+    {
+        Transform(
+            Transform3D& transform3D,
+            Transform2D& transform2D,
+            bool is2D) :
+            transform3D(transform3D),
+            transform2D(transform2D),
+            is2D(is2D) {}
+
+        template<TransformType T>
+        constexpr operator T&()
+        {
+            if constexpr (same_as<T, Transform2D>)
+            {
+                if (!is2D)
+                {
+                    KalaGraphicsCore::ForceClose(
+                        "KalaGraphics mesh error",
+                        "Failed to get transform because 3D mesh "
+                        "does not allow to return its 2D transform!");
+                }
+
+                return transform2D;
+            }
+            else
+            {
+                if (is2D)
+                {
+                    KalaGraphicsCore::ForceClose(
+                        "KalaGraphics mesh error",
+                        "Failed to get transform because 2D mesh "
+                        "does not allow to return its 3D transform!");
+                }
+
+                return transform3D;
+            }
+        }
+    private:
+        Transform3D& transform3D;
+        Transform2D& transform2D;
+        bool is2D{};
+    };
 
     class LIB_API Mesh
     {
@@ -219,7 +272,7 @@ namespace KalaGraphics::Resources
             bool sortNow = false);
 
         KNODISCARD
-		Transform3D& GetTransform();
+        Transform GetTransform();
 
         AnchorPosition GetLocalAnchorPosition() const;
         //Automatically always updates this mesh transform position relative to local anchor,
@@ -268,7 +321,8 @@ namespace KalaGraphics::Resources
 
         bool is2D{};
 
-        Transform3D transform{};
+        Transform3D transform3D{};
+        Transform2D transform2D{};
 
         AnchorPosition localAnchor{};
         AnchorPosition viewportAnchor{};
