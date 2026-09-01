@@ -31,7 +31,8 @@ namespace KalaGraphics::Core
         u32 GetID() const;
         u32 GetContextID() const;
         u32 GetViewportID() const;
-        u32 GetMeshID() const;
+        u32 Get3DMeshID() const;
+        u32 Get2DMeshID() const;
     private:
         ~HitTest();
 
@@ -43,7 +44,14 @@ namespace KalaGraphics::Core
 
         u32 ID{};
         u32 contextID{};
+
         u32 viewportID{};
-        u32 meshID{};
+        u32 lastViewportID{};
+
+        u32 mesh3DID{};
+        u32 lastMesh3DID{};
+
+        u32 mesh2DID{};
+        u32 lastMesh2DID{};
     };
 }

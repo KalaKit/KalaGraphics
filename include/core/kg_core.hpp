@@ -34,6 +34,7 @@
 
 #include <string>
 #include <functional>
+#include <vector>
 
 #include "core_utils.hpp"
 
@@ -42,6 +43,7 @@ namespace KalaGraphics::Core
     using std::string;
     using std::string_view;
     using std::function;
+    using std::vector;
 
     static constexpr u8 MAX_NAME_LENGTH = 64;
 

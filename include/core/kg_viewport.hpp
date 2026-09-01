@@ -7,10 +7,13 @@
 
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <array>
+#include <functional>
 
 #include "core_utils.hpp"
 #include "math_utils.hpp"
+#include "key_standards.hpp"
 
 #include "core/kg_registry.hpp"
 
@@ -27,10 +30,15 @@ namespace KalaGraphics::Core
     using KalaHeaders::KalaMath::vec2;
     using KalaHeaders::KalaMath::vec4;
 
+    using KalaHeaders::KalaKeyStandards::KeyboardButton;
+    using KalaHeaders::KalaKeyStandards::MouseButton;
+
     using std::string;
     using std::string_view;
     using std::vector;
+    using std::unordered_map;
     using std::array;
+    using std::function;
     using std::default_delete;
 
     enum class ViewportAnchorPosition : u8
@@ -131,8 +139,6 @@ namespace KalaGraphics::Core
 		u32 GetID() const;
         KNODISCARD
 		u32 GetContextID() const;
-        KNODISCARD
-        u32 GetHitTestID() const;
 
         KNODISCARD
         u32 GetTargetViewportID() const;
@@ -156,6 +162,11 @@ namespace KalaGraphics::Core
 		const vector<u32>& GetExtra3DShaderIDs() const;
         KNODISCARD
 		const vector<u32>& GetExtra2DShaderIDs() const;
+
+        //Returns true if this viewport is
+        //currently being detected by the Hit Test logic
+        KNODISCARD
+        bool IsHovered() const;
 
         KNODISCARD
         bool IsVisible() const;
@@ -227,6 +238,42 @@ namespace KalaGraphics::Core
 		vec2 GetScissorOffset() const;
         void SetScissorOffset(vec2 newValue);
 
+        //Called while hovered 
+        void SetHoverCallback(function<void()>&& newValue);
+        //Called once when hover starts
+        void SetOnHoverStartCallback(function<void()>&& newValue);
+        //Called once when hover exits
+        void SetOnHoverExitCallback(function<void()>&& newValue);
+
+        void SetKeyHeldCallback(
+            KeyboardButton btn, 
+            function<void()>&& newValue);
+        void SetKeyPressedCallback(
+            KeyboardButton btn, 
+            function<void()>&& newValue);
+        void SetKeyReleasedCallback(
+            KeyboardButton btn, 
+            function<void()>&& newValue); 
+
+        void SetMouseButtonHeldCallback(
+            MouseButton btn, 
+            function<void()>&& newValue);
+        void SetMouseButtonPressedCallback(
+            MouseButton btn, 
+            function<void()>&& newValue);
+        void SetMouseButtonReleasedCallback(
+            MouseButton btn, 
+            function<void()>&& newValue);
+        void SetMouseButtonDoubleClickedCallback(
+            MouseButton btn, 
+            function<void()>&& newValue);
+        void SetMouseButtonDraggingCallback(
+            MouseButton btn, 
+            function<void(vec2)>&& newValue);
+
+        void SetScrollUpCallback(function<void(f32)>&& newValue);
+        void SetScrollDownCallback(function<void(f32)>&& newValue);
+
         void Destroy();
     private:
         ~Viewport();
@@ -292,5 +339,24 @@ namespace KalaGraphics::Core
         vec2 scissorSize{};
         //pushes the clipped area down and right if x and y are positive
         vec2 scissorOffset{};
+
+        //callbacks
+
+        function<void()> hoverCallback{};
+        function<void()> onHoverStartCallback{};
+        function<void()> onHoverExitCallback{};
+
+        unordered_map<KeyboardButton, function<void()>> keyHeldCallbacks{};
+        unordered_map<KeyboardButton, function<void()>> keyPressedCallbacks{};
+        unordered_map<KeyboardButton, function<void()>> keyReleasedCallbacks{};
+
+        unordered_map<MouseButton, function<void()>> mouseButtonHeldCallbacks{};
+        unordered_map<MouseButton, function<void()>> mouseButtonPressedCallbacks{};
+        unordered_map<MouseButton, function<void()>> mouseButtonReleasedCallbacks{};
+        unordered_map<MouseButton, function<void()>> mouseButtonDoubleClickedCallbacks{};
+        unordered_map<MouseButton, function<void(vec2)>> mouseButtonDraggingCallbacks{};
+
+        function<void(f32)> scrollUpCallback{};
+        function<void(f32)> scrollDownCallback{};
     };
 }

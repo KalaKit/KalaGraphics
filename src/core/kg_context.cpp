@@ -81,6 +81,7 @@ using std::to_string;
 using std::unordered_map;
 using std::vector;
 using std::array;
+using std::pair;
 using std::clamp;
 
 static constexpr array<const char*, 2> DEVICE_EXTENSIONS =
@@ -930,6 +931,94 @@ namespace KalaGraphics::Core
 
     void GraphicsContext::RequestRecreateSwapchain() { requestedSwapchainRecreation = true; }
 
+	const vector<KeyboardButton>& GraphicsContext::GetHeldKeys()
+	{ 
+		return heldKeys;
+	}
+	void GraphicsContext::SetHeldKeys(const vector<KeyboardButton>& newValue)
+	{
+		heldKeys = newValue;
+	}
+
+	const vector<KeyboardButton>& GraphicsContext::GetPressedKeys()
+	{ 
+		return pressedKeys;
+	}
+	void GraphicsContext::SetPressedKeys(const vector<KeyboardButton>& newValue)
+	{
+		pressedKeys = newValue;
+	}
+
+	const vector<KeyboardButton>& GraphicsContext::GetReleasedKeys()
+	{ 
+		return releasedKeys;
+	}
+	void GraphicsContext::SetReleasedKeys(const vector<KeyboardButton>& newValue)
+	{
+		releasedKeys = newValue;
+	}
+
+	const vector<MouseButton>& GraphicsContext::GetHeldMouseButtons()
+	{ 
+		return heldMouseButtons;
+	}
+	void GraphicsContext::SetHeldMouseButtons(const vector<MouseButton>& newValue)
+	{
+		heldMouseButtons = newValue;
+	}
+
+	const vector<MouseButton>& GraphicsContext::GetPressedMouseButtons()
+	{ 
+		return pressedMouseButtons;
+	}
+	void GraphicsContext::SetPressedMouseButtons(const vector<MouseButton>& newValue)
+	{
+		pressedMouseButtons = newValue;
+	}
+
+	const vector<MouseButton>& GraphicsContext::GetReleasedMouseButtons()
+	{ 
+		return releasedMouseButtons;
+	}
+	void GraphicsContext::SetReleasedMouseButtons(const vector<MouseButton>& newValue)
+	{
+		releasedMouseButtons = newValue;
+	}
+
+	const vector<MouseButton>& GraphicsContext::GetDoubleClickedMouseButtons()
+	{ 
+		return doubleClickedMouseButtons;
+	}
+	void GraphicsContext::SetDoubleClickedMouseButtons(const vector<MouseButton>& newValue)
+	{
+		doubleClickedMouseButtons = newValue;
+	}
+
+	const vector<MouseButton>& GraphicsContext::GetDraggingMouseButtons()
+	{ 
+		return draggingMouseButtons;
+	}
+	void GraphicsContext::SetDraggingMouseButtons(const vector<MouseButton>& newValue)
+	{
+		draggingMouseButtons = newValue;
+	}
+
+	f32 GraphicsContext::GetScrollWheelDelta() { return scrollWheelDelta; }
+	void GraphicsContext::SetScrollWheelDelta(f32 newValue) { scrollWheelDelta = newValue; }
+
+    void GraphicsContext::SetEarlyUpdateCallback(function<void()>&& newValue)
+    {
+        earlyUpdateCallback = std::move(newValue);
+    }
+    void GraphicsContext::SetUpdateCallback(function<void()>&& newValue)
+    {
+        updateCallback = std::move(newValue);
+    }
+    void GraphicsContext::SetLateUpdateCallback(function<void()>&& newValue)
+    {
+        lateUpdateCallback = std::move(newValue);
+    }
+
     bool GraphicsContext::_UpdateInstance()
     {
         if (logicalDevice == VK_NULL_HANDLE)
@@ -946,6 +1035,69 @@ namespace KalaGraphics::Core
             physicalDevice,
             contextData.context_vk_surface,
             &caps);
+
+        auto get_mouse_pos = [this]() -> pair<vec2, vec2>
+            {
+#if defined(KWIN_ANY)
+                POINT pt{};
+                if (!GetCursorPos(&pt)) return { -1, -1 };
+
+                HWND hwnd = ToVar<HWND>(contextData.context_window);
+                if (WindowFromPoint(pt) != hwnd) return { -1, -1 };
+
+                if (!ScreenToClient(hwnd, &pt)) return { -1, -1 };
+
+                RECT rect{};
+                if (!GetClientRect(hwnd, &rect)) return { -1, -1 };
+
+                return 
+                { 
+                    { scast<f32>(pt.x), scast<f32>(pt.y) },
+                    { scast<f32>(pt.x), scast<f32>(rect.bottom - pt.y) }
+                };
+
+#else
+                Display* display = ToVar<Display*>(contextData.context_display);
+                Window window = ToVar<Window>(contextData.context_window);
+
+                Window xquery_root{}, xquery_child{};
+                int xquery_x{}, xquery_y{}, xquery_width{}, xquery_height{};
+                unsigned int xquery_mask_return{};
+
+                if (!XQueryPointer(
+                    display, 
+                    window, 
+                    &xquery_root, 
+                    &xquery_child,
+                    &xquery_x,
+                    &xquery_y,
+                    &xquery_width,
+                    &xquery_height,
+                    &xquery_mask_return))
+                {
+                    return { -1, -1 };
+                }
+
+                XWindowAttributes attributes{};
+                if (!XGetWindowAttributes(
+                    display,
+                    window,
+                    &attributes))
+                {
+                    return { -1, -1 };
+                }
+
+                return 
+                { 
+                    { scast<f32>(xquery_width), scast<f32>(xquery_height) },
+                    { scast<f32>(xquery_width), scast<f32>(attributes.height - xquery_height) }
+                };
+#endif
+            };
+
+        pair<vec2, vec2> mousePosResult = get_mouse_pos();
+        mousePos = mousePosResult.first;
+        mousePosYReversed = mousePosResult.second;
 
         HandleResult(result, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR");
 

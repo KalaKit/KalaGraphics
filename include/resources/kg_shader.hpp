@@ -33,6 +33,7 @@ namespace KalaGraphics::Core
 {
     class GraphicsContext;
     class Viewport;
+    class HitTest;
 }
 
 namespace KalaGraphics::Resources
@@ -69,6 +70,7 @@ namespace KalaGraphics::Resources
     friend class Camera;
     friend class KalaGraphics::Core::GraphicsContext;
     friend class KalaGraphics::Core::Viewport;
+    friend class KalaGraphics::Core::HitTest;
     friend default_delete<Shader>;
     public:
         KNODISCARD

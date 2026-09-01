@@ -6,11 +6,14 @@
 #pragma once
 
 #include <vector>
+#include <unordered_map>
 #include <string>
 #include <filesystem>
+#include <functional>
 
 #include "core_utils.hpp"
 #include "math_utils.hpp"
+#include "key_standards.hpp"
 
 #include "core/kg_core.hpp"
 #include "core/kg_registry.hpp"
@@ -31,6 +34,9 @@ namespace KalaGraphics::Core
 
 namespace KalaGraphics::Resources
 {
+    using KalaGraphics::Core::KalaGraphicsCore;
+    using KalaGraphics::Core::KalaGraphicsRegistry;
+
     using KalaHeaders::KalaMath::Transform3D;
     using KalaHeaders::KalaMath::Transform2D;
     using KalaHeaders::KalaMath::mat4;
@@ -38,12 +44,16 @@ namespace KalaGraphics::Resources
     using KalaHeaders::KalaMath::vec3;
     using KalaHeaders::KalaMath::vec2;
 
-    using KalaGraphics::Core::KalaGraphicsCore;
-    using KalaGraphics::Core::KalaGraphicsRegistry;
+    using KalaHeaders::KalaKeyStandards::KeyboardButton;
+    using KalaHeaders::KalaKeyStandards::MouseButton;
 
     using std::vector;
+    using std::unordered_map;
+    using std::pair;
     using std::string;
+    using std::to_string;
     using std::filesystem::path;
+    using std::function;
     using std::same_as;
     using std::default_delete;
 
@@ -132,8 +142,6 @@ namespace KalaGraphics::Resources
         vec3 normal{};
         //U, V texture coordinates
         vec2 uv{};
-        //RGBA color - default is white
-        vec4 color = 1;
     };
     struct LIB_API Vertex2D
     {
@@ -141,8 +149,6 @@ namespace KalaGraphics::Resources
         vec2 pos{};
         //U, V texture coordinates
         vec2 uv{};
-        //RGBA color - default is white
-        vec4 color = 1;
     };
 
     //Output after generating a meshes data
@@ -162,14 +168,6 @@ namespace KalaGraphics::Resources
 
     struct LIB_API Transform
     {
-        Transform(
-            Transform3D& transform3D,
-            Transform2D& transform2D,
-            bool is2D) :
-            transform3D(transform3D),
-            transform2D(transform2D),
-            is2D(is2D) {}
-
         template<TransformType T>
         constexpr operator T&()
         {
@@ -179,7 +177,7 @@ namespace KalaGraphics::Resources
                 {
                     KalaGraphicsCore::ForceClose(
                         "KalaGraphics mesh error",
-                        "Failed to get transform because 3D mesh "
+                        "Failed to get transform because 3D mesh '" + to_string(ID) + "' "
                         "does not allow to return its 2D transform!");
                 }
 
@@ -191,7 +189,7 @@ namespace KalaGraphics::Resources
                 {
                     KalaGraphicsCore::ForceClose(
                         "KalaGraphics mesh error",
-                        "Failed to get transform because 2D mesh "
+                        "Failed to get transform because 2D mesh '" + to_string(ID) + "' "
                         "does not allow to return its 3D transform!");
                 }
 
@@ -199,9 +197,22 @@ namespace KalaGraphics::Resources
             }
         }
     private:
+        friend class Mesh;
+
+        Transform(
+            Transform3D& transform3D,
+            Transform2D& transform2D,
+            bool is2D,
+            u32 ID) :
+            transform3D(transform3D),
+            transform2D(transform2D),
+            is2D(is2D),
+            ID(ID) {}
+
         Transform3D& transform3D;
         Transform2D& transform2D;
         bool is2D{};
+        u32 ID{};
     };
 
     class LIB_API Mesh
@@ -239,8 +250,6 @@ namespace KalaGraphics::Resources
         KNODISCARD
 		u32 GetID() const;
         KNODISCARD
-        u32 GetHitTestID() const;
-        KNODISCARD
 		u32 GetCameraID() const;
 
         KNODISCARD
@@ -253,6 +262,11 @@ namespace KalaGraphics::Resources
         KNODISCARD
 		u32 GetTextureID() const;
         void SetTextureID(u32 newID);
+
+        //Returns true if this 2D or 3D mesh is
+        //currently being detected by the Hit Test logic
+        KNODISCARD
+        bool IsHovered() const;
 
         KNODISCARD
         bool IsVisible() const;
@@ -285,6 +299,10 @@ namespace KalaGraphics::Resources
         void SetViewportAnchorPosition(AnchorPosition pos);
 
         KNODISCARD
+        const vec4& GetColor() const;
+        void SetColor(vec4&& newValue);
+
+        KNODISCARD
 		const vector<Vertex>& GetVertices() const;
         KNODISCARD
 		const vector<Vertex2D>& GetVertices2D() const;
@@ -295,6 +313,54 @@ namespace KalaGraphics::Resources
 
         KNODISCARD
 		const mat4& GetMatrix() const;
+
+        //Called while hovered 
+        void SetHoverCallback(function<void()>&& newValue);
+        //Called once when hover starts
+        void SetOnHoverStartCallback(function<void()>&& newValue);
+        //Called once when hover exits
+        void SetOnHoverExitCallback(function<void()>&& newValue);
+
+        void SetKeyHeldCallback(
+            KeyboardButton btn, 
+            function<void()>&& newValue,
+            bool requireHover = true);
+        void SetKeyPressedCallback(
+            KeyboardButton btn, 
+            function<void()>&& newValue,
+            bool requireHover = true);
+        void SetKeyReleasedCallback(
+            KeyboardButton btn, 
+            function<void()>&& newValue,
+            bool requireHover = true);
+
+        void SetMouseButtonHeldCallback(
+            MouseButton btn, 
+            function<void()>&& newValue,
+            bool requireHover = true);
+        void SetMouseButtonPressedCallback(
+            MouseButton btn, 
+            function<void()>&& newValue,
+            bool requireHover = true);
+        void SetMouseButtonReleasedCallback(
+            MouseButton btn, 
+            function<void()>&& newValue,
+            bool requireHover = true);
+        void SetMouseButtonDoubleClickedCallback(
+            MouseButton btn, 
+            function<void()>&& newValue,
+            bool requireHover = true);
+        void SetMouseButtonDraggingCallback(
+            MouseButton btn, 
+            function<void(vec2)>&& newValue,
+            bool requireHover = true);
+
+        void SetScrollUpCallback(
+            function<void(f32)>&& newValue,
+            bool requireHover = true);
+        void SetScrollDownCallback(
+            function<void(f32)>&& newValue,
+            bool requireHover = true);
 
         void Destroy();
     private:
@@ -321,11 +387,16 @@ namespace KalaGraphics::Resources
 
         bool is2D{};
 
+        vec2 finalAnchorPos{};
+
         Transform3D transform3D{};
         Transform2D transform2D{};
 
         AnchorPosition localAnchor{};
         AnchorPosition viewportAnchor{};
+
+        //RGBA color - default is white
+        vec4 color = 1;
 
         //vertex data
 
@@ -354,5 +425,24 @@ namespace KalaGraphics::Resources
         void* meshUBOMappedPtr{};
 
         VkDescriptorSet vkDescriptorSet{};
+
+        //callbacks
+
+        function<void()> hoverCallback{};
+        function<void()> onHoverStartCallback{};
+        function<void()> onHoverExitCallback{};
+
+        unordered_map<KeyboardButton, pair<bool, function<void()>>> keyHeldCallbacks{};
+        unordered_map<KeyboardButton, pair<bool, function<void()>>> keyPressedCallbacks{};
+        unordered_map<KeyboardButton, pair<bool, function<void()>>> keyReleasedCallbacks{};
+
+        unordered_map<MouseButton, pair<bool, function<void()>>> mouseButtonHeldCallbacks{};
+        unordered_map<MouseButton, pair<bool, function<void()>>> mouseButtonPressedCallbacks{};
+        unordered_map<MouseButton, pair<bool, function<void()>>> mouseButtonReleasedCallbacks{};
+        unordered_map<MouseButton, pair<bool, function<void()>>> mouseButtonDoubleClickedCallbacks{};
+        unordered_map<MouseButton, pair<bool, function<void(vec2)>>> mouseButtonDraggingCallbacks{};
+
+        pair<bool, function<void(f32)>> scrollUpCallback{};
+        pair<bool, function<void(f32)>> scrollDownCallback{};
     };
 }

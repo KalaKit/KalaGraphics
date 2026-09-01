@@ -11,6 +11,7 @@
 
 #include "core_utils.hpp"
 #include "math_utils.hpp"
+#include "key_standards.hpp"
 
 #include "core/kg_registry.hpp"
 
@@ -76,6 +77,9 @@ namespace KalaGraphics::Resources
 namespace KalaGraphics::Core
 {
     using KalaHeaders::KalaMath::vec2;
+
+    using KalaHeaders::KalaKeyStandards::KeyboardButton;
+    using KalaHeaders::KalaKeyStandards::MouseButton;
 
     using std::string;
     using std::string_view;
@@ -219,6 +223,33 @@ namespace KalaGraphics::Core
         //if it has then this is ignored and reset at the end of the frame
         void RequestRecreateSwapchain();
 
+        const vector<KeyboardButton>& GetHeldKeys();
+        void SetHeldKeys(const vector<KeyboardButton>& newValue);
+
+        const vector<KeyboardButton>& GetPressedKeys();
+        void SetPressedKeys(const vector<KeyboardButton>& newValue);
+
+        const vector<KeyboardButton>& GetReleasedKeys();
+        void SetReleasedKeys(const vector<KeyboardButton>& newValue);
+
+        const vector<MouseButton>& GetHeldMouseButtons();
+        void SetHeldMouseButtons(const vector<MouseButton>& newValue);
+
+        const vector<MouseButton>& GetPressedMouseButtons();
+        void SetPressedMouseButtons(const vector<MouseButton>& newValue);
+
+        const vector<MouseButton>& GetReleasedMouseButtons();
+        void SetReleasedMouseButtons(const vector<MouseButton>& newValue);
+
+        const vector<MouseButton>& GetDoubleClickedMouseButtons();
+        void SetDoubleClickedMouseButtons(const vector<MouseButton>& newValue);
+
+        const vector<MouseButton>& GetDraggingMouseButtons();
+        void SetDraggingMouseButtons(const vector<MouseButton>& newValue);
+
+        f32 GetScrollWheelDelta();
+        void SetScrollWheelDelta(f32 newValue);
+
 		//What happens before per-context logic
 		//but after global early update
 		void SetEarlyUpdateCallback(function<void()>&& newValue);
@@ -283,6 +314,23 @@ namespace KalaGraphics::Core
 
         vec2 oldRenderSize{};
         vec2 renderSize{};
+
+        //start outside the window until mouse is moved
+        vec2 mousePos = -1;
+        //start outside the window until mouse is moved
+        vec2 mousePosYReversed = -1;
+
+        vector<KeyboardButton> pressedKeys{};
+        vector<KeyboardButton> heldKeys{};
+        vector<KeyboardButton> releasedKeys{};
+
+        vector<MouseButton> pressedMouseButtons{};
+        vector<MouseButton> heldMouseButtons{};
+        vector<MouseButton> releasedMouseButtons{};
+        vector<MouseButton> doubleClickedMouseButtons{};
+        vector<MouseButton> draggingMouseButtons{};
+
+        f32 scrollWheelDelta{};
 
 		function<void()> earlyUpdateCallback{};
 		function<void()> updateCallback{};

@@ -17,6 +17,7 @@ KG_VK_MEM_ALLOC_IGNORE_POP
 #include "resources/kg_mesh.hpp"
 #include "core/kg_context.hpp"
 #include "core/kg_viewport.hpp"
+#include "core/kg_hit_test.hpp"
 #include "resources/kg_shader.hpp"
 #include "resources/kg_texture.hpp"
 #include "resources/kg_camera.hpp"
@@ -34,6 +35,7 @@ using KalaHeaders::KalaMath::SizeTarget;
 using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Core::GraphicsContext;
 using KalaGraphics::Core::Viewport;
+using KalaGraphics::Core::HitTest;
 
 using std::to_string;
 using std::unique_ptr;
@@ -1186,7 +1188,6 @@ namespace KalaGraphics::Resources
     }
 
     u32 Mesh::GetID() const { return ID; }
-    u32 Mesh::GetHitTestID() const { return hitTestID; }
     u32 Mesh::GetCameraID() const { return cameraID; }
 
     u32 Mesh::GetShaderID() const { return shaderID; }
@@ -1315,6 +1316,8 @@ namespace KalaGraphics::Resources
             LogType::LOG_SUCCESS);
     }
 
+    bool Mesh::IsHovered() const { return hitTestID != 0; }
+
     bool Mesh::IsVisible() const { return isVisible; }
     void Mesh::SetVisibleState(bool newValue)
     {
@@ -1375,7 +1378,8 @@ namespace KalaGraphics::Resources
         {
             transform3D,
             transform2D,
-            is2D
+            is2D,
+            ID
         };
     }
 
@@ -1479,6 +1483,23 @@ namespace KalaGraphics::Resources
             LogType::LOG_SUCCESS);
     }
 
+    const vec4& Mesh::GetColor() const { return color; }
+    void Mesh::SetColor(vec4&& newValue)
+    {
+        color = kclamp(newValue, 0, 1);
+
+        string colorStr = 
+            to_string(color.x) + ", "
+            + to_string(color.y) + ", "
+            + to_string(color.z) + ", "
+            + to_string(color.w);
+
+        Log::Print(
+            "Set mesh '" + to_string(ID) + "' color to '" + colorStr + "'!",
+            "KG_MESH",
+            LogType::LOG_SUCCESS);
+    }
+
     const vector<Vertex>& Mesh::GetVertices() const { return vertices; }
     const vector<Vertex2D>& Mesh::GetVertices2D() const { return vertices2D; }
     const vector<u32>& Mesh::GetIndices() const { return indices; }
@@ -1554,6 +1575,90 @@ namespace KalaGraphics::Resources
     }
 
     const mat4& Mesh::GetMatrix() const { return meshMatrix; }
+
+    void Mesh::SetHoverCallback(function<void()>&& newValue)
+    { 
+        hoverCallback = std::move(newValue);
+    }
+    void Mesh::SetOnHoverStartCallback(function<void()>&& newValue)
+    { 
+        onHoverStartCallback = std::move(newValue);
+    }
+    void Mesh::SetOnHoverExitCallback(function<void()>&& newValue)
+    { 
+        onHoverExitCallback = std::move(newValue);
+    }
+
+    void Mesh::SetKeyHeldCallback(
+        KeyboardButton btn, 
+        function<void()>&& newValue,
+        bool requireHover)
+    {
+        keyHeldCallbacks[btn] = { requireHover, std::move(newValue) };
+    }
+    void Mesh::SetKeyPressedCallback(
+        KeyboardButton btn, 
+        function<void()>&& newValue,
+        bool requireHover)
+    {
+        keyPressedCallbacks[btn] = { requireHover, std::move(newValue) };
+    }
+    void Mesh::SetKeyReleasedCallback(
+        KeyboardButton btn, 
+        function<void()>&& newValue,
+        bool requireHover)
+    {
+        keyReleasedCallbacks[btn] = { requireHover, std::move(newValue) };
+    }
+
+    void Mesh::SetMouseButtonHeldCallback(
+        MouseButton btn, 
+        function<void()>&& newValue,
+        bool requireHover)
+    {
+        mouseButtonHeldCallbacks[btn] = { requireHover, std::move(newValue) };
+    }
+    void Mesh::SetMouseButtonPressedCallback(
+        MouseButton btn, 
+        function<void()>&& newValue,
+        bool requireHover)
+    {
+        mouseButtonPressedCallbacks[btn] = { requireHover, std::move(newValue) };
+    }
+    void Mesh::SetMouseButtonReleasedCallback(
+        MouseButton btn, 
+        function<void()>&& newValue,
+        bool requireHover)
+    {
+        mouseButtonReleasedCallbacks[btn] = { requireHover, std::move(newValue) };
+    }
+    void Mesh::SetMouseButtonDoubleClickedCallback(
+        MouseButton btn, 
+        function<void()>&& newValue,
+        bool requireHover)
+    {
+        mouseButtonDoubleClickedCallbacks[btn] = { requireHover, std::move(newValue) };
+    }
+    void Mesh::SetMouseButtonDraggingCallback(
+        MouseButton btn, 
+        function<void(vec2)>&& newValue,
+        bool requireHover)
+    {
+        mouseButtonDraggingCallbacks[btn] = { requireHover, std::move(newValue) };
+    }
+
+    void Mesh::SetScrollUpCallback(
+        function<void(f32)>&& newValue,
+        bool requireHover)
+    {
+        scrollUpCallback = { requireHover, std::move(newValue) };
+    }
+    void Mesh::SetScrollDownCallback(
+        function<void(f32)>&& newValue,
+        bool requireHover)
+    {
+        scrollDownCallback = { requireHover, std::move(newValue) };
+    }
 
     void Mesh::ClearAllData()
     {
@@ -1698,6 +1803,129 @@ namespace KalaGraphics::Resources
                 + "' data because its shader '" + to_string(shaderID) + "' viewport was invalid! Reason: " + err);
         }
 
+        GraphicsContext* gctx{};
+        err = GraphicsContext::GetRegistry().GetContent(vp->contextID, gctx);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to update mesh '" + to_string(ID) 
+                + "' data because its viewport '" + to_string(vp->GetID()) + "' graphics context was invalid! Reason: " + err);
+        }
+
+        auto is_valid_hover_state = [&](bool requireHoverState) -> bool
+            {
+                return 
+                    !requireHoverState 
+                    || IsHovered();  
+            };
+
+        //keyboard button callbacks
+
+        for (KeyboardButton key : gctx->GetHeldKeys())
+        {
+            auto it = keyHeldCallbacks.find(key);
+            if (it != keyHeldCallbacks.end()
+                && it->second.second
+                && is_valid_hover_state(it->second.first))
+            {
+                it->second.second();
+            }
+        }
+        for (KeyboardButton key : gctx->GetPressedKeys())
+        {
+            auto it = keyPressedCallbacks.find(key);
+            if (it != keyPressedCallbacks.end()
+                && it->second.second
+                && is_valid_hover_state(it->second.first))
+            {
+                it->second.second();
+            }
+        }
+        for (KeyboardButton key : gctx->GetReleasedKeys())
+        {
+            auto it = keyReleasedCallbacks.find(key);
+            if (it != keyReleasedCallbacks.end()
+                && it->second.second
+                && is_valid_hover_state(it->second.first))
+            {
+                it->second.second();
+            }
+        }
+
+        //mouse button callbacks
+
+        for (MouseButton mb : gctx->GetHeldMouseButtons())
+        {
+            auto it = mouseButtonHeldCallbacks.find(mb);
+            if (it != mouseButtonHeldCallbacks.end()
+                && it->second.second
+                && is_valid_hover_state(it->second.first))
+            {
+                it->second.second();
+            }
+        }
+        for (MouseButton mb : gctx->GetPressedMouseButtons())
+        {
+            auto it = mouseButtonPressedCallbacks.find(mb);
+            if (it != mouseButtonPressedCallbacks.end()
+                && it->second.second
+                && is_valid_hover_state(it->second.first))
+            {
+                it->second.second();
+            }
+        }
+        for (MouseButton mb : gctx->GetReleasedMouseButtons())
+        {
+            auto it = mouseButtonReleasedCallbacks.find(mb);
+            if (it != mouseButtonReleasedCallbacks.end()
+                && it->second.second
+                && is_valid_hover_state(it->second.first))
+            {
+                it->second.second();
+            }
+        }
+        for (MouseButton mb : gctx->GetDoubleClickedMouseButtons())
+        {
+            auto it = mouseButtonDoubleClickedCallbacks.find(mb);
+            if (it != mouseButtonDoubleClickedCallbacks.end()
+                && it->second.second
+                && is_valid_hover_state(it->second.first))
+            {
+                it->second.second();
+            }
+        }
+
+        for (MouseButton mb : gctx->GetDraggingMouseButtons())
+        {
+            auto it = mouseButtonDraggingCallbacks.find(mb);
+            if (it != mouseButtonDraggingCallbacks.end()
+                && it->second.second
+                && is_valid_hover_state(it->second.first))
+            {
+                it->second.second(gctx->mousePosYReversed);
+            }
+        }
+
+        //scrollwheel callbacks
+
+        f32 scrollWheelDelta = gctx->GetScrollWheelDelta();
+
+        if (scrollWheelDelta > 0
+            && scrollUpCallback.second
+            && is_valid_hover_state(scrollUpCallback.first))
+        {
+            scrollUpCallback.second(scrollWheelDelta);
+        }
+        if (scrollWheelDelta < 0
+            && scrollDownCallback.second
+            && is_valid_hover_state(scrollDownCallback.first))
+        {
+            scrollDownCallback.second(scrollWheelDelta);
+        }
+
+        //rest of update logic
+
         if (vkDescriptorSet == VK_NULL_HANDLE)
         {
             //
@@ -1834,8 +2062,11 @@ namespace KalaGraphics::Resources
                 break;
             }
 
+            //stored for hit test
+            finalAnchorPos = pos_world - localAnchorPos + viewportAnchorPos;
+
             meshMatrix = createmodelmatrix(
-                pos_world - localAnchorPos + viewportAnchorPos, 
+                finalAnchorPos, 
                 rot_world, 
                 size_world);
         }
@@ -2092,6 +2323,14 @@ namespace KalaGraphics::Resources
             erase(
                 shader->meshIDs,
                 ID);
+        }
+
+        HitTest* hitTest{};
+        err = HitTest::GetRegistry().GetContent(hitTestID, hitTest);
+        if (err.empty())
+        {
+            if (is2D) hitTest->mesh2DID = 0;
+            else      hitTest->mesh3DID = 0;
         }
 
         err = registry.DestroyContent(ID);

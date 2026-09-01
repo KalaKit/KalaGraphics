@@ -12,6 +12,7 @@
 #include "core/kg_viewport.hpp"
 #include "core/kg_core.hpp"
 #include "core/kg_context.hpp"
+#include "core/kg_hit_test.hpp"
 #include "resources/kg_shader.hpp"
 #include "resources/kg_camera.hpp"
 
@@ -222,7 +223,6 @@ namespace KalaGraphics::Core
 
     u32 Viewport::GetID() const { return ID; }
     u32 Viewport::GetContextID() const { return contextID; }
-    u32 Viewport::GetHitTestID() const { return hitTestID; }
 
     u32 Viewport::GetTargetViewportID() const { return targetViewportID; }
 
@@ -237,6 +237,8 @@ namespace KalaGraphics::Core
 
     const vector<u32>& Viewport::GetExtra3DShaderIDs() const { return extra3DShaderIDs; }
     const vector<u32>& Viewport::GetExtra2DShaderIDs() const { return extra2DShaderIDs; }
+
+    bool Viewport::IsHovered() const { return hitTestID != 0; }
 
     bool Viewport::IsVisible() const { return isVisible; }
     void Viewport::SetVisibleState(bool newValue)
@@ -757,6 +759,78 @@ namespace KalaGraphics::Core
             LogType::LOG_SUCCESS);
     }
 
+    void Viewport::SetHoverCallback(function<void()>&& newValue)
+    { 
+        hoverCallback = std::move(newValue);
+    }
+    void Viewport::SetOnHoverStartCallback(function<void()>&& newValue)
+    { 
+        onHoverStartCallback = std::move(newValue);
+    }
+    void Viewport::SetOnHoverExitCallback(function<void()>&& newValue)
+    { 
+        onHoverExitCallback = std::move(newValue);
+    }
+
+    void Viewport::SetKeyHeldCallback(
+        KeyboardButton btn, 
+        function<void()>&& newValue)
+    {
+        keyHeldCallbacks[btn] = std::move(newValue);
+    }
+    void Viewport::SetKeyPressedCallback(
+        KeyboardButton btn, 
+        function<void()>&& newValue)
+    {
+        keyPressedCallbacks[btn] = std::move(newValue);
+    }
+    void Viewport::SetKeyReleasedCallback(
+        KeyboardButton btn, 
+        function<void()>&& newValue)
+    {
+        keyReleasedCallbacks[btn] = std::move(newValue);
+    }
+
+    void Viewport::SetMouseButtonHeldCallback(
+        MouseButton btn, 
+        function<void()>&& newValue)
+    {
+        mouseButtonHeldCallbacks[btn] = std::move(newValue);
+    }
+    void Viewport::SetMouseButtonPressedCallback(
+        MouseButton btn, 
+        function<void()>&& newValue)
+    {
+        mouseButtonPressedCallbacks[btn] = std::move(newValue);
+    }
+    void Viewport::SetMouseButtonReleasedCallback(
+        MouseButton btn, 
+        function<void()>&& newValue)
+    {
+        mouseButtonReleasedCallbacks[btn] = std::move(newValue);
+    }
+    void Viewport::SetMouseButtonDoubleClickedCallback(
+        MouseButton btn, 
+        function<void()>&& newValue)
+    {
+        mouseButtonDoubleClickedCallbacks[btn] = std::move(newValue);
+    }
+    void Viewport::SetMouseButtonDraggingCallback(
+        MouseButton btn, 
+        function<void(vec2)>&& newValue)
+    {
+        mouseButtonDraggingCallbacks[btn] = std::move(newValue);
+    }
+
+    void Viewport::SetScrollUpCallback(function<void(f32)>&& newValue)
+    { 
+        scrollUpCallback = std::move(newValue);
+    }
+    void Viewport::SetScrollDownCallback(function<void(f32)>&& newValue)
+    { 
+        scrollDownCallback = std::move(newValue);
+    }
+
     void Viewport::Update(u32 imageIndex)
     {
         //don't draw hidden viewports
@@ -764,6 +838,103 @@ namespace KalaGraphics::Core
 
         GraphicsContext* gctx{};
         (void)GraphicsContext::GetRegistry().GetContent(contextID, gctx);
+
+        if (IsHovered())
+        {
+            //keyboard button callbacks
+
+            for (KeyboardButton key : gctx->GetHeldKeys())
+            {
+                auto it = keyHeldCallbacks.find(key);
+                if (it != keyHeldCallbacks.end()
+                    && it->second)
+                {
+                    it->second();
+                }
+            }
+            for (KeyboardButton key : gctx->GetPressedKeys())
+            {
+                auto it = keyPressedCallbacks.find(key);
+                if (it != keyPressedCallbacks.end()
+                    && it->second)
+                {
+                    it->second();
+                }
+            }
+            for (KeyboardButton key : gctx->GetReleasedKeys())
+            {
+                auto it = keyReleasedCallbacks.find(key);
+                if (it != keyReleasedCallbacks.end()
+                    && it->second)
+                {
+                    it->second();
+                }
+            }
+
+            //mouse button callbacks
+
+            for (MouseButton mb : gctx->GetHeldMouseButtons())
+            {
+                auto it = mouseButtonHeldCallbacks.find(mb);
+                if (it != mouseButtonHeldCallbacks.end()
+                    && it->second)
+                {
+                    it->second();
+                }
+            }
+            for (MouseButton mb : gctx->GetPressedMouseButtons())
+            {
+                auto it = mouseButtonPressedCallbacks.find(mb);
+                if (it != mouseButtonPressedCallbacks.end()
+                    && it->second)
+                {
+                    it->second();
+                }
+            }
+            for (MouseButton mb : gctx->GetReleasedMouseButtons())
+            {
+                auto it = mouseButtonReleasedCallbacks.find(mb);
+                if (it != mouseButtonReleasedCallbacks.end()
+                    && it->second)
+                {
+                    it->second();
+                }
+            }
+            for (MouseButton mb : gctx->GetDoubleClickedMouseButtons())
+            {
+                auto it = mouseButtonDoubleClickedCallbacks.find(mb);
+                if (it != mouseButtonDoubleClickedCallbacks.end()
+                    && it->second)
+                {
+                    it->second();
+                }
+            }
+
+            for (MouseButton mb : gctx->GetDraggingMouseButtons())
+            {
+                auto it = mouseButtonDraggingCallbacks.find(mb);
+                if (it != mouseButtonDraggingCallbacks.end()
+                    && it->second)
+                {
+                    it->second(gctx->mousePos);
+                }
+            }
+
+            //scrollwheel callbacks
+
+            f32 scrollWheelDelta = gctx->GetScrollWheelDelta();
+
+            if (scrollWheelDelta > 0
+                && scrollUpCallback)
+            {
+                scrollUpCallback(scrollWheelDelta);
+            }
+            if (scrollWheelDelta < 0
+                && scrollDownCallback)
+            {
+                scrollDownCallback(scrollWheelDelta);
+            }
+        }
 
         //
         // BLACK BORDERS FOR STATIC MODE
@@ -1326,8 +1497,12 @@ namespace KalaGraphics::Core
             }
         }
 
+        HitTest* hitTest{};
+        string err = HitTest::GetRegistry().GetContent(hitTestID, hitTest);
+        if (err.empty()) hitTest->viewportID = 0;
+
         Shader* p3d{};
-        string err = Shader::GetRegistry().GetContent(primary3DShaderID, p3d);
+        err = Shader::GetRegistry().GetContent(primary3DShaderID, p3d);
         if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(

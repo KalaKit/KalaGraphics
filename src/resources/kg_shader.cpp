@@ -106,13 +106,6 @@ static unique_ptr<PipelineInfo> GetPipelineInfo(
                 VK_FORMAT_R32G32_SFLOAT,
                 offsetof(Vertex2D, uv)
             });
-        pi->attributeDescriptions.push_back(
-            {
-                2,
-                0,
-                VK_FORMAT_R32G32B32A32_SFLOAT,
-                offsetof(Vertex2D, color)
-            });
     }
     else
     {
@@ -136,13 +129,6 @@ static unique_ptr<PipelineInfo> GetPipelineInfo(
                 0,
                 VK_FORMAT_R32G32_SFLOAT,
                 offsetof(Vertex, uv)
-            });
-        pi->attributeDescriptions.push_back(
-            {
-                3,
-                0,
-                VK_FORMAT_R32G32B32A32_SFLOAT,
-                offsetof(Vertex, color)
             });
     }
 
@@ -1193,6 +1179,14 @@ namespace KalaGraphics::Resources
                 &mesh->vkDescriptorSet,
                 0,
                 nullptr);
+
+            vkCmdPushConstants(
+                cmdBuffer,
+                pipelineLayout,
+                VK_SHADER_STAGE_VERTEX_BIT,
+                0,
+                sizeof(vec4),
+                &mesh->color);
 
             Texture* texture{};
             err = Texture::GetRegistry().GetContent(mesh->textureID, texture);
