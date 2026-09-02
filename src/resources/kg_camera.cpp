@@ -61,7 +61,7 @@ namespace KalaGraphics::Resources
             return nullptr;
         }
 
-        if (shader->viewportID.second == (newType == CameraType::CAM_ORTHOGRAPHIC))
+        if (shader->is2D == (newType == CameraType::CAM_ORTHOGRAPHIC))
         {
             Log::Print(
                 "Failed to create camera because camera type is not compatible with shader 2D state!",
@@ -73,7 +73,7 @@ namespace KalaGraphics::Resources
         }
 
         Viewport* vp{};
-        err = Viewport::GetRegistry().GetContent(shader->viewportID.first, vp);
+        err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
         if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(
@@ -226,12 +226,24 @@ namespace KalaGraphics::Resources
             return;
         }
 
-        if (mesh->is2D != Is2D())
+        if (mesh->is2D)
         {
             Log::Print(
                 "Failed to set camera '" + to_string(ID) 
                 + "' mesh ID to '" + to_string(newValue) 
-                + "' because mesh 2D state is not compatible with camera type!",
+                + "' because 2D meshes cannot be added to any cameras!",
+                "KG_CAMERA",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+        if (Is2D())
+        {
+            Log::Print(
+                "Failed to set camera '" + to_string(ID) 
+                + "' mesh ID to '" + to_string(newValue) 
+                + "' because 2D cameras cannot be given a mesh!",
                 "KG_CAMERA",
                 LogType::LOG_ERROR,
                 2);
@@ -307,8 +319,6 @@ namespace KalaGraphics::Resources
             //reassign descriptor set data because we have a new mesh
             isDirty = true;
 
-            UpdateCameraData();
-
             Log::Print(
                 "Set camera '" + to_string(ID) 
                 + "' mesh ID to '" + to_string(meshID) + "'!",
@@ -330,8 +340,16 @@ namespace KalaGraphics::Resources
         f32 vertical,
         f32 deltaTime)
     {
+        Shader* shader{};
+        string err = Shader::GetRegistry().GetContent(shaderID, shader);
+        if (err.empty()
+            && !Is2D())
+        {
+            shader->isMeshSortDirty = true;
+        }
+
         Viewport* vp{};
-        string err = Viewport::GetRegistry().GetContent(viewportID, vp);
+        err = Viewport::GetRegistry().GetContent(viewportID, vp);
         if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(

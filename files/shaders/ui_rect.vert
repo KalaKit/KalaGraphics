@@ -16,10 +16,12 @@ layout(set = 1, binding = 0) uniform Mesh
 layout(push_constant) uniform PushConstants
 {
     vec4 color;
+    uint isTransparent;
 } pushData;
 
 layout(location = 0) out vec2 outUV;
 layout(location = 1) out vec4 outColor;
+layout(location = 2) flat out uint outIsTransparent;
 
 void main()
 {
@@ -30,4 +32,5 @@ void main()
 
     outUV = inUV;
     outColor = pushData.color;
+    outIsTransparent = pushData.isTransparent;
 }

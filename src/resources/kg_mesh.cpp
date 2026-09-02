@@ -47,130 +47,6 @@ namespace KalaGraphics::Resources
 
     KalaGraphicsRegistry<Mesh>& Mesh::GetRegistry() { return registry; }
 
-    Mesh* Mesh::Initialize(
-        u32 shaderID,
-        u32 textureID)
-    {
-        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
-        if (logicalDevice == VK_NULL_HANDLE)
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics mesh error",
-                "Failed to create mesh because the logical device was invalid!");
-        }
-
-        Shader* shader{};
-        string err = Shader::GetRegistry().GetContent(shaderID, shader);
-        if (!err.empty())
-        {
-            Log::Print(
-                "Failed to create mesh because the shader was invalid! Reason: " + err,
-                "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
-
-            return nullptr;
-        }
-
-        //TODO: figure out a better solution
-        if (shader->descriptorSetLayouts.empty())
-        {
-            Log::Print(
-                "Failed to create mesh because the shader '" 
-                + to_string(shaderID) + "' had no shader data!",
-                "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
-
-            return nullptr;
-        }
-
-        Texture* texture{};
-        err = Texture::GetRegistry().GetContent(textureID, texture);
-        if (!err.empty())
-        {
-            Log::Print(
-                "Failed to create mesh because the texture was invalid! Reason: " + err,
-                "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
-
-            return nullptr;
-        }
-
-        unique_ptr<Mesh> newMesh = make_unique<Mesh>();
-        Mesh* meshPtr = newMesh.get();
-
-        u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
-        KalaGraphicsCore::SetGlobalID(newID);
-
-        meshPtr->ID = newID;
-        meshPtr->shaderID = shaderID;
-        meshPtr->textureID = textureID;
-
-        //texture references this mesh
-        texture->meshIDs.push_back(newID);
-
-        //shader references this mesh
-        shader->meshIDs.push_back(newID);
-
-        meshPtr->isBufferDataDirty = true;
-        meshPtr->is2D = shader->Is2D();
-
-        err = registry.AddContent(newID, std::move(newMesh));
-        if (!err.empty())
-        {
-			KalaGraphicsCore::ForceClose(
-				"KalaGraphics mesh error",
-				"Failed to initialize mesh! Reason: " + err);
-        }
-
-        Log::Print(
-			"Created new mesh '" + to_string(newID) 
-            + "' for shader '" + to_string(shaderID) + "'!",
-			"KG_MESH",
-			LogType::LOG_SUCCESS);
-
-        return meshPtr;
-    }
-
-    MeshData Mesh::GenerateMeshData()
-    {
-        return 
-        {
-            .vertices2D =
-            {
-                //bottom-left
-                {
-                    .pos = { -0.5f, -0.5f },
-                    .uv = { 0.0f, 0.0f }
-                },
-
-                //bottom-right
-                {
-                    .pos = { 0.5f, -0.5f },
-                    .uv = { 1.0f, 0.0f }
-                },
-
-                //top-right
-                {
-                    .pos = { 0.5f, 0.5f },
-                    .uv = { 1.0f, 1.0f }
-                },
-
-                //top-left
-                {
-                    .pos = { -0.5f, 0.5f },
-                    .uv = { 0.0f, 1.0f }
-                }
-            },
-            .indices =
-            {
-                0, 2, 1,
-                0, 3, 2
-            }
-        };
-    }
     MeshData Mesh::GenerateMeshData(Mesh_Cube cubeData)
     {
         if (cubeData.edgeCount < MIN_CUBE_EDGE_COUNT)
@@ -268,29 +144,29 @@ namespace KalaGraphics::Resources
                     normal = -normal;
                 }
 
-                const u32 index = scast<u32>(data.vertices3D.size());
+                const u32 index = scast<u32>(data.vertices.size());
 
-                data.vertices3D.push_back(
+                data.vertices.push_back(
                 {
                     .pos = bottom0,
                     .normal = normal
                 });
 
-                data.vertices3D.push_back(
+                data.vertices.push_back(
                 {
                     .pos = bottom1,
                     .normal = normal,
                     .uv = { 1.0f, 0.0f }
                 });
 
-                data.vertices3D.push_back(
+                data.vertices.push_back(
                 {
                     .pos = top1,
                     .normal = normal,
                     .uv = 1.0f
                 });
 
-                data.vertices3D.push_back(
+                data.vertices.push_back(
                 {
                     .pos = top0,
                     .normal = normal,
@@ -365,14 +241,14 @@ namespace KalaGraphics::Resources
                     scast<f64>(i) 
                     / cubeData.edgeCount);
 
-                data.vertices3D.push_back(
+                data.vertices.push_back(
                 {
                    .pos = bottomPos,
                    .normal = normal,
                    .uv = { u, 0.0f } 
                 });
 
-                data.vertices3D.push_back(
+                data.vertices.push_back(
                 {
                    .pos = topPos,
                    .normal = normal,
@@ -420,7 +296,7 @@ namespace KalaGraphics::Resources
         //
 
         //generate top cap
-        const u32 topCenter = scast<u32>(data.vertices3D.size());
+        const u32 topCenter = scast<u32>(data.vertices.size());
 
         vec3 topNormal = { 0.0f, 1.0f, 0.0f };
         if (cubeData.faceDir == FaceDirection::F_IN)
@@ -428,7 +304,7 @@ namespace KalaGraphics::Resources
             topNormal = -topNormal;
         }
 
-        data.vertices3D.push_back(
+        data.vertices.push_back(
         {
             .pos = { 0.0f, scast<f32>(top), 0.0f },
             .normal = topNormal,
@@ -453,7 +329,7 @@ namespace KalaGraphics::Resources
                 (pos.z / scast<f32>(radius) + 1.0f) * 0.5f
             };
 
-            data.vertices3D.push_back(
+            data.vertices.push_back(
             {
                .pos = pos,
                .normal = topNormal,
@@ -496,7 +372,7 @@ namespace KalaGraphics::Resources
         //
 
         //generate bottom cap
-        const u32 bottomCenter = scast<u32>(data.vertices3D.size());
+        const u32 bottomCenter = scast<u32>(data.vertices.size());
 
         vec3 bottomNormal = { 0.0f, -1.0f, 0.0f };
         if (cubeData.faceDir == FaceDirection::F_IN)
@@ -504,7 +380,7 @@ namespace KalaGraphics::Resources
             bottomNormal = -bottomNormal;
         }
 
-        data.vertices3D.push_back(
+        data.vertices.push_back(
         {
             .pos = { 0.0f, scast<f32>(bottom), 0.0f },
             .normal = bottomNormal,
@@ -529,7 +405,7 @@ namespace KalaGraphics::Resources
                 (pos.z / scast<f32>(radius) + 1.0f) * 0.5f
             };
 
-            data.vertices3D.push_back(
+            data.vertices.push_back(
             {
                .pos = pos,
                .normal = bottomNormal,
@@ -671,22 +547,22 @@ namespace KalaGraphics::Resources
                     normal = -normal;
                 }
 
-                const u32 index = scast<u32>(data.vertices3D.size());
+                const u32 index = scast<u32>(data.vertices.size());
 
-                data.vertices3D.push_back(
+                data.vertices.push_back(
                 {
                     .pos = bottom0,
                     .normal = normal
                 });
 
-                data.vertices3D.push_back(
+                data.vertices.push_back(
                 {
                     .pos = bottom1,
                     .normal = normal,
                     .uv = { 1.0f, 0.0f }
                 });
 
-                data.vertices3D.push_back(
+                data.vertices.push_back(
                 {
                     .pos = tip,
                     .normal = normal,
@@ -762,7 +638,7 @@ namespace KalaGraphics::Resources
                     scast<f64>(i)
                     / pyramidData.edgeCount);
 
-                data.vertices3D.push_back(
+                data.vertices.push_back(
                 {
                    .pos = bottomPos,
                    .normal = normal,
@@ -771,7 +647,7 @@ namespace KalaGraphics::Resources
 
                 //the tip is duplicated so each section can carry
                 //its corresponding smooth normal and UV
-                data.vertices3D.push_back(
+                data.vertices.push_back(
                 {
                    .pos = tipPos,
                    .normal = normal,
@@ -810,7 +686,7 @@ namespace KalaGraphics::Resources
         // BOTTOM CAP
         //
 
-        const u32 bottomCenter = scast<u32>(data.vertices3D.size());
+        const u32 bottomCenter = scast<u32>(data.vertices.size());
 
         vec3 bottomNormal = { 0.0f, -1.0f, 0.0f };
 
@@ -819,7 +695,7 @@ namespace KalaGraphics::Resources
             bottomNormal = -bottomNormal;
         }
 
-        data.vertices3D.push_back(
+        data.vertices.push_back(
         {
            .pos = { 0.0f, scast<f32>(bottom), 0.0f },
            .normal = bottomNormal,
@@ -844,7 +720,7 @@ namespace KalaGraphics::Resources
                 (pos.z / scast<f32>(radius) + 1.0f) * 0.5f
             };
 
-            data.vertices3D.push_back(
+            data.vertices.push_back(
             {
                 .pos = pos,
                 .normal = bottomNormal,
@@ -983,23 +859,23 @@ namespace KalaGraphics::Resources
                         normal = -normal;
                     }
 
-                    const u32 index = scast<u32>(data.vertices3D.size());
+                    const u32 index = scast<u32>(data.vertices.size());
 
-                    data.vertices3D.push_back(
+                    data.vertices.push_back(
                     {
                         .pos = pos0,
                         .normal = normal,
                         .uv = uv0 
                     });
 
-                    data.vertices3D.push_back(
+                    data.vertices.push_back(
                     {
                         .pos = pos1,
                         .normal = normal,
                         .uv = uv1 
                     });
 
-                    data.vertices3D.push_back(
+                    data.vertices.push_back(
                     {
                         .pos = pos2,
                         .normal = normal,
@@ -1111,7 +987,7 @@ namespace KalaGraphics::Resources
 
                     const f32 u = scast<f32>(scast<f64>(longitude) / longitudeCount);
 
-                    data.vertices3D.push_back(
+                    data.vertices.push_back(
                     {
                         .pos = pos,
                         .normal = normal,
@@ -1187,6 +1063,132 @@ namespace KalaGraphics::Resources
         return data;
     }
 
+    Mesh* Mesh::Initialize(
+        u32 shaderID,
+        u32 textureID)
+    {
+        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
+        if (logicalDevice == VK_NULL_HANDLE)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to create mesh because the logical device was invalid!");
+        }
+
+        Shader* shader{};
+        string err = Shader::GetRegistry().GetContent(shaderID, shader);
+        if (!err.empty())
+        {
+            Log::Print(
+                "Failed to create mesh because the shader was invalid! Reason: " + err,
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return nullptr;
+        }
+
+        //TODO: figure out a better solution
+        if (shader->descriptorSetLayouts.empty())
+        {
+            Log::Print(
+                "Failed to create mesh because the shader '" 
+                + to_string(shaderID) + "' had no shader data!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return nullptr;
+        }
+
+        Texture* texture{};
+        err = Texture::GetRegistry().GetContent(textureID, texture);
+        if (!err.empty())
+        {
+            Log::Print(
+                "Failed to create mesh because the texture was invalid! Reason: " + err,
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return nullptr;
+        }
+
+        unique_ptr<Mesh> newMesh = make_unique<Mesh>();
+        Mesh* meshPtr = newMesh.get();
+
+        u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
+        KalaGraphicsCore::SetGlobalID(newID);
+
+        meshPtr->ID = newID;
+        meshPtr->shaderID = shaderID;
+        meshPtr->textureID = textureID;
+
+        //texture references this mesh
+        texture->meshIDs.push_back(newID);
+
+        //shader references this mesh
+        shader->meshIDs.push_back(newID);
+
+        meshPtr->isBufferDataDirty = true;
+        meshPtr->is2D = shader->is2D;
+
+        if (meshPtr->is2D)
+        {
+            meshPtr->vertices2D =
+            {
+                //bottom-left
+                {
+                    .pos = { -0.5f, -0.5f },
+                    .uv = { 0.0f, 0.0f }
+                },
+
+                //bottom-right
+                {
+                    .pos = { 0.5f, -0.5f },
+                    .uv = { 1.0f, 0.0f }
+                },
+
+                //top-right
+                {
+                    .pos = { 0.5f, 0.5f },
+                    .uv = { 1.0f, 1.0f }
+                },
+
+                //top-left
+                {
+                    .pos = { -0.5f, 0.5f },
+                    .uv = { 0.0f, 1.0f }
+                }
+            };
+            meshPtr->indices =
+            {
+                0, 2, 1,
+                0, 3, 2
+            };
+
+            meshPtr->isMeshDataDirty = true;
+        }
+
+        shader->isMeshSortDirty = true;
+
+        err = registry.AddContent(newID, std::move(newMesh));
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics mesh error",
+				"Failed to initialize mesh! Reason: " + err);
+        }
+
+        Log::Print(
+			"Created new mesh '" + to_string(newID) 
+            + "' for shader '" + to_string(shaderID) + "'!",
+			"KG_MESH",
+			LogType::LOG_SUCCESS);
+
+        return meshPtr;
+    }
+
     u32 Mesh::GetID() const { return ID; }
     u32 Mesh::GetCameraID() const { return cameraID; }
 
@@ -1230,22 +1232,20 @@ namespace KalaGraphics::Resources
             return;
         }
 
-        if (oldShader->viewportID.second
-            != shader->viewportID.second)
+        if (shader->is2D != is2D)
         {
             Log::Print(
-                "Clearing all data for mesh '" + to_string(ID) 
-                + "' because new shader '" + to_string(shader->ID) 
+                "Failed to update mesh '" + to_string(ID) 
+                + "' shader because new shader '" + to_string(shader->ID) 
                 + "' 2D state does not match old shader '" + to_string(oldShader->ID) + "' 2D state!",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::LOG_ERROR,
+                2);
 
-            ClearAllData();
-            UpdateMeshData();
+            return;
         }
 
         shaderID = newValue;
-        is2D = shader->Is2D();
 
         erase(
             oldShader->meshIDs,
@@ -1321,8 +1321,34 @@ namespace KalaGraphics::Resources
     bool Mesh::IsVisible() const { return isVisible; }
     void Mesh::SetVisibleState(bool newValue)
     {
-        isVisible = newValue;
+        if (newValue == isVisible)
+        {
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) + "' "
+                "visible state because it already is the same!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
 
+            return;
+        }
+
+        if (shaderID != 0)
+        {
+            Shader* shader{};
+            string err = Shader::GetRegistry().GetContent(shaderID, shader);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics mesh error",
+                    "Failed to update mesh '" + to_string(ID) + "' "
+                    "visible state because its shader was invalid! Reason: " + err);
+            }
+
+            shader->isMeshSortDirty = true;
+        }
+
+        isVisible = newValue;
         string val = isVisible ? "true" : "false";
 
         Log::Print(
@@ -1335,9 +1361,7 @@ namespace KalaGraphics::Resources
     bool Mesh::Is2D() const { return is2D; }
 
     u16 Mesh::GetDrawOrderIndex() const { return drawOrderIndex; }
-    void Mesh::SetDrawOrderIndex(
-        u16 newValue,
-        bool sortNow)
+    void Mesh::SetDrawOrderIndex(u16 newValue)
     {
         Shader* shader{};
         string err = Shader::GetRegistry().GetContent(shaderID, shader);
@@ -1362,9 +1386,7 @@ namespace KalaGraphics::Resources
         }
 
         drawOrderIndex = newValue;
-
-        if (!sortNow) shader->is2DMeshSortDirty = true;
-        else shader->Sort2DMeshes();
+        shader->isMeshSortDirty = true;
 
         Log::Print(
             "Set mesh '" + to_string(ID) + "' draw order index to '" + to_string(drawOrderIndex) + "'.",
@@ -1494,8 +1516,57 @@ namespace KalaGraphics::Resources
             + to_string(color.z) + ", "
             + to_string(color.w);
 
+        if (!isnear(color.w, 1.0f)
+            && isTransparent != 1)
+        {
+            Log::Print(
+                "Mesh '" + to_string(ID) + "' color alpha "
+                "was set below 1.0 but transparency is not enabled.",
+                "KG_MESH",
+                LogType::LOG_WARNING);
+        }
+
         Log::Print(
             "Set mesh '" + to_string(ID) + "' color to '" + colorStr + "'!",
+            "KG_MESH",
+            LogType::LOG_SUCCESS);
+    }
+
+    bool Mesh::IsTransparent() const { return isTransparent; }
+    void Mesh::SetTransparentState(bool newValue)
+    {
+        if (newValue == isTransparent)
+        {
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) + "' "
+                "transparent state because it already is the same!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (shaderID != 0)
+        {
+            Shader* shader{};
+            string err = Shader::GetRegistry().GetContent(shaderID, shader);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics mesh error",
+                    "Failed to update mesh '" + to_string(ID) + "' "
+                    "transparency state because its shader was invalid! Reason: " + err);
+            }
+
+            shader->isMeshSortDirty = true;
+        }
+
+        isTransparent = newValue;
+        string transparentStr = newValue ? "true" : "false";
+
+        Log::Print(
+            "Set mesh '" + to_string(ID) + "' transparent state to '" + transparentStr + "'!",
             "KG_MESH",
             LogType::LOG_SUCCESS);
     }
@@ -1506,24 +1577,11 @@ namespace KalaGraphics::Resources
 
     void Mesh::SetMeshData(MeshData&& meshData)
     {
-        if (is2D
-            && !meshData.vertices3D.empty())
+        if (is2D)
         {
             Log::Print(
-                "Failed to set mesh '" + to_string(ID) + "' vertices "
-                "because user attempted to set 3D vertices to 2D mesh!",
-                "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-        else if (!is2D
-                 && !meshData.vertices2D.empty())
-        {
-            Log::Print(
-                "Failed to set mesh '" + to_string(ID) + "' vertices "
-                "because user attempted to set 2D vertices to 3D mesh!",
+                "Failed to set mesh '" + to_string(ID) + "' data "
+                "because 2D mesh data cannot be updated!",
                 "KG_MESH",
                 LogType::LOG_ERROR,
                 2);
@@ -1531,39 +1589,19 @@ namespace KalaGraphics::Resources
             return;
         }
 
-        if (!is2D)
+        if (meshData.vertices.empty())
         {
-            if (meshData.vertices3D.empty())
-            {
-                Log::Print(
-                    "Failed to set mesh '" + to_string(ID) + "' vertices "
-                    "because no 3D vertex data was passed!",
-                    "KG_MESH",
-                    LogType::LOG_ERROR,
-                    2);
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) + "' vertices "
+                "because no 3D vertex data was passed!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
 
-                return;
-            }
-
-            vertices = std::move(meshData.vertices3D);
-        }
-        else
-        {
-            if (meshData.vertices2D.empty())
-            {
-                Log::Print(
-                    "Failed to set mesh '" + to_string(ID) + "' vertices "
-                    "because no 2D vertex data was passed!",
-                    "KG_MESH",
-                    LogType::LOG_ERROR,
-                    2);
-
-                return;
-            }
-
-            vertices2D = std::move(meshData.vertices2D);
+            return;
         }
 
+        vertices = std::move(meshData.vertices);
         indices = std::move(meshData.indices);
 
         isMeshDataDirty = true;
@@ -1794,7 +1832,7 @@ namespace KalaGraphics::Resources
         }
 
         Viewport* vp{};
-        err = Viewport::GetRegistry().GetContent(shader->viewportID.first, vp);
+        err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
         if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(
@@ -2323,6 +2361,8 @@ namespace KalaGraphics::Resources
             erase(
                 shader->meshIDs,
                 ID);
+
+            shader->isMeshSortDirty = true;
         }
 
         HitTest* hitTest{};

@@ -154,8 +154,7 @@ namespace KalaGraphics::Resources
     //Output after generating a meshes data
     struct LIB_API MeshData
     {
-        vector<Vertex> vertices3D{};
-        vector<Vertex2D> vertices2D{};
+        vector<Vertex> vertices{};
         vector<u32> indices{};
     };
 
@@ -226,7 +225,9 @@ namespace KalaGraphics::Resources
         KNODISCARD
 		static KalaGraphicsRegistry<Mesh>& GetRegistry();
 
-        //Create a blank mesh,
+        //Create a new mesh, mesh type is derived from shader,
+        //2D mesh creates its own canonical data during initialization, 
+        //3D mesh stays empty and must be updated via SetMeshData, 
         //all meshes require a shader even if that shader is also blank,
         //all meshes require a texture even if that texture is also a default 1x1 texture
         KNODISCARD
@@ -234,9 +235,6 @@ namespace KalaGraphics::Resources
             u32 shaderID,
             u32 textureID);
 
-        //Generate a 2D quad
-        KNODISCARD
-		static MeshData GenerateMeshData();
         //Generate a 3D cube or 3D cylinder
         KNODISCARD
 		static MeshData GenerateMeshData(Mesh_Cube cubeData);
@@ -254,9 +252,8 @@ namespace KalaGraphics::Resources
 
         KNODISCARD
         u32 GetShaderID() const;
-        //Changing to a shader whose 2D state doesn't match the old shader 2D state
-        //will recreate this mesh data and detach camera,
-        //UpdateMeshData is called internally on success
+        //Swap mesh shader at runtime, not allowed to switch to a
+        //3D shader if mesh is 2D and vice versa
         void SetShaderID(u32 newID);
 
         KNODISCARD
@@ -277,13 +274,9 @@ namespace KalaGraphics::Resources
 
         KNODISCARD
         u16 GetDrawOrderIndex() const;
-        //Set the mesh draw order, set sortNow to true
-        //if you want this call to sort all meshes, 
-        //otherwise the next global update will sort all meshes,
-        //not used for 3D meshes
-        void SetDrawOrderIndex(
-            u16 newValue,
-            bool sortNow = false);
+        //Set the mesh draw order, not used for 3D meshes,
+        //the next global update will sort all meshes
+        void SetDrawOrderIndex(u16 newValue);
 
         KNODISCARD
         Transform GetTransform();
@@ -303,12 +296,19 @@ namespace KalaGraphics::Resources
         void SetColor(vec4&& newValue);
 
         KNODISCARD
+        bool IsTransparent() const;
+        //If true, then this mesh is filtered separately from opaque models
+        //and allows to use .w in color and textures
+        void SetTransparentState(bool newValue);
+
+        KNODISCARD
 		const vector<Vertex>& GetVertices() const;
         KNODISCARD
 		const vector<Vertex2D>& GetVertices2D() const;
         KNODISCARD
 		const vector<u32>& GetIndices() const;
 
+        //Only for 3D meshes, allows runtime data modification
         void SetMeshData(MeshData&& meshData);
 
         KNODISCARD
@@ -391,12 +391,15 @@ namespace KalaGraphics::Resources
 
         Transform3D transform3D{};
         Transform2D transform2D{};
+        vec3 lastPos{}; //used for detecting if mesh has moved
 
         AnchorPosition localAnchor{};
         AnchorPosition viewportAnchor{};
 
         //RGBA color - default is white
         vec4 color = 1;
+        //shader stores as u32 instead of bool
+        u32 isTransparent{};
 
         //vertex data
 

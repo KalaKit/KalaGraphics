@@ -269,8 +269,6 @@ namespace KalaGraphics::Resources
     u32 Texture::GetShaderID() const { return shaderID; }
     void Texture::SetShaderID(u32 newValue)
     {
-        //TODO: figure out if changing shader messes up meshes
-        
         if (shaderID == newValue)
         {
             Log::Print(
@@ -318,8 +316,28 @@ namespace KalaGraphics::Resources
         }
         shader->textureIDs.push_back(ID);
 
-        //TODO: must detach meshes from old shader that are attached
-        //to this texture but no longer share this texture shader ID
+        //detach all meshes
+        for (u32 mID : meshIDs)
+        {
+            Mesh* m{};
+            string err = Mesh::GetRegistry().GetContent(mID, m);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics texture error",
+                    "Failed to set texture '" + to_string(ID) 
+                    + "' shader ID because the texture's mesh was invalid! Reason: " + err);
+            }
+
+            m->textureID = 0;
+
+            Log::Print(
+                "Mesh '" + to_string(mID) + "' texture '" + to_string(ID) 
+                + "' was detached because the texture's shader was changed.",
+                "KG_TEXTURE",
+                LogType::LOG_WARNING);
+        }
+        meshIDs.clear();
 
         Log::Print(
             "Set texture '" + to_string(ID) 
@@ -964,7 +982,7 @@ namespace KalaGraphics::Resources
         }
 
         Viewport* vp{};
-        err = Viewport::GetRegistry().GetContent(shader->viewportID.first, vp);
+        err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
         if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(

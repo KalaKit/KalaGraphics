@@ -88,9 +88,8 @@ namespace KalaGraphics::Resources
 
         KNODISCARD
 		u32 GetID() const;
-        KNODISCARD
-        //.second is true if this shader belongs to the viewport 3D shaders container 
-		pair<u32, bool> GetViewportID() const;
+        KNODISCARD 
+		u32 GetViewportID() const;
         KNODISCARD
 		const vector<u32>& GetMeshIDs() const;
         KNODISCARD
@@ -110,32 +109,35 @@ namespace KalaGraphics::Resources
 
         static void DestroyVkShaderModules(vector<VkShaderModule> modules);
 
-        void Sort2DMeshes();
+        void SortMeshes();
 
         void Update(VkCommandBuffer buffer);
+
+        u32 ID{};
+        u32 viewportID{};
+
+        vector<u32> textureIDs{};
+        vector<u32> cameraIDs{};
+        vector<u32> meshIDs{};
+
+        vector<u32> sortedOpaqueMeshes{};
+        vector<u32> sortedTransparentMeshes{};
+
+        u8 missingViewportWarningCount{};
+        u8 missingPipelineWarningCount{};
+        u8 missingMeshWarningCount{};
 
         //used only to prevent shader from removing its ID from
         //viewport shader IDs list if the viewport
         //destroy function called the destroy function of this shader 
         bool isDestroyingViewport{};
 
-        bool is2DMeshSortDirty{};
+        bool is2D{};
+
+        bool isMeshSortDirty{};
 
         bool hasDrawn3DCamera{};
         bool hasDrawn2DCamera{};
-
-        u32 ID{};
-
-        //first is viewport ID, second is viewport stage type (2D or 3D)
-        pair<u32, bool> viewportID{};
-
-        vector<u32> textureIDs{};
-        vector<u32> cameraIDs{};
-        vector<u32> meshIDs{};
-
-        u8 missingViewportWarningCount{};
-        u8 missingPipelineWarningCount{};
-        u8 missingMeshWarningCount{};
 
         ShaderModuleData shaderModuleData{};
         vector<VkDescriptorSetLayout> descriptorSetLayouts{};
