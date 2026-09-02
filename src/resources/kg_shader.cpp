@@ -1059,11 +1059,13 @@ namespace KalaGraphics::Resources
             sortedTransparentMeshes.push_back(m->ID);
         }
 
+        /*
         Log::Print(
             "@@@@@\n"
             "sorted '" + to_string(sortedOpaqueMeshes.size()) + "' opaque meshes "
             "and '" + to_string(sortedTransparentMeshes.size()) + "' transparent meshes "
             "for shader '" + to_string(ID) + "'");
+        */
 
         isMeshSortDirty = false;
     }
