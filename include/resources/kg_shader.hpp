@@ -14,9 +14,6 @@
 
 #include "core/kg_registry.hpp"
 
-struct VkCommandBuffer_T;
-using VkCommandBuffer = VkCommandBuffer_T*;
-
 struct VkShaderModule_T;
 using VkShaderModule = VkShaderModule_T*;
 
@@ -109,10 +106,6 @@ namespace KalaGraphics::Resources
 
         static void DestroyVkShaderModules(vector<VkShaderModule> modules);
 
-        void SortMeshes();
-
-        void Update(VkCommandBuffer buffer);
-
         u32 ID{};
         u32 viewportID{};
 
@@ -120,21 +113,12 @@ namespace KalaGraphics::Resources
         vector<u32> cameraIDs{};
         vector<u32> meshIDs{};
 
-        vector<u32> sortedOpaqueMeshes{};
-        vector<u32> sortedTransparentMeshes{};
-
-        u8 missingViewportWarningCount{};
-        u8 missingPipelineWarningCount{};
-        u8 missingMeshWarningCount{};
-
         //used only to prevent shader from removing its ID from
         //viewport shader IDs list if the viewport
         //destroy function called the destroy function of this shader 
         bool isDestroyingViewport{};
 
         bool is2D{};
-
-        bool isMeshSortDirty{};
 
         bool hasDrawn3DCamera{};
         bool hasDrawn2DCamera{};

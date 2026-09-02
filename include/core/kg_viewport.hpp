@@ -278,6 +278,9 @@ namespace KalaGraphics::Core
     private:
         ~Viewport();
 
+        void Sort3DMeshes();
+        void Sort2DMeshes();
+
         void Update(u32 imageIndex);
 
         void UpdateViewportSize();
@@ -296,11 +299,20 @@ namespace KalaGraphics::Core
         vector<u32> extra3DCameraIDs{};
         vector<u32> extra2DCameraIDs{};
 
+        //the last shader that was bound during runtime loop
+        u32 lastBoundShaderID{};
+
         u32 primary3DShaderID{};
         u32 primary2DShaderID{};
 
         vector<u32> extra3DShaderIDs{};
         vector<u32> extra2DShaderIDs{};
+
+        vector<u32> sorted3DOpaqueMeshes{};
+        vector<u32> sorted3DTransparentMeshes{};
+
+        vector<u32> sorted2DOpaqueMeshes{};
+        vector<u32> sorted2DTransparentMeshes{};
 
         //used only to prevent viewport from removing its ID from
         //graphics context viewport IDs list if the graphics context
@@ -313,6 +325,9 @@ namespace KalaGraphics::Core
         bool isOffscreenViewport{};
 
         bool isDynamicResizeEnabled = true;
+
+        bool is3DMeshSortDirty{};
+        bool is2DMeshSortDirty{};
 
         ViewportType viewportType{};
 

@@ -340,16 +340,8 @@ namespace KalaGraphics::Resources
         f32 vertical,
         f32 deltaTime)
     {
-        Shader* shader{};
-        string err = Shader::GetRegistry().GetContent(shaderID, shader);
-        if (err.empty()
-            && !Is2D())
-        {
-            shader->isMeshSortDirty = true;
-        }
-
         Viewport* vp{};
-        err = Viewport::GetRegistry().GetContent(viewportID, vp);
+        string err = Viewport::GetRegistry().GetContent(viewportID, vp);
         if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(
@@ -357,6 +349,8 @@ namespace KalaGraphics::Resources
                 "Failed to update camera '" + to_string(ID) 
                 + "' data because its viewport was invalid! Reason: " + err);
         }
+
+        if (!Is2D()) vp->is3DMeshSortDirty = true;
 
         mouse = kclamp(mouse, -MOUSE_MAX, MOUSE_MAX);
         keyboard = kclamp(keyboard, -1, 1);

@@ -34,6 +34,11 @@ using VkImageView = VkImageView_T*;
 struct VkCommandBuffer_T;
 using VkCommandBuffer = VkCommandBuffer_T*;
 
+namespace KalaGraphics::Core
+{
+    class Viewport;
+};
+
 namespace KalaGraphics::Resources
 {
     using KalaHeaders::KalaMath::vec2;
@@ -171,6 +176,7 @@ namespace KalaGraphics::Resources
     {
     friend class Shader;
     friend class Mesh;
+    friend class KalaGraphics::Core::Viewport;
     friend struct default_delete<Texture>;
     public:
         KNODISCARD

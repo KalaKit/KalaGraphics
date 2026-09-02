@@ -245,7 +245,6 @@ namespace KalaGraphics::Resources
         texPtr->SetMipMapCount(textureData.mipMapCount);
 
         texPtr->isDirty = true;
-        texPtr->UpdateTextureData();
 
         err = registry.AddContent(newID, std::move(newTexture));
         if (!err.empty())

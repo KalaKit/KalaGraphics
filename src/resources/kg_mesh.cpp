@@ -1088,6 +1088,19 @@ namespace KalaGraphics::Resources
             return nullptr;
         }
 
+        Viewport* vp{};
+        err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
+        if (!err.empty())
+        {
+            Log::Print(
+                "Failed to create mesh because the shader '" + to_string(shader->ID) + "' viewport was invalid! Reason: " + err,
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return nullptr;
+        }
+
         //TODO: figure out a better solution
         if (shader->descriptorSetLayouts.empty())
         {
@@ -1168,9 +1181,8 @@ namespace KalaGraphics::Resources
             };
 
             meshPtr->isMeshDataDirty = true;
+            vp->is2DMeshSortDirty = true;
         }
-
-        shader->isMeshSortDirty = true;
 
         err = registry.AddContent(newID, std::move(newMesh));
         if (!err.empty())
@@ -1321,6 +1333,7 @@ namespace KalaGraphics::Resources
     bool Mesh::IsVisible() const { return isVisible; }
     void Mesh::SetVisibleState(bool newValue)
     {
+
         if (newValue == isVisible)
         {
             Log::Print(
@@ -1341,11 +1354,22 @@ namespace KalaGraphics::Resources
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics mesh error",
-                    "Failed to update mesh '" + to_string(ID) + "' "
-                    "visible state because its shader was invalid! Reason: " + err);
+                    "Failed to update mesh '" + to_string(ID) + "' visible state "
+                    "because its shader was invalid! Reason: " + err);
             }
 
-            shader->isMeshSortDirty = true;
+            Viewport* vp{};
+            err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics mesh error",
+                    "Failed to update mesh '" + to_string(ID) + "' visible state "
+                    "because its shader '" + to_string(shaderID) + "' viewport was invalid! Reason: " + err);
+            }
+
+            if (!is2D) vp->is3DMeshSortDirty = true;
+            else       vp->is2DMeshSortDirty = true;
         }
 
         isVisible = newValue;
@@ -1363,16 +1387,6 @@ namespace KalaGraphics::Resources
     u16 Mesh::GetDrawOrderIndex() const { return drawOrderIndex; }
     void Mesh::SetDrawOrderIndex(u16 newValue)
     {
-        Shader* shader{};
-        string err = Shader::GetRegistry().GetContent(shaderID, shader);
-        if (!err.empty())
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics viewport error",
-                "Failed to set viewport '" + to_string(ID) 
-                + "' draw order index because its graphics context was invalid! Reason: " + err);
-        }
-
         if (!is2D)
         {
             Log::Print(
@@ -1386,7 +1400,32 @@ namespace KalaGraphics::Resources
         }
 
         drawOrderIndex = newValue;
-        shader->isMeshSortDirty = true;
+
+        if (shaderID != 0)
+        {
+            Shader* shader{};
+            string err = Shader::GetRegistry().GetContent(shaderID, shader);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics mesh error",
+                    "Failed to update mesh '" + to_string(ID) + "' draw order "
+                    "because its shader was invalid! Reason: " + err);
+            }
+
+            Viewport* vp{};
+            err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics mesh error",
+                    "Failed to update mesh '" + to_string(ID) + "' draw order "
+                    "because its shader '" + to_string(shaderID) + "' viewport was invalid! Reason: " + err);
+            }
+
+            if (!is2D) vp->is3DMeshSortDirty = true;
+            else       vp->is2DMeshSortDirty = true;
+        }
 
         Log::Print(
             "Set mesh '" + to_string(ID) + "' draw order index to '" + to_string(drawOrderIndex) + "'.",
@@ -1555,11 +1594,22 @@ namespace KalaGraphics::Resources
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics mesh error",
-                    "Failed to update mesh '" + to_string(ID) + "' "
-                    "transparency state because its shader was invalid! Reason: " + err);
+                    "Failed to update mesh '" + to_string(ID) + "' transparent state "
+                    "because its shader was invalid! Reason: " + err);
             }
 
-            shader->isMeshSortDirty = true;
+            Viewport* vp{};
+            err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics mesh error",
+                    "Failed to update mesh '" + to_string(ID) + "' transparent state "
+                    "because its shader '" + to_string(shaderID) + "' viewport was invalid! Reason: " + err);
+            }
+
+            if (!is2D) vp->is3DMeshSortDirty = true;
+            else       vp->is2DMeshSortDirty = true;
         }
 
         isTransparent = newValue;
@@ -1604,6 +1654,31 @@ namespace KalaGraphics::Resources
         vertices = std::move(meshData.vertices);
         indices = std::move(meshData.indices);
 
+        if (shaderID != 0)
+        {
+            Shader* shader{};
+            string err = Shader::GetRegistry().GetContent(shaderID, shader);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics mesh error",
+                    "Failed to set mesh '" + to_string(ID) + "' data "
+                    "because its shader was invalid! Reason: " + err);
+            }
+
+            Viewport* vp{};
+            err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics mesh error",
+                    "Failed to set mesh '" + to_string(ID) + "' data "
+                    "because its shader '" + to_string(shaderID) + "' viewport was invalid! Reason: " + err);
+            }
+
+            vp->is3DMeshSortDirty = true;
+        }
+    
         isMeshDataDirty = true;
 
         Log::Print(
@@ -1696,109 +1771,6 @@ namespace KalaGraphics::Resources
         bool requireHover)
     {
         scrollDownCallback = { requireHover, std::move(newValue) };
-    }
-
-    void Mesh::ClearAllData()
-    {
-        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
-        if (logicalDevice == VK_NULL_HANDLE)
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics mesh error",
-                "Failed to clear mesh '" + to_string(ID) 
-                + "' data because the logical device was invalid!");
-        }
-
-        VmaAllocator allocator = GraphicsContext::GetVmaAllocator();
-        if (!allocator)
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics mesh error",
-                "Failed to clear mesh '" + to_string(ID) 
-                + "' data because the vma allocator was invalid!");
-        }
-
-        //drain the gpu before destroying this mesh
-        VkResult vkResult = vkDeviceWaitIdle(logicalDevice);
-        if (vkResult != VK_SUCCESS)
-        {
-            GraphicsContext::ForceClose(
-                "KalaGraphics mesh error",
-                "Failed to clear mesh '" 
-                + to_string(ID) + "' data because vkDeviceWaitIdle did not succeed!",
-                vkResult);
-        }
-
-        isBufferDataDirty = false;
-        isMeshDataDirty = false;
-
-        if (cameraID != 0)
-        {
-            Camera* cam{};
-            string err = Camera::GetRegistry().GetContent(cameraID, cam);
-            if (!err.empty())
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics mesh error",
-                    "Failed to clear mesh '" + to_string(ID) 
-                    + "' data because its camera was invalid! Reason: " + err);
-            }
-
-            cam->meshID = 0;
-
-            Log::Print(
-                "Detached mesh '" + to_string(ID) 
-                + "' from camera '" + to_string(cameraID) + "' because mesh data was cleared!",
-                "KG_MESH",
-                LogType::LOG_WARNING);
-
-            cameraID = 0;
-        }
-
-        vertices.clear();
-        indices.clear();
-
-        if (vkVertexBuffer != VK_NULL_HANDLE)
-        {
-            vmaDestroyBuffer(
-                allocator,
-                vkVertexBuffer,
-                vmaVertexAllocation);
-
-            vmaVertexAllocation = VK_NULL_HANDLE;
-            vkVertexBuffer = VK_NULL_HANDLE;
-            vertexMappedPtr = nullptr;
-        }
-        if (vkIndexBuffer != VK_NULL_HANDLE)
-        {
-            vmaDestroyBuffer(
-                allocator,
-                vkIndexBuffer,
-                vmaIndexAllocation);
-
-            vmaIndexAllocation = VK_NULL_HANDLE;
-            vkIndexBuffer = VK_NULL_HANDLE;
-            indexMappedPtr = nullptr;
-        }
-
-        if (vmaMeshUBOAllocation != VK_NULL_HANDLE)
-        {
-            vmaDestroyBuffer(
-                allocator,
-                vkMeshUBOBuffer,
-                vmaMeshUBOAllocation);
-
-            meshUBOMappedPtr = nullptr;
-        }
-
-        if (vkDescriptorSet != VK_NULL_HANDLE)
-        {
-            vkFreeDescriptorSets(
-                logicalDevice,
-                GraphicsContext::GetDescriptorPool(),
-                1,
-                &vkDescriptorSet);
-        }
     }
 
     void Mesh::UpdateMeshData()
@@ -2335,6 +2307,209 @@ namespace KalaGraphics::Resources
         }
     }
 
+    void Mesh::Update(VkCommandBuffer buffer)
+    {
+        Shader* shader{};
+        string err = Shader::GetRegistry().GetContent(shaderID, shader);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to update mesh '" + to_string(ID) 
+                + "' data because its shader was invalid! Reason: " + err);
+        }
+
+        if (shader->is2D != is2D)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to update mesh '" + to_string(ID) + "' "
+                "because its 2D state doesn't match its shader '" + to_string(shaderID) + "' 2D state!");
+        }
+
+        Viewport* vp{};
+        err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to update mesh '" + to_string(ID) 
+                + "' data because its shader '" + to_string(shaderID) + "' viewport was invalid! Reason: " + err);
+        }
+
+        UpdateMeshData();
+
+        /*
+        Log::Print(
+            "@@@@@\n"
+            "mesh: '" + to_string(ID) + "'\n"
+            "shader: '" + to_string(shaderID) + "'\n"
+            "last bound shader: '" + to_string(vp->lastBoundShaderID));
+        */
+
+        //only bind pipeline if last bound shader is not the same as this mesh shader
+        if (vp->lastBoundShaderID != shaderID)
+        {
+            vkCmdBindPipeline(
+                buffer,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                shader->pipeline);
+
+            Camera* c{};
+            err = Camera::GetRegistry().GetContent(
+                (!is2D ? vp->primary3DCameraID : vp->primary2DCameraID), 
+                c);
+
+            string camStr = !is2D ? "3D" : "2D";
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics mesh error",
+                    "Failed to update mesh '" + to_string(ID) 
+                    + "' data because its viewport '" + to_string(vp->ID) + "' primary " 
+                    + camStr + " camera was invalid! Reason: " + err);
+            }
+
+            c->UpdateCameraData();
+
+            vkCmdBindDescriptorSets(
+                buffer,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                shader->pipelineLayout,
+                0, // <<<< SET 0 BINDING 0 - CAMERA UBO SLOT
+                1,
+                &c->vkDescriptorSet,
+                0,
+                nullptr);
+
+            vp->lastBoundShaderID = shaderID;
+        }
+
+        if (vkVertexBuffer == VK_NULL_HANDLE)
+        {
+            //skip mesh if it has no vertex buffer data
+            if (verticesSize == 0) return;
+            //invalid mesh, vertex buffer was removed for calculated mesh data
+            else
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics mesh error",
+                    "Failed to render mesh '" + to_string(ID) 
+                    + "' because its vertex buffer size is more than 0 but it "
+                    "doesn't have a valid vertex buffer!");
+            }
+        }
+        //vertex buffer was added but its data was not assigned
+        else if (verticesSize == 0)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to render mesh '" + to_string(ID) 
+                + "' because its vertex buffer is valid but it "
+                "doesn't have vertex buffer data!");
+        }
+
+        vkCmdBindDescriptorSets(
+            buffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            shader->pipelineLayout,
+            1, // <<<< SET 1 BINDING 0 - MESH UBO SLOT
+            1,
+            &vkDescriptorSet,
+            0,
+            nullptr);
+
+        vkCmdPushConstants(
+            buffer,
+            shader->pipelineLayout,
+            VK_SHADER_STAGE_VERTEX_BIT,
+            0,
+            sizeof(color),
+            &color);
+        vkCmdPushConstants(
+            buffer,
+            shader->pipelineLayout,
+            VK_SHADER_STAGE_VERTEX_BIT,
+            sizeof(color),
+            sizeof(isTransparent),
+            &isTransparent);
+
+        Texture* texture{};
+        err = Texture::GetRegistry().GetContent(textureID, texture);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to render mesh '" + to_string(ID) 
+                + "' because its texture was invalid! Reason: " + err);
+        }
+
+        vkCmdBindDescriptorSets(
+            buffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            shader->pipelineLayout,
+            2, // <<<< SET 2 BINDING 0 - TEXTURE SAMPLER SLOT
+            1,
+            &texture->vkDescriptorSet,
+            0,
+            nullptr);
+
+        /*
+        Log::Print(
+            "@@@@@\n"
+            "mesh ID: " + to_string(ID) + "\n"
+            "vertices size: " + to_string(vertices.size()) + "\n"
+            "indices size: " + to_string(indices.size()));
+        */
+
+        VkDeviceSize offset{};
+        vkCmdBindVertexBuffers(
+            buffer,
+            0,
+            1,
+            &vkVertexBuffer,
+            &offset);
+
+        if (vkIndexBuffer == VK_NULL_HANDLE)
+        {
+            vkCmdDraw(
+                buffer,
+                is2D
+                    ? scast<u32>(vertices2D.size())
+                    : scast<u32>(vertices.size()),
+                1,
+                0,
+                0);
+        }
+        else
+        {
+            //vertex buffer was added but its data was not assigned
+            if (indicesSize == 0)
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics mesh error",
+                    "Failed to render mesh '" + to_string(ID) 
+                    + "' because its index buffer is valid but it "
+                    "doesn't have index buffer data!");
+            }
+            else
+            {
+                vkCmdBindIndexBuffer(
+                    buffer,
+                    vkIndexBuffer,
+                    0,
+                    VK_INDEX_TYPE_UINT32);
+                vkCmdDrawIndexed(
+                    buffer,
+                    indices.size(),
+                    1,
+                    0,
+                    0,
+                    0);
+            }
+        }
+    }
+
     void Mesh::Destroy()
     {
         Camera* camera{};
@@ -2362,7 +2537,18 @@ namespace KalaGraphics::Resources
                 shader->meshIDs,
                 ID);
 
-            shader->isMeshSortDirty = true;
+            Viewport* vp{};
+            err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics mesh error",
+                    "Failed to destroy mesh '" + to_string(ID) + "' "
+                    "because its shader '" + to_string(shaderID) + "' viewport was invalid! Reason: " + err);
+            }
+
+            if (!is2D) vp->is3DMeshSortDirty = true;
+            else       vp->is2DMeshSortDirty = true;
         }
 
         HitTest* hitTest{};
@@ -2389,6 +2575,104 @@ namespace KalaGraphics::Resources
             "KG_MESH",
             LogType::LOG_INFO);
 
-        ClearAllData();
+        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
+        if (logicalDevice == VK_NULL_HANDLE)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to clear mesh '" + to_string(ID) 
+                + "' data because the logical device was invalid!");
+        }
+
+        VmaAllocator allocator = GraphicsContext::GetVmaAllocator();
+        if (!allocator)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to clear mesh '" + to_string(ID) 
+                + "' data because the vma allocator was invalid!");
+        }
+
+        //drain the gpu before destroying this mesh
+        VkResult vkResult = vkDeviceWaitIdle(logicalDevice);
+        if (vkResult != VK_SUCCESS)
+        {
+            GraphicsContext::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to clear mesh '" 
+                + to_string(ID) + "' data because vkDeviceWaitIdle did not succeed!",
+                vkResult);
+        }
+
+        isBufferDataDirty = false;
+        isMeshDataDirty = false;
+
+        if (cameraID != 0)
+        {
+            Camera* cam{};
+            string err = Camera::GetRegistry().GetContent(cameraID, cam);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics mesh error",
+                    "Failed to clear mesh '" + to_string(ID) 
+                    + "' data because its camera was invalid! Reason: " + err);
+            }
+
+            cam->meshID = 0;
+
+            Log::Print(
+                "Detached mesh '" + to_string(ID) 
+                + "' from camera '" + to_string(cameraID) + "' because mesh data was cleared!",
+                "KG_MESH",
+                LogType::LOG_WARNING);
+
+            cameraID = 0;
+        }
+
+        vertices.clear();
+        indices.clear();
+
+        if (vkVertexBuffer != VK_NULL_HANDLE)
+        {
+            vmaDestroyBuffer(
+                allocator,
+                vkVertexBuffer,
+                vmaVertexAllocation);
+
+            vmaVertexAllocation = VK_NULL_HANDLE;
+            vkVertexBuffer = VK_NULL_HANDLE;
+            vertexMappedPtr = nullptr;
+        }
+        if (vkIndexBuffer != VK_NULL_HANDLE)
+        {
+            vmaDestroyBuffer(
+                allocator,
+                vkIndexBuffer,
+                vmaIndexAllocation);
+
+            vmaIndexAllocation = VK_NULL_HANDLE;
+            vkIndexBuffer = VK_NULL_HANDLE;
+            indexMappedPtr = nullptr;
+        }
+
+        if (vmaMeshUBOAllocation != VK_NULL_HANDLE)
+        {
+            vmaDestroyBuffer(
+                allocator,
+                vkMeshUBOBuffer,
+                vmaMeshUBOAllocation);
+
+            meshUBOMappedPtr = nullptr;
+        }
+
+        if (vkDescriptorSet != VK_NULL_HANDLE)
+        {
+            vkFreeDescriptorSets(
+                logicalDevice,
+                GraphicsContext::GetDescriptorPool(),
+                1,
+                &vkDescriptorSet);
+        }
     }
 }

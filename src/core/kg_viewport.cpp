@@ -14,7 +14,9 @@
 #include "core/kg_context.hpp"
 #include "core/kg_hit_test.hpp"
 #include "resources/kg_shader.hpp"
+#include "resources/kg_mesh.hpp"
 #include "resources/kg_camera.hpp"
+#include "resources/kg_texture.hpp"
 
 using KalaHeaders::KalaCore::EnumHash;
 using KalaHeaders::KalaCore::EnumToString;
@@ -22,15 +24,20 @@ using KalaHeaders::KalaCore::EnumToString;
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
 
+using KalaHeaders::KalaMath::Transform3D;
+using KalaHeaders::KalaMath::vec3;
 using KalaHeaders::KalaMath::vec2;
 using KalaHeaders::KalaMath::isnear;
+using KalaHeaders::KalaMath::PosTarget;
 
 using KalaGraphics::Core::ViewportStaticSize;
 using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Core::GraphicsContext;
 using KalaGraphics::Core::Viewport;
 using KalaGraphics::Resources::Shader;
+using KalaGraphics::Resources::Mesh;
 using KalaGraphics::Resources::Camera;
+using KalaGraphics::Resources::Texture;
 
 using std::string_view;
 using std::to_string;
@@ -831,6 +838,225 @@ namespace KalaGraphics::Core
         scrollDownCallback = std::move(newValue);
     }
 
+    void Viewport::Sort3DMeshes()
+    {
+        Camera* primary3DCam{};
+        string err = Camera::GetRegistry().GetContent(primary3DCameraID, primary3DCam);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics shader error",
+                "Failed to sort meshes because its viewport '" 
+                + to_string(ID) + "' primary 3D camera was invalid! Reason: " + err);
+        }
+
+        vec3 camPos = scast<Transform3D&>(primary3DCam->GetTransform()).getpos(PosTarget::POS_WORLD);
+
+        vector<Mesh*> meshes{};
+        vector<u32> shaderIDs{};
+
+        shaderIDs.push_back(primary3DShaderID);
+
+        shaderIDs.insert(
+            shaderIDs.end(),
+            extra3DShaderIDs.begin(),
+            extra3DShaderIDs.end());
+
+        for (u32 shaderID : shaderIDs)
+        {
+            Shader* shader{};
+            string err = Shader::GetRegistry().GetContent(shaderID, shader);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics viewport error",
+                    "Failed to update viewport '" + to_string(ID) + "' "
+                    "because its shader was invalid! Reason: " + err);
+            }
+
+            for (u32 mID : shader->meshIDs)
+            {
+                Mesh* m{};
+                string err = Mesh::GetRegistry().GetContent(mID, m);
+                if (!err.empty())
+                {
+                    KalaGraphicsCore::ForceClose(
+                        "KalaGraphics viewport error", 
+                        "Failed to sort mesh '" + to_string(mID) 
+                        + "' in shader '" + to_string(shader->ID) + "' because the mesh was invalid! Reason: " + err);
+                }
+
+                //ignore invisible meshes
+                if (!m->isVisible) continue;
+
+                meshes.push_back(m);
+            }
+        }
+
+        bool foundMovedMesh{};
+        for (Mesh* m : meshes)
+        {
+            //skip opaque 3D meshes
+            if (!m->isTransparent) continue;
+
+            vec3 currentPos = scast<Transform3D&>(m->GetTransform()).getpos(PosTarget::POS_WORLD);
+
+            if (m->lastPos != currentPos)
+            {
+                foundMovedMesh = true;
+                m->lastPos = currentPos;
+            }
+        }
+
+        if (!foundMovedMesh
+            && !is3DMeshSortDirty)
+        {
+            return;
+        }
+
+        //proceed with sorting when dirty or if any 3D mesh moved
+
+        vector<Mesh*> opaqueMeshes{};
+        vector<Mesh*> transparentMeshes{};
+
+        for (Mesh* m : meshes)
+        {
+            if (!m->isTransparent) opaqueMeshes.push_back(m);
+            else                   transparentMeshes.push_back(m);
+        }
+
+        if (transparentMeshes.size() > 1)
+        {
+            sort(transparentMeshes.begin(), 
+                transparentMeshes.end(),
+                [&camPos](Mesh* a, Mesh* b)
+            {
+                const vec3 aPos = scast<Transform3D&>(a->GetTransform()).getpos(PosTarget::POS_WORLD);
+                const vec3 bPos = scast<Transform3D&>(b->GetTransform()).getpos(PosTarget::POS_WORLD);
+
+                const vec3 deltaA = aPos - camPos;
+                const vec3 deltaB = bPos - camPos;
+
+                f32 distanceA = dot(deltaA, deltaA);
+                f32 distanceB = dot(deltaB, deltaB);
+
+                return distanceA > distanceB;
+            });
+        }
+
+        sorted3DOpaqueMeshes.clear();
+        for (Mesh* m : opaqueMeshes)
+        {
+            sorted3DOpaqueMeshes.push_back(m->ID);
+        }
+
+        sorted3DTransparentMeshes.clear();
+        for (Mesh* m : transparentMeshes)
+        {
+            sorted3DTransparentMeshes.push_back(m->ID);
+        }
+
+        /*
+        Log::Print(
+            "@@@@@\n"
+            "sorted '" + to_string(sorted3DOpaqueMeshes.size()) + "' 3D opaque meshes "
+            "and '" + to_string(sorted3DTransparentMeshes.size()) + "' 3D transparent meshes "
+            "for viewport '" + to_string(ID) + "'");
+        */
+
+        is3DMeshSortDirty = false;
+    }
+
+    void Viewport::Sort2DMeshes()
+    {
+        if (!is2DMeshSortDirty) return;
+
+        vector<Mesh*> opaqueMeshes{};
+        vector<Mesh*> transparentMeshes{};
+        vector<u32> shaderIDs{};
+
+        shaderIDs.push_back(primary2DShaderID);
+
+        shaderIDs.insert(
+            shaderIDs.end(),
+            extra2DShaderIDs.begin(),
+            extra2DShaderIDs.end());
+
+        for (u32 shaderID : shaderIDs)
+        {
+            Shader* shader{};
+            string err = Shader::GetRegistry().GetContent(shaderID, shader);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics viewport error",
+                    "Failed to update viewport '" + to_string(ID) + "' "
+                    "because its shader was invalid! Reason: " + err);
+            }
+
+            for (u32 mID : shader->meshIDs)
+            {
+                Mesh* m{};
+                string err = Mesh::GetRegistry().GetContent(mID, m);
+                if (!err.empty())
+                {
+                    KalaGraphicsCore::ForceClose(
+                        "KalaGraphics viewport error", 
+                        "Failed to sort mesh '" + to_string(mID) 
+                        + "' in shader '" + to_string(shader->ID) + "' because the mesh was invalid! Reason: " + err);
+                }
+
+                //ignore invisible meshes
+                if (!m->isVisible) continue;
+
+                if (!m->isTransparent) opaqueMeshes.push_back(m);
+                else                   transparentMeshes.push_back(m);
+            }
+        }
+
+        if (opaqueMeshes.size() > 1)
+        {
+            sort(opaqueMeshes.begin(), 
+                opaqueMeshes.end(),
+                [](Mesh* a, Mesh* b)
+            {
+                return a->drawOrderIndex < b->drawOrderIndex;
+            });
+        }
+
+        if (transparentMeshes.size() > 1)
+        {
+            sort(transparentMeshes.begin(), 
+                transparentMeshes.end(),
+                [](Mesh* a, Mesh* b)
+            {
+                return a->drawOrderIndex < b->drawOrderIndex;
+            });
+        }
+
+        sorted2DOpaqueMeshes.clear();
+        for (Mesh* m : opaqueMeshes)
+        {
+            sorted2DOpaqueMeshes.push_back(m->ID);
+        }
+
+        sorted2DTransparentMeshes.clear();
+        for (Mesh* m : transparentMeshes)
+        {
+            sorted2DTransparentMeshes.push_back(m->ID);
+        }
+
+        /*
+        Log::Print(
+            "@@@@@\n"
+            "sorted '" + to_string(sorted2DOpaqueMeshes.size()) + "' 2D opaque meshes "
+            "and '" + to_string(sorted2DTransparentMeshes.size()) + "' 2D transparent meshes "
+            "for viewport '" + to_string(ID) + "'");
+        */
+
+        is2DMeshSortDirty = false;
+    }
+
     void Viewport::Update(u32 imageIndex)
     {
         //don't draw hidden viewports
@@ -936,6 +1162,8 @@ namespace KalaGraphics::Core
             }
         }
 
+        VkCommandBuffer cmdBuffer = gctx->commandBuffers[gctx->currentFrame];
+
         //
         // BLACK BORDERS FOR STATIC MODE
         //
@@ -1002,9 +1230,9 @@ namespace KalaGraphics::Core
             barInfo.pDepthAttachment = nullptr;
 
             vkCmdBeginRendering(
-                gctx->commandBuffers[gctx->currentFrame],
+                cmdBuffer,
                 &barInfo);
-            vkCmdEndRendering(gctx->commandBuffers[gctx->currentFrame]);
+            vkCmdEndRendering(cmdBuffer);
         }
 
         //
@@ -1045,6 +1273,9 @@ namespace KalaGraphics::Core
             drawOffset.y,
             gctx->renderSize.y);
 
+        Sort3DMeshes();
+        Sort2DMeshes();
+
         //
         // ACTUAL DRAW FUNCTION
         //
@@ -1084,74 +1315,95 @@ namespace KalaGraphics::Core
                 */
 
                 vkCmdSetViewport(
-                    gctx->commandBuffers[gctx->currentFrame],
+                    cmdBuffer,
                     0,
                     1,
                     &viewport);
                     
                 vkCmdSetScissor(
-                    gctx->commandBuffers[gctx->currentFrame],
+                    cmdBuffer,
                     0,
                     1,
                     &scissor);
 
-                if (!is2D)
+                vector<u32> shaderIDs{};
+                shaderIDs.push_back(primary3DShaderID);
+                shaderIDs.push_back(primary2DShaderID);
+
+                shaderIDs.insert(
+                    shaderIDs.end(),
+                    extra3DShaderIDs.begin(),
+                    extra3DShaderIDs.end());
+
+                shaderIDs.insert(
+                    shaderIDs.end(),
+                    extra2DShaderIDs.begin(),
+                    extra2DShaderIDs.end());
+
+                for (u32 shaderID : shaderIDs)
                 {
-                    Shader* primary3DShader{};
-                    string err = Shader::GetRegistry().GetContent(primary3DShaderID, primary3DShader);
+                    Shader* shader{};
+                    string err = Shader::GetRegistry().GetContent(shaderID, shader);
                     if (!err.empty())
                     {
                         KalaGraphicsCore::ForceClose(
-                            "KalaGraphics context error",
-                            "Failed to update viewport '" + to_string(ID) 
-                            + "' because the primary 3D shader was invalid! Reason: " + err);
+                            "KalaGraphics viewport error",
+                            "Failed to update viewport '" + to_string(ID) + "' "
+                            "because its shader was invalid! Reason: " + err);
                     }
 
-                    primary3DShader->Update(gctx->commandBuffers[gctx->currentFrame]);
-
-                    for (u32 extra3DShaderID : extra3DShaderIDs)
+                    for (u32 tID : shader->textureIDs)
                     {
-                        Shader* extra3DShader{};
-                        err = Shader::GetRegistry().GetContent(extra3DShaderID, extra3DShader);
+                        Texture* t{};
+                        err = Texture::GetRegistry().GetContent(tID, t);
                         if (!err.empty())
                         {
                             KalaGraphicsCore::ForceClose(
-                                "KalaGraphics context error",
-                                "Failed to update viewport '" + to_string(ID) 
-                                + "' because extra 3D shader was invalid! Reason: " + err);
+                                "KalaGraphics viewport error",
+                                "Failed to update viewport '" + to_string(ID) + "' "
+                                "because its shader '" + to_string(shaderID) + "' texture was invalid! Reason: " + err);
                         }
 
-                        extra3DShader->Update(gctx->commandBuffers[gctx->currentFrame]);
+                        //don't waste time updating a texture which has no users
+                        if (t->meshIDs.empty()) continue;
+
+                        t->UpdateTextureData();
                     }
+                }
+
+                auto render_mesh = [&](u32 meshID) -> void
+                    {
+                        Mesh* m{};
+                        string err = Mesh::GetRegistry().GetContent(meshID, m);
+                        if (!err.empty())
+                        {
+                            KalaGraphicsCore::ForceClose(
+                                "KalaGraphics viewport error",
+                                "Failed to update viewport '" + to_string(ID) + "' "
+                                "because its mesh was invalid! Reason: " + err);
+                        }
+
+                        m->Update(cmdBuffer);
+                    };
+
+                if (!is2D)
+                {
+                    vkCmdSetDepthWriteEnable(
+                        cmdBuffer,
+                        VK_TRUE);
+
+                    for (u32 meshID : sorted3DOpaqueMeshes) render_mesh(meshID);
+
+                    vkCmdSetDepthWriteEnable(
+                        cmdBuffer,
+                        VK_FALSE);
+
+                    for (u32 meshID : sorted3DTransparentMeshes) render_mesh(meshID);
                 }
                 else
                 {
-                    Shader* primary2DShader{};
-                    string err = Shader::GetRegistry().GetContent(primary2DShaderID, primary2DShader);
-                    if (!err.empty())
-                    {
-                        KalaGraphicsCore::ForceClose(
-                            "KalaGraphics context error",
-                            "Failed to update viewport '" + to_string(ID) 
-                            + "' because the primary 2D shader was invalid! Reason: " + err);
-                    }
-
-                    primary2DShader->Update(gctx->commandBuffers[gctx->currentFrame]);
-
-                    for (u32 extra2DShaderID : extra2DShaderIDs)
-                    {
-                        Shader* extra2DShader{};
-                        err = Shader::GetRegistry().GetContent(extra2DShaderID, extra2DShader);
-                        if (!err.empty())
-                        {
-                            KalaGraphicsCore::ForceClose(
-                                "KalaGraphics context error",
-                                "Failed to update viewport '" + to_string(ID) 
-                                + "' because extra 2D shader was invalid! Reason: " + err);
-                        }
-
-                        extra2DShader->Update(gctx->commandBuffers[gctx->currentFrame]);
-                    }
+                    for (u32 meshID : sorted2DOpaqueMeshes) render_mesh(meshID);
+                    for (u32 meshID : sorted2DTransparentMeshes) render_mesh(meshID);
                 }
             };
 
@@ -1201,12 +1453,12 @@ namespace KalaGraphics::Core
         renderingInfo.pDepthAttachment = &depthAttachment;
 
         vkCmdBeginRendering(
-            gctx->commandBuffers[gctx->currentFrame],
+            cmdBuffer,
             &renderingInfo);
 
         draw(false);
 
-        vkCmdEndRendering(gctx->commandBuffers[gctx->currentFrame]);
+        vkCmdEndRendering(cmdBuffer);
 
         //
         // 2D STAGE
@@ -1237,12 +1489,12 @@ namespace KalaGraphics::Core
         renderingInfo2D.pDepthAttachment = nullptr;
 
         vkCmdBeginRendering(
-            gctx->commandBuffers[gctx->currentFrame],
+            cmdBuffer,
             &renderingInfo2D);
 
         draw(true);
 
-        vkCmdEndRendering(gctx->commandBuffers[gctx->currentFrame]);
+        vkCmdEndRendering(cmdBuffer);
     }
 
     void Viewport::UpdateViewportSize()

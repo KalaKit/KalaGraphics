@@ -18,6 +18,9 @@
 #include "core/kg_core.hpp"
 #include "core/kg_registry.hpp"
 
+struct VkCommandBuffer_T;
+using VkCommandBuffer = VkCommandBuffer_T*;
+
 struct VkBuffer_T;
 using VkBuffer = VkBuffer_T*;
 
@@ -30,6 +33,7 @@ using VkDescriptorSet = VkDescriptorSet_T*;
 namespace KalaGraphics::Core
 {
     class HitTest;
+    class Viewport;
 }
 
 namespace KalaGraphics::Resources
@@ -220,6 +224,7 @@ namespace KalaGraphics::Resources
     friend class Texture;
     friend class Camera;
     friend class KalaGraphics::Core::HitTest;
+    friend class KalaGraphics::Core::Viewport;
     friend struct default_delete<Mesh>;
     public:
         KNODISCARD
@@ -366,9 +371,8 @@ namespace KalaGraphics::Resources
     private:
         ~Mesh();
 
-        void ClearAllData();
-
         void UpdateMeshData();
+        void Update(VkCommandBuffer buffer);
 
         u32 ID{};
         u32 shaderID{};
