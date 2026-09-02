@@ -61,7 +61,7 @@ namespace KalaGraphics::Resources
             return nullptr;
         }
 
-        if (shader->is2D == (newType == CameraType::CAM_ORTHOGRAPHIC))
+        if (shader->is2D != (newType == CameraType::CAM_ORTHOGRAPHIC))
         {
             Log::Print(
                 "Failed to create camera because camera type is not compatible with shader 2D state!",
