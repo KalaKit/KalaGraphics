@@ -1379,6 +1379,16 @@ namespace KalaGraphics::Core
                                 "because its mesh was invalid! Reason: " + err);
                         }
 
+                        /*
+                        if (m->is2D)
+                        {
+                            Log::Print(
+                                "@@@@@\n"
+                                "mesh: " + to_string(meshID) + "\n"
+                                "draw index: " + to_string(m->drawOrderIndex));
+                        }
+                        */
+
                         m->Update(cmdBuffer);
                     };
 

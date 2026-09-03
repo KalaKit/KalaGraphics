@@ -1424,8 +1424,7 @@ namespace KalaGraphics::Resources
                     "because its shader '" + to_string(shaderID) + "' viewport was invalid! Reason: " + err);
             }
 
-            if (!is2D) vp->is3DMeshSortDirty = true;
-            else       vp->is2DMeshSortDirty = true;
+            vp->is2DMeshSortDirty = true;
         }
 
         Log::Print(

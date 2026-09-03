@@ -66,6 +66,8 @@ namespace KalaGraphics::Import
         vector<u8> atlasPixels{};
         vec2 atlasSize{};
     };
+
+    //TODO: evolve font logic from "coverage" to signed distance field, potentially for the whole 2D mesh framework?
     
     class LIB_API ImportFont
     {
