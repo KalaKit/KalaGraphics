@@ -18,7 +18,7 @@ KG_VK_MEM_ALLOC_IGNORE_POP
 #include "core/kg_context.hpp"
 #include "core/kg_viewport.hpp"
 #include "core/kg_hit_test.hpp"
-#include "resources/kg_shader.hpp"
+#include "core/kg_shader.hpp"
 #include "resources/kg_texture.hpp"
 #include "resources/kg_camera.hpp"
 
@@ -36,6 +36,7 @@ using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Core::GraphicsContext;
 using KalaGraphics::Core::Viewport;
 using KalaGraphics::Core::HitTest;
+using KalaGraphics::Core::Shader;
 
 using std::to_string;
 using std::unique_ptr;
@@ -1632,6 +1633,19 @@ namespace KalaGraphics::Resources
             Log::Print(
                 "Failed to set mesh '" + to_string(ID) + "' data "
                 "because 2D mesh data cannot be updated!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (meshData.vertices == vertices
+            && meshData.indices == indices)
+        {
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) + "' data "
+                "because it is already the same!",
                 "KG_MESH",
                 LogType::LOG_ERROR,
                 2);

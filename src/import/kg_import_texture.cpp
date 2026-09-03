@@ -18,9 +18,13 @@ using KalaHeaders::KalaFile::ReadBinaryDataFromFile;
 
 using KalaGraphics::Core::KalaGraphicsCore;
 
+using std::string_view;
 using std::to_string;
 using std::unique_ptr;
 using std::make_unique;
+    
+static constexpr string_view EXT_PNG = ".png";
+static constexpr string_view EXT_KTEX = ".ktex";
 
 namespace KalaGraphics::Import
 {
@@ -71,7 +75,7 @@ namespace KalaGraphics::Import
         }
 
         TextureData textureData{};
-        if (ext == ".png")
+        if (ext == EXT_PNG)
         {
             errMsg = Init_PNG(
                 std::move(outData),

@@ -18,10 +18,14 @@ using KalaHeaders::KalaFile::ReadBinaryDataFromFile;
 
 using KalaGraphics::Core::KalaGraphicsCore;
 
+using std::string_view;
 using std::to_string;
 using std::unique_ptr;
 using std::make_unique;
 using std::filesystem::is_regular_file;
+
+static constexpr string_view EXT_GLTF = ".gltf";
+static constexpr string_view EXT_KMOD = ".kmod";
 
 namespace KalaGraphics::Import
 {
@@ -72,7 +76,7 @@ namespace KalaGraphics::Import
         }
 
         MeshData meshData{};
-        if (ext == ".png")
+        if (ext == EXT_GLTF)
         {
             errMsg = Init_GLTF(
                 std::move(outData),

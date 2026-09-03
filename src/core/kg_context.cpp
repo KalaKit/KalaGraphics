@@ -54,10 +54,14 @@ KG_VK_MEM_ALLOC_IGNORE_POP
 
 #include "core/kg_registry.hpp"
 #include "core/kg_hit_test.hpp"
-#include "resources/kg_shader.hpp"
+#include "core/kg_shader.hpp"
 #include "resources/kg_texture.hpp"
 #include "resources/kg_mesh.hpp"
 #include "resources/kg_camera.hpp"
+#include "import/kg_import_shader.hpp"
+#include "import/kg_import_texture.hpp"
+#include "import/kg_import_mesh.hpp"
+#include "import/kg_import_font.hpp"
 
 using KalaHeaders::KalaCore::ToVar;
 using KalaHeaders::KalaCore::EnumHash;
@@ -70,10 +74,13 @@ using KalaHeaders::KalaMath::vec2;
 using KalaHeaders::KalaMath::mat4;
 
 using KalaGraphics::Core::Severity;
-using KalaGraphics::Resources::Shader;
 using KalaGraphics::Resources::Texture;
 using KalaGraphics::Resources::Mesh;
 using KalaGraphics::Resources::Camera;
+using KalaGraphics::Import::ImportShader;
+using KalaGraphics::Import::ImportTexture;
+using KalaGraphics::Import::ImportMesh;
+using KalaGraphics::Import::ImportFont;
 
 using std::string;
 using std::string_view;
@@ -2793,6 +2800,11 @@ namespace KalaGraphics::Core
             Texture::GetRegistry().DestroyAllContent();
             Camera::GetRegistry().DestroyAllContent();
             Mesh::GetRegistry().DestroyAllContent();
+
+            ImportShader::GetRegistry().DestroyAllContent();
+            ImportTexture::GetRegistry().DestroyAllContent();
+            ImportMesh::GetRegistry().DestroyAllContent();
+            ImportFont::GetRegistry().DestroyAllContent();
 
             if (descriptorPool != VK_NULL_HANDLE)
             {

@@ -11,7 +11,7 @@
 
 #include "core/kg_context.hpp"
 #include "core/kg_viewport.hpp"
-#include "resources/kg_shader.hpp"
+#include "core/kg_shader.hpp"
 #include "resources/kg_mesh.hpp"
 
 using KalaHeaders::KalaLog::Log;
@@ -23,7 +23,6 @@ using KalaHeaders::KalaMath::RotTarget;
 using KalaHeaders::KalaMath::SizeTarget;
 using KalaHeaders::KalaMath::Transform2D;
 
-using KalaGraphics::Resources::Shader;
 using KalaGraphics::Resources::Mesh;
 
 using std::unique_ptr;

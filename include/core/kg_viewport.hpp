@@ -19,7 +19,6 @@
 
 namespace KalaGraphics::Resources
 {
-    class Shader;
     class Texture;
     class Mesh;
     class Camera;
@@ -111,10 +110,10 @@ namespace KalaGraphics::Core
 
     class LIB_API Viewport
     {
-    friend class KalaGraphics::Resources::Shader;
     friend class KalaGraphics::Resources::Mesh;
     friend class KalaGraphics::Resources::Texture;
     friend class KalaGraphics::Resources::Camera;
+    friend class Shader;
     friend class HitTest;
     friend class GraphicsContext;
     friend struct default_delete<Viewport>;

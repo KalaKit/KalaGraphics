@@ -68,7 +68,6 @@ using VkCommandBuffer = VkCommandBuffer_T*;
 
 namespace KalaGraphics::Resources
 {
-    class Shader;
     class Texture;
     class Mesh;
     class Camera;
@@ -138,10 +137,10 @@ namespace KalaGraphics::Core
 
     class LIB_API GraphicsContext
     {
-    friend class KalaGraphics::Resources::Shader;
     friend class KalaGraphics::Resources::Mesh;
     friend class KalaGraphics::Resources::Texture;
     friend class KalaGraphics::Resources::Camera;
+    friend class Shader;
     friend class Viewport;
     friend class HitTest;
     friend struct default_delete<GraphicsContext>;

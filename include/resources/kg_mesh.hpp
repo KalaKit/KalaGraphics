@@ -32,6 +32,7 @@ using VkDescriptorSet = VkDescriptorSet_T*;
 
 namespace KalaGraphics::Core
 {
+    class Shader;
     class HitTest;
     class Viewport;
 }
@@ -146,6 +147,8 @@ namespace KalaGraphics::Resources
         vec3 normal{};
         //U, V texture coordinates
         vec2 uv{};
+
+        bool operator==(const Vertex&) const = default;
     };
     struct LIB_API Vertex2D
     {
@@ -153,6 +156,8 @@ namespace KalaGraphics::Resources
         vec2 pos{};
         //U, V texture coordinates
         vec2 uv{};
+
+        bool operator==(const Vertex2D&) const = default;
     };
 
     //Output after generating a meshes data
@@ -220,9 +225,9 @@ namespace KalaGraphics::Resources
 
     class LIB_API Mesh
     {
-    friend class Shader;
     friend class Texture;
     friend class Camera;
+    friend class KalaGraphics::Core::Shader;
     friend class KalaGraphics::Core::HitTest;
     friend class KalaGraphics::Core::Viewport;
     friend struct default_delete<Mesh>;

@@ -18,14 +18,7 @@ namespace KalaGraphics::Import
     using std::filesystem::path;
     using std::vector;
     using std::string;
-    using std::string_view;
     using std::default_delete;
-
-    static constexpr string_view EXT_VERT = ".vert";
-    static constexpr string_view EXT_FRAG = ".frag";
-
-    static constexpr string_view EXT_SPV = ".spv";
-    static constexpr string_view EXT_KSHA = ".ksha";
 
     struct ShaderData
     {

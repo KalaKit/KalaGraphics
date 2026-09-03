@@ -15,8 +15,8 @@ KG_VK_MEM_ALLOC_IGNORE_POP
 #include "log_utils.hpp"
 
 #include "resources/kg_texture.hpp"
-#include "resources/kg_shader.hpp"
 #include "resources/kg_mesh.hpp"
+#include "core/kg_shader.hpp"
 #include "core/kg_context.hpp"
 #include "core/kg_viewport.hpp"
 
@@ -26,7 +26,8 @@ using KalaHeaders::KalaLog::LogType;
 using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Core::GraphicsContext;
 using KalaGraphics::Core::Viewport;
-using KalaGraphics::Resources::PixelFormat;
+using KalaGraphics::Core::Shader;
+using KalaGraphics::Resources::TexturePixelFormat;
 using KalaGraphics::Resources::TextureType;
 using KalaGraphics::Resources::TextureFilterMode;
 using KalaGraphics::Resources::TextureShadowMapMode;
@@ -40,40 +41,40 @@ using std::make_unique;
 static bool retreivedProps{};
 static VkPhysicalDeviceProperties props{};
 
-static VkFormat ToVkFormat(PixelFormat pf)
+static VkFormat ToVkFormat(TexturePixelFormat pf)
 {
     switch (pf)
     {
     default:
-    case PixelFormat::FORMAT_BASIC_R8:
+    case TexturePixelFormat::FORMAT_BASIC_R8:
         return VkFormat::VK_FORMAT_R8_UNORM;
-    case PixelFormat::FORMAT_BASIC_R8G8:
+    case TexturePixelFormat::FORMAT_BASIC_R8G8:
         return VkFormat::VK_FORMAT_R8G8_UNORM;
-    case PixelFormat::FORMAT_BASIC_R8G8B8:
+    case TexturePixelFormat::FORMAT_BASIC_R8G8B8:
         return VkFormat::VK_FORMAT_R8G8B8_UNORM;
-    case PixelFormat::FORMAT_BASIC_R8G8B8A8:
+    case TexturePixelFormat::FORMAT_BASIC_R8G8B8A8:
         return VkFormat::VK_FORMAT_R8G8B8A8_UNORM;
 
-    case PixelFormat::FORMAT_SRGB_R8G8B8:
+    case TexturePixelFormat::FORMAT_SRGB_R8G8B8:
         return VkFormat::VK_FORMAT_R8G8B8_SRGB;
-    case PixelFormat::FORMAT_SRGB_R8G8B8A8:
+    case TexturePixelFormat::FORMAT_SRGB_R8G8B8A8:
         return VkFormat::VK_FORMAT_R8G8B8A8_SRGB;
 
-    case PixelFormat::FORMAT_HDR_R16_FLOAT:
+    case TexturePixelFormat::FORMAT_HDR_R16_FLOAT:
         return VkFormat::VK_FORMAT_R16_SFLOAT;
-    case PixelFormat::FORMAT_HDR_R16G16_FLOAT:
+    case TexturePixelFormat::FORMAT_HDR_R16G16_FLOAT:
         return VkFormat::VK_FORMAT_R16G16_SFLOAT;
-    case PixelFormat::FORMAT_HDR_R16G16B16_FLOAT:
+    case TexturePixelFormat::FORMAT_HDR_R16G16B16_FLOAT:
         return VkFormat::VK_FORMAT_R16G16B16_SFLOAT;
-    case PixelFormat::FORMAT_HDR_R16G16B16A16_FLOAT:
+    case TexturePixelFormat::FORMAT_HDR_R16G16B16A16_FLOAT:
         return VkFormat::VK_FORMAT_R16G16B16A16_SFLOAT;
-    case PixelFormat::FORMAT_HDR_R32_FLOAT:
+    case TexturePixelFormat::FORMAT_HDR_R32_FLOAT:
         return VkFormat::VK_FORMAT_R32_SFLOAT;
-    case PixelFormat::FORMAT_HDR_R32G32_FLOAT:
+    case TexturePixelFormat::FORMAT_HDR_R32G32_FLOAT:
         return VkFormat::VK_FORMAT_R32G32_SFLOAT;
-    case PixelFormat::FORMAT_HDR_R32G32B32_FLOAT:
+    case TexturePixelFormat::FORMAT_HDR_R32G32B32_FLOAT:
         return VkFormat::VK_FORMAT_R32G32B32_SFLOAT;
-    case PixelFormat::FORMAT_HDR_R32G32B32A32_FLOAT:
+    case TexturePixelFormat::FORMAT_HDR_R32G32B32A32_FLOAT:
         return VkFormat::VK_FORMAT_R32G32B32A32_SFLOAT;
     };
 }
@@ -231,7 +232,7 @@ namespace KalaGraphics::Resources
         texPtr->SetPixelData(std::move(textureData.pixelData));
 
         texPtr->SetPixelFormat(textureData.format);
-        texPtr->SetTextureType(textureData.type);
+        texPtr->SetType(textureData.type);
         texPtr->SetFilterMode(textureData.filterMode);
         texPtr->SetShadowMapMode(textureData.shadowMode);
         texPtr->SetWrapMode(textureData.wrapMode);
@@ -350,9 +351,6 @@ namespace KalaGraphics::Resources
     const vector<u8>& Texture::GetPixelData() const { return pixelData; }
     void Texture::SetPixelData(vector<u8>&& newPixelData)
     {
-        //ignore if already the same
-        if (pixelData == newPixelData) return;
-
         if (newPixelData.empty())
         {
             Log::Print(
@@ -368,8 +366,8 @@ namespace KalaGraphics::Resources
         pixelData = std::move(newPixelData);
     }
 
-    PixelFormat Texture::GetPixelFormat() const { return format; }
-    void Texture::SetPixelFormat(PixelFormat newFormat)
+    TexturePixelFormat Texture::GetPixelFormat() const { return format; }
+    void Texture::SetPixelFormat(TexturePixelFormat newFormat)
     {
         //ignore if already the same
         if (newFormat == format) return;
@@ -382,48 +380,48 @@ namespace KalaGraphics::Resources
         switch (format)
         {
         default:
-        case PixelFormat::FORMAT_BASIC_R8:
+        case TexturePixelFormat::FORMAT_BASIC_R8:
             texFormat = "R8";
             break;
-        case PixelFormat::FORMAT_BASIC_R8G8:
+        case TexturePixelFormat::FORMAT_BASIC_R8G8:
             texFormat = "r8g8";
             break;
-        case PixelFormat::FORMAT_BASIC_R8G8B8:
+        case TexturePixelFormat::FORMAT_BASIC_R8G8B8:
             texFormat = "r8g8b8";
             break;
-        case PixelFormat::FORMAT_BASIC_R8G8B8A8:
+        case TexturePixelFormat::FORMAT_BASIC_R8G8B8A8:
             texFormat = "r8g8b8a8";
             break;
 
-        case PixelFormat::FORMAT_SRGB_R8G8B8:
+        case TexturePixelFormat::FORMAT_SRGB_R8G8B8:
             texFormat = "srgb_r8g8b8";
             break;
-        case PixelFormat::FORMAT_SRGB_R8G8B8A8:
+        case TexturePixelFormat::FORMAT_SRGB_R8G8B8A8:
             texFormat = "srgb_r8g8b8a8";
             break;
 
-        case PixelFormat::FORMAT_HDR_R16_FLOAT:
+        case TexturePixelFormat::FORMAT_HDR_R16_FLOAT:
             texFormat = "hdr_r16";
             break;
-        case PixelFormat::FORMAT_HDR_R16G16_FLOAT:
+        case TexturePixelFormat::FORMAT_HDR_R16G16_FLOAT:
             texFormat = "hdr_r16g16";
             break;
-        case PixelFormat::FORMAT_HDR_R16G16B16_FLOAT:
+        case TexturePixelFormat::FORMAT_HDR_R16G16B16_FLOAT:
             texFormat = "hdr_r16g6b16";
             break;
-        case PixelFormat::FORMAT_HDR_R16G16B16A16_FLOAT:
+        case TexturePixelFormat::FORMAT_HDR_R16G16B16A16_FLOAT:
             texFormat = "hdr_r16g16b16a16";
             break;
-        case PixelFormat::FORMAT_HDR_R32_FLOAT:
+        case TexturePixelFormat::FORMAT_HDR_R32_FLOAT:
             texFormat = "hdr_r32";
             break;
-        case PixelFormat::FORMAT_HDR_R32G32_FLOAT:
+        case TexturePixelFormat::FORMAT_HDR_R32G32_FLOAT:
             texFormat = "hdr_r32g32";
             break;
-        case PixelFormat::FORMAT_HDR_R32G32B32_FLOAT:
+        case TexturePixelFormat::FORMAT_HDR_R32G32B32_FLOAT:
             texFormat = "hdr_r32g32b32";
             break;
-        case PixelFormat::FORMAT_HDR_R32G32B32A32_FLOAT:
+        case TexturePixelFormat::FORMAT_HDR_R32G32B32A32_FLOAT:
             texFormat = "hdr_r32g32b32a32";
             break;
         }
@@ -434,8 +432,8 @@ namespace KalaGraphics::Resources
             LogType::LOG_SUCCESS);
     }
 
-    TextureType Texture::GetTextureType() const { return type; }
-    void Texture::SetTextureType(TextureType newType)
+    TextureType Texture::GetType() const { return type; }
+    void Texture::SetType(TextureType newType)
     {
         //ignore if already the same
         if (newType == type) return;
@@ -676,9 +674,6 @@ namespace KalaGraphics::Resources
     vec2 Texture::GetSize() const { return size; }
     void Texture::SetSize(vec2 newSize)
     {
-        //ignore if already the same
-        if (size == newSize) return;
-
         if (newSize.x < 1
             || newSize.y < 1)
         {

@@ -13,7 +13,7 @@
 #include "log_utils.hpp"
 #include "file_utils.hpp"
 
-#include "resources/kg_shader.hpp"
+#include "core/kg_shader.hpp"
 #include "resources/kg_mesh.hpp"
 #include "resources/kg_texture.hpp"
 #include "resources/kg_camera.hpp"
@@ -36,6 +36,9 @@ using KalaGraphics::Core::Severity;
 
 using KalaGraphics::Resources::Vertex;
 using KalaGraphics::Resources::Vertex2D;
+using KalaGraphics::Resources::Mesh;
+using KalaGraphics::Resources::Texture;
+using KalaGraphics::Resources::Camera;
 
 using std::unique_ptr;
 using std::make_unique;
@@ -224,7 +227,7 @@ static void DestroySpvShaderModules(vector<SpvReflectShaderModule*> modules)
     }
 };
 
-namespace KalaGraphics::Resources
+namespace KalaGraphics::Core
 {
     static KalaGraphicsRegistry<Shader> registry{};
 

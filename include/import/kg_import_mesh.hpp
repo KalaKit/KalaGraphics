@@ -19,11 +19,7 @@ namespace KalaGraphics::Import
     using std::filesystem::path;
     using std::vector;
     using std::string;
-    using std::string_view;
     using std::default_delete;
-
-    static constexpr string_view EXT_GLTF = ".gltf";
-    static constexpr string_view EXT_KMOD = ".kmod";
 
     struct MeshData
     {

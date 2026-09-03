@@ -23,6 +23,7 @@ namespace KalaGraphics::Core
 {
     class GraphicsContext;
     class Viewport;
+    class Shader;
 }
 
 namespace KalaGraphics::Resources
@@ -62,7 +63,7 @@ namespace KalaGraphics::Resources
     class LIB_API Camera
     {
     friend class Mesh;
-    friend class Shader;
+    friend class KalaGraphics::Core::Shader;
     friend class KalaGraphics::Core::GraphicsContext;
     friend class KalaGraphics::Core::Viewport;
     friend struct default_delete<Camera>;

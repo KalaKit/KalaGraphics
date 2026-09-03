@@ -37,6 +37,7 @@ using VkCommandBuffer = VkCommandBuffer_T*;
 namespace KalaGraphics::Core
 {
     class Viewport;
+    class Shader;
 };
 
 namespace KalaGraphics::Resources
@@ -76,7 +77,7 @@ namespace KalaGraphics::Resources
         return data;
     }();
 
-    enum class PixelFormat : u8
+    enum class TexturePixelFormat : u8
     {
         FORMAT_BASIC_R8               = 0,  //1 channel,  8-bit UNORM
         FORMAT_BASIC_R8G8             = 1,  //2 channels, 8-bit UNORM
@@ -154,28 +155,28 @@ namespace KalaGraphics::Resources
             0xFF
         };
 
-        PixelFormat format = PixelFormat::FORMAT_BASIC_R8G8B8A8;
-        TextureType type = TextureType::TYPE_2D;
-        TextureFilterMode filterMode = TextureFilterMode::FILTER_LINEAR;
+        TexturePixelFormat format       = TexturePixelFormat::FORMAT_BASIC_R8G8B8A8;
+        TextureType type                = TextureType::TYPE_2D;
+        TextureFilterMode filterMode    = TextureFilterMode::FILTER_LINEAR;
         TextureShadowMapMode shadowMode = TextureShadowMapMode::MODE_ALWAYS;
-        TextureWrapMode wrapMode = TextureWrapMode::WRAP_REPEAT;
+        TextureWrapMode wrapMode        = TextureWrapMode::WRAP_REPEAT;
         //only used if wrap mode is WRAP_CLAMP_TO_BORDER
-        TextureBorderColor borderColor = TextureBorderColor::COLOR_OPAQUE_BLACK;
+        TextureBorderColor borderColor  = TextureBorderColor::COLOR_OPAQUE_BLACK;
 
         //disabled by default, quality improvement for textures in 3D spaces when viewed at steep angles,
         //should not be used for UI textures or if using FILTER_NEAREST
         bool useAnisotropy{};
 
-        vec2 size = 1;       //width and height
-        u16 depth = 1;       //only used for TextureType::TYPE_3D
-        u32 layerCount = 1;  //only changed if not using TextureType::TYPE_2D
+        vec2 size       = 1; //width and height
+        u16 depth       = 1; //only used for TextureType::TYPE_3D
+        u32 layerCount  = 1; //only changed if not using TextureType::TYPE_2D
         u32 mipMapCount = 1; //how many downsampled textures are allowed
     };
 
     class LIB_API Texture
     {
-    friend class Shader;
     friend class Mesh;
+    friend class KalaGraphics::Core::Shader;
     friend class KalaGraphics::Core::Viewport;
     friend struct default_delete<Texture>;
     public:
@@ -203,12 +204,12 @@ namespace KalaGraphics::Resources
         void SetPixelData(vector<u8>&& newPixelData);
 
         KNODISCARD
-		PixelFormat GetPixelFormat() const;
-        void SetPixelFormat(PixelFormat newFormat);
+		TexturePixelFormat GetPixelFormat() const;
+        void SetPixelFormat(TexturePixelFormat newFormat);
 
         KNODISCARD
-		TextureType GetTextureType() const;
-        void SetTextureType(TextureType newType);
+		TextureType GetType() const;
+        void SetType(TextureType newType);
 
         KNODISCARD
 		TextureFilterMode GetFilterMode() const;
@@ -266,7 +267,7 @@ namespace KalaGraphics::Resources
 
         vector<u8> pixelData{};
 
-        PixelFormat format{};
+        TexturePixelFormat format{};
         TextureType type{};
         TextureFilterMode filterMode{};
         TextureShadowMapMode shadowMode{};

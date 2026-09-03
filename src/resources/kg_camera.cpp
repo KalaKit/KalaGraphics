@@ -17,8 +17,8 @@ KG_VK_MEM_ALLOC_IGNORE_POP
 #include "resources/kg_camera.hpp"
 #include "core/kg_context.hpp"
 #include "core/kg_viewport.hpp"
+#include "core/kg_shader.hpp"
 #include "resources/kg_mesh.hpp"
-#include "resources/kg_shader.hpp"
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
@@ -33,6 +33,7 @@ using KalaHeaders::KalaMath::isnear;
 using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Core::GraphicsContext;
 using KalaGraphics::Core::Viewport;
+using KalaGraphics::Core::Shader;
 
 using std::unique_ptr;
 using std::make_unique;

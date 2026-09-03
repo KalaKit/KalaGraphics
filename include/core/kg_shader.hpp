@@ -26,19 +26,17 @@ using VkPipelineLayout = VkPipelineLayout_T*;
 struct VkPipeline_T;
 using VkPipeline = VkPipeline_T*;
 
-namespace KalaGraphics::Core
+namespace KalaGraphics::Resources
 {
-    class GraphicsContext;
-    class Viewport;
-    class HitTest;
+    class Mesh;
+    class Texture;
+    class Camera;
 }
 
-namespace KalaGraphics::Resources
+namespace KalaGraphics::Core
 {
     using KalaHeaders::KalaMath::mat4;
     using KalaHeaders::KalaMath::vec4;
-
-    using KalaGraphics::Core::KalaGraphicsRegistry;
 
     using std::filesystem::path;
     using std::string;
@@ -62,12 +60,12 @@ namespace KalaGraphics::Resources
 
     class LIB_API Shader
     {
-    friend class Mesh;
-    friend class Texture;
-    friend class Camera;
-    friend class KalaGraphics::Core::GraphicsContext;
-    friend class KalaGraphics::Core::Viewport;
-    friend class KalaGraphics::Core::HitTest;
+    friend class KalaGraphics::Resources::Mesh;
+    friend class KalaGraphics::Resources::Texture;
+    friend class KalaGraphics::Resources::Camera;
+    friend class GraphicsContext;
+    friend class Viewport;
+    friend class HitTest;
     friend default_delete<Shader>;
     public:
         KNODISCARD

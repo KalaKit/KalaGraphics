@@ -1,0 +1,1962 @@
+diff --git a/include/core/kg_context.hpp b/include/core/kg_context.hpp
+index 33e92c9..0afe61b 100644
+--- a/include/core/kg_context.hpp
++++ b/include/core/kg_context.hpp
+@@ -68,7 +68,6 @@ using VkCommandBuffer = VkCommandBuffer_T*;
+ 
+ namespace KalaGraphics::Resources
+ {
+-    class Shader;
+     class Texture;
+     class Mesh;
+     class Camera;
+@@ -138,10 +137,10 @@ namespace KalaGraphics::Core
+ 
+     class LIB_API GraphicsContext
+     {
+-    friend class KalaGraphics::Resources::Shader;
+     friend class KalaGraphics::Resources::Mesh;
+     friend class KalaGraphics::Resources::Texture;
+     friend class KalaGraphics::Resources::Camera;
++    friend class Shader;
+     friend class Viewport;
+     friend class HitTest;
+     friend struct default_delete<GraphicsContext>;
+diff --git a/include/core/kg_viewport.hpp b/include/core/kg_viewport.hpp
+index 2ae5063..d1957b2 100644
+--- a/include/core/kg_viewport.hpp
++++ b/include/core/kg_viewport.hpp
+@@ -19,7 +19,6 @@
+ 
+ namespace KalaGraphics::Resources
+ {
+-    class Shader;
+     class Texture;
+     class Mesh;
+     class Camera;
+@@ -111,10 +110,10 @@ namespace KalaGraphics::Core
+ 
+     class LIB_API Viewport
+     {
+-    friend class KalaGraphics::Resources::Shader;
+     friend class KalaGraphics::Resources::Mesh;
+     friend class KalaGraphics::Resources::Texture;
+     friend class KalaGraphics::Resources::Camera;
++    friend class Shader;
+     friend class HitTest;
+     friend class GraphicsContext;
+     friend struct default_delete<Viewport>;
+diff --git a/include/import/kg_import_mesh.hpp b/include/import/kg_import_mesh.hpp
+index 29aecc4..cf0cbc6 100644
+--- a/include/import/kg_import_mesh.hpp
++++ b/include/import/kg_import_mesh.hpp
+@@ -19,12 +19,8 @@ namespace KalaGraphics::Import
+     using std::filesystem::path;
+     using std::vector;
+     using std::string;
+-    using std::string_view;
+     using std::default_delete;
+ 
+-    static constexpr string_view EXT_GLTF = ".gltf";
+-    static constexpr string_view EXT_KMOD = ".kmod";
+-
+     struct MeshData
+     {
+ 
+diff --git a/include/import/kg_import_shader.hpp b/include/import/kg_import_shader.hpp
+index 1a60643..7a86ac8 100644
+--- a/include/import/kg_import_shader.hpp
++++ b/include/import/kg_import_shader.hpp
+@@ -18,15 +18,8 @@ namespace KalaGraphics::Import
+     using std::filesystem::path;
+     using std::vector;
+     using std::string;
+-    using std::string_view;
+     using std::default_delete;
+ 
+-    static constexpr string_view EXT_VERT = ".vert";
+-    static constexpr string_view EXT_FRAG = ".frag";
+-
+-    static constexpr string_view EXT_SPV = ".spv";
+-    static constexpr string_view EXT_KSHA = ".ksha";
+-
+     struct ShaderData
+     {
+ 
+diff --git a/include/import/kg_import_texture.hpp b/include/import/kg_import_texture.hpp
+index 074ebf2..87aef04 100644
+--- a/include/import/kg_import_texture.hpp
++++ b/include/import/kg_import_texture.hpp
+@@ -19,11 +19,7 @@ namespace KalaGraphics::Import
+     using std::filesystem::path;
+     using std::vector;
+     using std::string;
+-    using std::string_view;
+     using std::default_delete;
+-    
+-    static constexpr string_view EXT_PNG = ".png";
+-    static constexpr string_view EXT_KTEX = ".ktex";
+ 
+     struct TextureData
+     {
+diff --git a/include/resources/kg_camera.hpp b/include/resources/kg_camera.hpp
+index 38c0eeb..5dcb579 100644
+--- a/include/resources/kg_camera.hpp
++++ b/include/resources/kg_camera.hpp
+@@ -23,6 +23,7 @@ namespace KalaGraphics::Core
+ {
+     class GraphicsContext;
+     class Viewport;
++    class Shader;
+ }
+ 
+ namespace KalaGraphics::Resources
+@@ -62,7 +63,7 @@ namespace KalaGraphics::Resources
+     class LIB_API Camera
+     {
+     friend class Mesh;
+-    friend class Shader;
++    friend class KalaGraphics::Core::Shader;
+     friend class KalaGraphics::Core::GraphicsContext;
+     friend class KalaGraphics::Core::Viewport;
+     friend struct default_delete<Camera>;
+diff --git a/include/resources/kg_mesh.hpp b/include/resources/kg_mesh.hpp
+index c2446d4..39a90cc 100644
+--- a/include/resources/kg_mesh.hpp
++++ b/include/resources/kg_mesh.hpp
+@@ -32,6 +32,7 @@ using VkDescriptorSet = VkDescriptorSet_T*;
+ 
+ namespace KalaGraphics::Core
+ {
++    class Shader;
+     class HitTest;
+     class Viewport;
+ }
+@@ -146,6 +147,8 @@ namespace KalaGraphics::Resources
+         vec3 normal{};
+         //U, V texture coordinates
+         vec2 uv{};
++
++        bool operator==(const Vertex&) const = default;
+     };
+     struct LIB_API Vertex2D
+     {
+@@ -153,6 +156,8 @@ namespace KalaGraphics::Resources
+         vec2 pos{};
+         //U, V texture coordinates
+         vec2 uv{};
++
++        bool operator==(const Vertex2D&) const = default;
+     };
+ 
+     //Output after generating a meshes data
+@@ -220,9 +225,9 @@ namespace KalaGraphics::Resources
+ 
+     class LIB_API Mesh
+     {
+-    friend class Shader;
+     friend class Texture;
+     friend class Camera;
++    friend class KalaGraphics::Core::Shader;
+     friend class KalaGraphics::Core::HitTest;
+     friend class KalaGraphics::Core::Viewport;
+     friend struct default_delete<Mesh>;
+diff --git a/include/resources/kg_shader.hpp b/include/resources/kg_shader.hpp
+deleted file mode 100644
+index e6fc21f..0000000
+--- a/include/resources/kg_shader.hpp
++++ /dev/null
+@@ -1,131 +0,0 @@
+-//Copyright(C) 2026 Lost Empire Entertainment
+-//This program comes with ABSOLUTELY NO WARRANTY.
+-//This is free software, and you are welcome to redistribute it under certain conditions.
+-//Read LICENSE.md for more information.
+-
+-#pragma once
+-
+-#include <filesystem>
+-#include <string>
+-#include <vector>
+-
+-#include "core_utils.hpp"
+-#include "math_utils.hpp"
+-
+-#include "core/kg_registry.hpp"
+-
+-struct VkShaderModule_T;
+-using VkShaderModule = VkShaderModule_T*;
+-
+-struct VkDescriptorSetLayout_T;
+-using VkDescriptorSetLayout = VkDescriptorSetLayout_T*;
+-
+-struct VkPipelineLayout_T;
+-using VkPipelineLayout = VkPipelineLayout_T*;
+-
+-struct VkPipeline_T;
+-using VkPipeline = VkPipeline_T*;
+-
+-namespace KalaGraphics::Core
+-{
+-    class GraphicsContext;
+-    class Viewport;
+-    class HitTest;
+-}
+-
+-namespace KalaGraphics::Resources
+-{
+-    using KalaHeaders::KalaMath::mat4;
+-    using KalaHeaders::KalaMath::vec4;
+-
+-    using KalaGraphics::Core::KalaGraphicsRegistry;
+-
+-    using std::filesystem::path;
+-    using std::string;
+-    using std::string_view;
+-    using std::vector;
+-    using std::pair;
+-    using std::default_delete;
+-
+-    struct ShaderModuleData
+-    {
+-        VkShaderModule vkModule_vert{};
+-        uintptr_t spvModule_vert{};
+-
+-        VkShaderModule vkModule_frag{};
+-        uintptr_t spvModule_frag{};
+-
+-        bool usingGeom{};
+-        VkShaderModule vkModule_geom{};
+-        uintptr_t spvModule_geom{};
+-    };
+-
+-    class LIB_API Shader
+-    {
+-    friend class Mesh;
+-    friend class Texture;
+-    friend class Camera;
+-    friend class KalaGraphics::Core::GraphicsContext;
+-    friend class KalaGraphics::Core::Viewport;
+-    friend class KalaGraphics::Core::HitTest;
+-    friend default_delete<Shader>;
+-    public:
+-        KNODISCARD
+-		static KalaGraphicsRegistry<Shader>& GetRegistry();
+-
+-        //Create a blank shader that isn't attached to any viewports or mesh and has no data,
+-        //you must give it a viewport and set shader data to use it for meshes
+-        KNODISCARD
+-		static Shader* Initialize(
+-            u32 viewportID,
+-            bool is2D,
+-            path&& vertPath,
+-            path&& fragPath,
+-            path&& geomPath = {});
+-
+-        KNODISCARD
+-		u32 GetID() const;
+-        KNODISCARD 
+-		u32 GetViewportID() const;
+-        KNODISCARD
+-		const vector<u32>& GetMeshIDs() const;
+-        KNODISCARD
+-		const vector<u32>& GetTextureIDs() const;
+-        KNODISCARD
+-		const vector<u32>& GetCameraIDs() const;
+-
+-        KNODISCARD
+-		bool Is2D() const;
+-
+-        KNODISCARD
+-		const vector<VkDescriptorSetLayout>& GetDescriptorSetLayouts();
+-
+-        void Destroy();
+-    private:
+-        ~Shader();
+-
+-        static void DestroyVkShaderModules(vector<VkShaderModule> modules);
+-
+-        u32 ID{};
+-        u32 viewportID{};
+-
+-        vector<u32> textureIDs{};
+-        vector<u32> cameraIDs{};
+-        vector<u32> meshIDs{};
+-
+-        //used only to prevent shader from removing its ID from
+-        //viewport shader IDs list if the viewport
+-        //destroy function called the destroy function of this shader 
+-        bool isDestroyingViewport{};
+-
+-        bool is2D{};
+-
+-        bool hasDrawn3DCamera{};
+-        bool hasDrawn2DCamera{};
+-
+-        ShaderModuleData shaderModuleData{};
+-        vector<VkDescriptorSetLayout> descriptorSetLayouts{};
+-        VkPipelineLayout pipelineLayout{};
+-        VkPipeline pipeline{};
+-    };
+-}
+\ No newline at end of file
+diff --git a/include/resources/kg_texture.hpp b/include/resources/kg_texture.hpp
+index ac0cb86..881ce6d 100644
+--- a/include/resources/kg_texture.hpp
++++ b/include/resources/kg_texture.hpp
+@@ -37,6 +37,7 @@ using VkCommandBuffer = VkCommandBuffer_T*;
+ namespace KalaGraphics::Core
+ {
+     class Viewport;
++    class Shader;
+ };
+ 
+ namespace KalaGraphics::Resources
+@@ -76,7 +77,7 @@ namespace KalaGraphics::Resources
+         return data;
+     }();
+ 
+-    enum class PixelFormat : u8
++    enum class TexturePixelFormat : u8
+     {
+         FORMAT_BASIC_R8               = 0,  //1 channel,  8-bit UNORM
+         FORMAT_BASIC_R8G8             = 1,  //2 channels, 8-bit UNORM
+@@ -154,28 +155,28 @@ namespace KalaGraphics::Resources
+             0xFF
+         };
+ 
+-        PixelFormat format = PixelFormat::FORMAT_BASIC_R8G8B8A8;
+-        TextureType type = TextureType::TYPE_2D;
+-        TextureFilterMode filterMode = TextureFilterMode::FILTER_LINEAR;
++        TexturePixelFormat format       = TexturePixelFormat::FORMAT_BASIC_R8G8B8A8;
++        TextureType type                = TextureType::TYPE_2D;
++        TextureFilterMode filterMode    = TextureFilterMode::FILTER_LINEAR;
+         TextureShadowMapMode shadowMode = TextureShadowMapMode::MODE_ALWAYS;
+-        TextureWrapMode wrapMode = TextureWrapMode::WRAP_REPEAT;
++        TextureWrapMode wrapMode        = TextureWrapMode::WRAP_REPEAT;
+         //only used if wrap mode is WRAP_CLAMP_TO_BORDER
+-        TextureBorderColor borderColor = TextureBorderColor::COLOR_OPAQUE_BLACK;
++        TextureBorderColor borderColor  = TextureBorderColor::COLOR_OPAQUE_BLACK;
+ 
+         //disabled by default, quality improvement for textures in 3D spaces when viewed at steep angles,
+         //should not be used for UI textures or if using FILTER_NEAREST
+         bool useAnisotropy{};
+ 
+-        vec2 size = 1;       //width and height
+-        u16 depth = 1;       //only used for TextureType::TYPE_3D
+-        u32 layerCount = 1;  //only changed if not using TextureType::TYPE_2D
++        vec2 size       = 1; //width and height
++        u16 depth       = 1; //only used for TextureType::TYPE_3D
++        u32 layerCount  = 1; //only changed if not using TextureType::TYPE_2D
+         u32 mipMapCount = 1; //how many downsampled textures are allowed
+     };
+ 
+     class LIB_API Texture
+     {
+-    friend class Shader;
+     friend class Mesh;
++    friend class KalaGraphics::Core::Shader;
+     friend class KalaGraphics::Core::Viewport;
+     friend struct default_delete<Texture>;
+     public:
+@@ -203,12 +204,12 @@ namespace KalaGraphics::Resources
+         void SetPixelData(vector<u8>&& newPixelData);
+ 
+         KNODISCARD
+-		PixelFormat GetPixelFormat() const;
+-        void SetPixelFormat(PixelFormat newFormat);
++		TexturePixelFormat GetPixelFormat() const;
++        void SetPixelFormat(TexturePixelFormat newFormat);
+ 
+         KNODISCARD
+-		TextureType GetTextureType() const;
+-        void SetTextureType(TextureType newType);
++		TextureType GetType() const;
++        void SetType(TextureType newType);
+ 
+         KNODISCARD
+ 		TextureFilterMode GetFilterMode() const;
+@@ -266,7 +267,7 @@ namespace KalaGraphics::Resources
+ 
+         vector<u8> pixelData{};
+ 
+-        PixelFormat format{};
++        TexturePixelFormat format{};
+         TextureType type{};
+         TextureFilterMode filterMode{};
+         TextureShadowMapMode shadowMode{};
+diff --git a/project.kmake b/project.kmake
+index 68793ca..ef73f55 100644
+--- a/project.kmake
++++ b/project.kmake
+@@ -14,7 +14,7 @@ compiler: clang++
+ standard: c++20
+ binarytype: static
+ sources: "src"
+-headers: "include", "../external-shared/KalaHeaders/include", "../external-shared/Vulkan/Include", "../external-shared/Spirv-reflect/include"
++headers: "include", "../external-shared/KalaHeaders/include", "../external-shared/Vulkan/Include", "../external-shared/Spirv-reflect/include", "../external-shared/HarfBuzz/include"
+ defines: LIB_STATIC
+ warninglevel: normal
+ customflags: export-compile-commands, export-vscode-sln
+diff --git a/src/core/kg_context.cpp b/src/core/kg_context.cpp
+index 6813f22..3b93472 100644
+--- a/src/core/kg_context.cpp
++++ b/src/core/kg_context.cpp
+@@ -54,10 +54,14 @@ KG_VK_MEM_ALLOC_IGNORE_POP
+ 
+ #include "core/kg_registry.hpp"
+ #include "core/kg_hit_test.hpp"
+-#include "resources/kg_shader.hpp"
++#include "core/kg_shader.hpp"
+ #include "resources/kg_texture.hpp"
+ #include "resources/kg_mesh.hpp"
+ #include "resources/kg_camera.hpp"
++#include "import/kg_import_shader.hpp"
++#include "import/kg_import_texture.hpp"
++#include "import/kg_import_mesh.hpp"
++#include "import/kg_import_font.hpp"
+ 
+ using KalaHeaders::KalaCore::ToVar;
+ using KalaHeaders::KalaCore::EnumHash;
+@@ -70,10 +74,13 @@ using KalaHeaders::KalaMath::vec2;
+ using KalaHeaders::KalaMath::mat4;
+ 
+ using KalaGraphics::Core::Severity;
+-using KalaGraphics::Resources::Shader;
+ using KalaGraphics::Resources::Texture;
+ using KalaGraphics::Resources::Mesh;
+ using KalaGraphics::Resources::Camera;
++using KalaGraphics::Import::ImportShader;
++using KalaGraphics::Import::ImportTexture;
++using KalaGraphics::Import::ImportMesh;
++using KalaGraphics::Import::ImportFont;
+ 
+ using std::string;
+ using std::string_view;
+@@ -2794,6 +2801,11 @@ namespace KalaGraphics::Core
+             Camera::GetRegistry().DestroyAllContent();
+             Mesh::GetRegistry().DestroyAllContent();
+ 
++            ImportShader::GetRegistry().DestroyAllContent();
++            ImportTexture::GetRegistry().DestroyAllContent();
++            ImportMesh::GetRegistry().DestroyAllContent();
++            ImportFont::GetRegistry().DestroyAllContent();
++
+             if (descriptorPool != VK_NULL_HANDLE)
+             {
+                 vkDestroyDescriptorPool(
+diff --git a/src/core/kg_hit_test.cpp b/src/core/kg_hit_test.cpp
+index cd35a79..c7ae740 100644
+--- a/src/core/kg_hit_test.cpp
++++ b/src/core/kg_hit_test.cpp
+@@ -11,7 +11,7 @@
+ 
+ #include "core/kg_context.hpp"
+ #include "core/kg_viewport.hpp"
+-#include "resources/kg_shader.hpp"
++#include "core/kg_shader.hpp"
+ #include "resources/kg_mesh.hpp"
+ 
+ using KalaHeaders::KalaLog::Log;
+@@ -23,7 +23,6 @@ using KalaHeaders::KalaMath::RotTarget;
+ using KalaHeaders::KalaMath::SizeTarget;
+ using KalaHeaders::KalaMath::Transform2D;
+ 
+-using KalaGraphics::Resources::Shader;
+ using KalaGraphics::Resources::Mesh;
+ 
+ using std::unique_ptr;
+diff --git a/src/core/kg_viewport.cpp b/src/core/kg_viewport.cpp
+index 6c7d2fc..ad0c23e 100644
+--- a/src/core/kg_viewport.cpp
++++ b/src/core/kg_viewport.cpp
+@@ -13,7 +13,7 @@
+ #include "core/kg_core.hpp"
+ #include "core/kg_context.hpp"
+ #include "core/kg_hit_test.hpp"
+-#include "resources/kg_shader.hpp"
++#include "core/kg_shader.hpp"
+ #include "resources/kg_mesh.hpp"
+ #include "resources/kg_camera.hpp"
+ #include "resources/kg_texture.hpp"
+@@ -31,10 +31,6 @@ using KalaHeaders::KalaMath::isnear;
+ using KalaHeaders::KalaMath::PosTarget;
+ 
+ using KalaGraphics::Core::ViewportStaticSize;
+-using KalaGraphics::Core::KalaGraphicsCore;
+-using KalaGraphics::Core::GraphicsContext;
+-using KalaGraphics::Core::Viewport;
+-using KalaGraphics::Resources::Shader;
+ using KalaGraphics::Resources::Mesh;
+ using KalaGraphics::Resources::Camera;
+ using KalaGraphics::Resources::Texture;
+diff --git a/src/import/kg_import_mesh.cpp b/src/import/kg_import_mesh.cpp
+index c44fb3c..4e31a6e 100644
+--- a/src/import/kg_import_mesh.cpp
++++ b/src/import/kg_import_mesh.cpp
+@@ -18,11 +18,15 @@ using KalaHeaders::KalaFile::ReadBinaryDataFromFile;
+ 
+ using KalaGraphics::Core::KalaGraphicsCore;
+ 
++using std::string_view;
+ using std::to_string;
+ using std::unique_ptr;
+ using std::make_unique;
+ using std::filesystem::is_regular_file;
+ 
++static constexpr string_view EXT_GLTF = ".gltf";
++static constexpr string_view EXT_KMOD = ".kmod";
++
+ namespace KalaGraphics::Import
+ {
+     static KalaGraphicsRegistry<ImportMesh> registry{};
+@@ -72,7 +76,7 @@ namespace KalaGraphics::Import
+         }
+ 
+         MeshData meshData{};
+-        if (ext == ".png")
++        if (ext == EXT_GLTF)
+         {
+             errMsg = Init_GLTF(
+                 std::move(outData),
+diff --git a/src/import/kg_import_shader.cpp b/src/import/kg_import_shader.cpp
+index 7c8566c..d4df80e 100644
+--- a/src/import/kg_import_shader.cpp
++++ b/src/import/kg_import_shader.cpp
+@@ -18,13 +18,19 @@ using KalaHeaders::KalaFile::ReadBinaryDataFromFile;
+ 
+ using KalaGraphics::Core::KalaGraphicsCore;
+ 
+-using std::string;
++using std::string_view;
+ using std::to_string;
+ using std::unique_ptr;
+ using std::make_unique;
+ using std::filesystem::exists;
+ using std::filesystem::is_regular_file;
+ 
++static constexpr string_view EXT_VERT = ".vert";
++static constexpr string_view EXT_FRAG = ".frag";
++
++static constexpr string_view EXT_SPV = ".spv";
++static constexpr string_view EXT_KSHA = ".ksha";
++
+ namespace KalaGraphics::Import
+ {
+     static KalaGraphicsRegistry<ImportShader> registry{};
+@@ -215,7 +221,7 @@ namespace KalaGraphics::Import
+         }
+ 
+         ShaderData shaderData{};
+-        if (ext == ".png")
++        if (ext == EXT_SPV)
+         {
+             errMsg = Init_SPV(
+                 std::move(outData),
+diff --git a/src/import/kg_import_texture.cpp b/src/import/kg_import_texture.cpp
+index 25f2447..30ded91 100644
+--- a/src/import/kg_import_texture.cpp
++++ b/src/import/kg_import_texture.cpp
+@@ -18,9 +18,13 @@ using KalaHeaders::KalaFile::ReadBinaryDataFromFile;
+ 
+ using KalaGraphics::Core::KalaGraphicsCore;
+ 
++using std::string_view;
+ using std::to_string;
+ using std::unique_ptr;
+ using std::make_unique;
++    
++static constexpr string_view EXT_PNG = ".png";
++static constexpr string_view EXT_KTEX = ".ktex";
+ 
+ namespace KalaGraphics::Import
+ {
+@@ -71,7 +75,7 @@ namespace KalaGraphics::Import
+         }
+ 
+         TextureData textureData{};
+-        if (ext == ".png")
++        if (ext == EXT_PNG)
+         {
+             errMsg = Init_PNG(
+                 std::move(outData),
+diff --git a/src/resources/kg_camera.cpp b/src/resources/kg_camera.cpp
+index 7d6eb7a..129181b 100644
+--- a/src/resources/kg_camera.cpp
++++ b/src/resources/kg_camera.cpp
+@@ -17,8 +17,8 @@ KG_VK_MEM_ALLOC_IGNORE_POP
+ #include "resources/kg_camera.hpp"
+ #include "core/kg_context.hpp"
+ #include "core/kg_viewport.hpp"
++#include "core/kg_shader.hpp"
+ #include "resources/kg_mesh.hpp"
+-#include "resources/kg_shader.hpp"
+ 
+ using KalaHeaders::KalaLog::Log;
+ using KalaHeaders::KalaLog::LogType;
+@@ -33,6 +33,7 @@ using KalaHeaders::KalaMath::isnear;
+ using KalaGraphics::Core::KalaGraphicsCore;
+ using KalaGraphics::Core::GraphicsContext;
+ using KalaGraphics::Core::Viewport;
++using KalaGraphics::Core::Shader;
+ 
+ using std::unique_ptr;
+ using std::make_unique;
+diff --git a/src/resources/kg_mesh.cpp b/src/resources/kg_mesh.cpp
+index 2656af8..50eb5cf 100644
+--- a/src/resources/kg_mesh.cpp
++++ b/src/resources/kg_mesh.cpp
+@@ -18,7 +18,7 @@ KG_VK_MEM_ALLOC_IGNORE_POP
+ #include "core/kg_context.hpp"
+ #include "core/kg_viewport.hpp"
+ #include "core/kg_hit_test.hpp"
+-#include "resources/kg_shader.hpp"
++#include "core/kg_shader.hpp"
+ #include "resources/kg_texture.hpp"
+ #include "resources/kg_camera.hpp"
+ 
+@@ -36,6 +36,7 @@ using KalaGraphics::Core::KalaGraphicsCore;
+ using KalaGraphics::Core::GraphicsContext;
+ using KalaGraphics::Core::Viewport;
+ using KalaGraphics::Core::HitTest;
++using KalaGraphics::Core::Shader;
+ 
+ using std::to_string;
+ using std::unique_ptr;
+@@ -1639,6 +1640,19 @@ namespace KalaGraphics::Resources
+             return;
+         }
+ 
++        if (meshData.vertices == vertices
++            && meshData.indices == indices)
++        {
++            Log::Print(
++                "Failed to set mesh '" + to_string(ID) + "' data "
++                "because it is already the same!",
++                "KG_MESH",
++                LogType::LOG_ERROR,
++                2);
++
++            return;
++        }
++
+         if (meshData.vertices.empty())
+         {
+             Log::Print(
+diff --git a/src/resources/kg_shader.cpp b/src/resources/kg_shader.cpp
+deleted file mode 100644
+index b1ab5ce..0000000
+--- a/src/resources/kg_shader.cpp
++++ /dev/null
+@@ -1,1117 +0,0 @@
+-//Copyright(C) 2026 Lost Empire Entertainment
+-//This program comes with ABSOLUTELY NO WARRANTY.
+-//This is free software, and you are welcome to redistribute it under certain conditions.
+-//Read LICENSE.md for more information.
+-
+-#include <memory>
+-#include <vector>
+-#include <unordered_map>
+-
+-#include "vulkan/vulkan_core.h"
+-#include "spirv_reflect.h"
+-
+-#include "log_utils.hpp"
+-#include "file_utils.hpp"
+-
+-#include "resources/kg_shader.hpp"
+-#include "resources/kg_mesh.hpp"
+-#include "resources/kg_texture.hpp"
+-#include "resources/kg_camera.hpp"
+-#include "core/kg_context.hpp"
+-#include "core/kg_viewport.hpp"
+-#include "core/kg_core.hpp"
+-
+-using KalaHeaders::KalaCore::ToVar;
+-using KalaHeaders::KalaCore::FromVar;
+-
+-using KalaHeaders::KalaLog::Log;
+-using KalaHeaders::KalaLog::LogType;
+-
+-using KalaHeaders::KalaFile::ReadBinaryDataFromFile;
+-
+-using KalaGraphics::Core::KalaGraphicsCore;
+-using KalaGraphics::Core::GraphicsContext;
+-using KalaGraphics::Core::Viewport;
+-using KalaGraphics::Core::Severity;
+-
+-using KalaGraphics::Resources::Vertex;
+-using KalaGraphics::Resources::Vertex2D;
+-
+-using std::unique_ptr;
+-using std::make_unique;
+-using std::to_string;
+-using std::vector;
+-using std::unordered_map;
+-using std::string;
+-using std::string_view;
+-using std::map;
+-using std::pair;
+-using std::make_pair;
+-
+-struct ShaderModule
+-{
+-    bool success{};
+-    VkShaderModule vkModule{};
+-    SpvReflectShaderModule* spvModule{};
+-};
+-
+-struct PipelineInfo
+-{
+-    vector<VkPipelineShaderStageCreateInfo> stages{};
+-
+-    VkVertexInputBindingDescription bindingDescription{};
+-    vector<VkVertexInputAttributeDescription> attributeDescriptions{};
+-    VkPipelineVertexInputStateCreateInfo vertexInput{};
+-
+-    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+-    VkPipelineDynamicStateCreateInfo dynamicState{};
+-    vector<VkDynamicState> dynamicStates{};
+-    VkPipelineViewportStateCreateInfo viewportState{};
+-    VkPipelineRasterizationStateCreateInfo rasterization{};
+-    VkPipelineMultisampleStateCreateInfo multisampling{};
+-    VkPipelineDepthStencilStateCreateInfo depthStencil{};
+-    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+-    VkPipelineColorBlendStateCreateInfo colorBlend{};
+-
+-    VkGraphicsPipelineCreateInfo pipelineInfo{};
+-};
+-
+-static unique_ptr<PipelineInfo> GetPipelineInfo(
+-    bool is2D,
+-    vector<VkPipelineShaderStageCreateInfo> stages,
+-    VkPipelineLayout pipelineLayout,
+-    VkRenderPass renderPass)
+-{
+-    unique_ptr<PipelineInfo> pi = make_unique<PipelineInfo>();
+-
+-    pi->stages = std::move(stages);
+-
+-    pi->bindingDescription.binding   = 0;
+-    pi->bindingDescription.stride    = is2D ? sizeof(Vertex2D) : sizeof(Vertex);
+-    pi->bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+-
+-    if (is2D)
+-    {
+-        pi->attributeDescriptions.push_back(
+-            {
+-                0,
+-                0,
+-                VK_FORMAT_R32G32_SFLOAT,
+-                offsetof(Vertex2D, pos)
+-            });
+-        pi->attributeDescriptions.push_back(
+-            {
+-                1,
+-                0,
+-                VK_FORMAT_R32G32_SFLOAT,
+-                offsetof(Vertex2D, uv)
+-            });
+-    }
+-    else
+-    {
+-        pi->attributeDescriptions.push_back(
+-            {
+-                0,
+-                0,
+-                VK_FORMAT_R32G32B32_SFLOAT,
+-                offsetof(Vertex, pos)
+-            });
+-        pi->attributeDescriptions.push_back(
+-            {
+-                1,
+-                0,
+-                VK_FORMAT_R32G32B32_SFLOAT,
+-                offsetof(Vertex, normal)
+-            });
+-        pi->attributeDescriptions.push_back(
+-            {
+-                2,
+-                0,
+-                VK_FORMAT_R32G32_SFLOAT,
+-                offsetof(Vertex, uv)
+-            });
+-    }
+-
+-    pi->vertexInput.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+-    pi->vertexInput.vertexBindingDescriptionCount   = 1;
+-    pi->vertexInput.pVertexBindingDescriptions      = &pi->bindingDescription;
+-    pi->vertexInput.vertexAttributeDescriptionCount = scast<u32>(pi->attributeDescriptions.size());
+-    pi->vertexInput.pVertexAttributeDescriptions    = pi->attributeDescriptions.data();
+-
+-    pi->inputAssembly.sType    = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+-    pi->inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+-
+-    pi->dynamicStates = 
+-    {
+-        VK_DYNAMIC_STATE_VIEWPORT,
+-        VK_DYNAMIC_STATE_SCISSOR
+-    };
+-    pi->dynamicState.sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+-    pi->dynamicState.dynamicStateCount = scast<u32>(pi->dynamicStates.size());
+-    pi->dynamicState.pDynamicStates    = pi->dynamicStates.data();
+-
+-    pi->viewportState.sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+-    pi->viewportState.viewportCount = 1;
+-    pi->viewportState.scissorCount  = 1;
+-
+-    pi->rasterization.sType       = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+-    pi->rasterization.polygonMode = VK_POLYGON_MODE_FILL;
+-    pi->rasterization.cullMode    = is2D ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT;
+-    pi->rasterization.frontFace   = VK_FRONT_FACE_CLOCKWISE;
+-    pi->rasterization.lineWidth   = 1.0f;
+-
+-    //TODO: add proper multisampling/MSAA
+-
+-    pi->multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+-    pi->multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+-
+-    pi->depthStencil.sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+-    if (!is2D)
+-    {
+-        pi->depthStencil.depthTestEnable  = VK_TRUE;
+-        pi->depthStencil.depthWriteEnable = VK_TRUE;
+-        pi->depthStencil.depthCompareOp   = VK_COMPARE_OP_LESS;
+-    }
+-    else
+-    {
+-        pi->depthStencil.depthTestEnable  = VK_FALSE;
+-        pi->depthStencil.depthWriteEnable = VK_FALSE;
+-        pi->depthStencil.depthCompareOp   = VK_COMPARE_OP_LESS;
+-    }
+-
+-    pi->colorBlendAttachment.colorWriteMask =
+-        VK_COLOR_COMPONENT_R_BIT
+-        | VK_COLOR_COMPONENT_G_BIT
+-        | VK_COLOR_COMPONENT_B_BIT
+-        | VK_COLOR_COMPONENT_A_BIT;
+-
+-    pi->colorBlendAttachment.blendEnable = VK_TRUE;
+-    pi->colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+-    pi->colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+-    pi->colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+-    pi->colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+-    pi->colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+-    pi->colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+-
+-    pi->colorBlend.sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+-    pi->colorBlend.attachmentCount = 1;
+-    pi->colorBlend.pAttachments    = &pi->colorBlendAttachment;
+-
+-    pi->pipelineInfo.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+-    pi->pipelineInfo.stageCount          = scast<u32>(pi->stages.size());
+-    pi->pipelineInfo.pStages             = pi->stages.data();
+-    pi->pipelineInfo.pVertexInputState   = &pi->vertexInput;
+-    pi->pipelineInfo.pInputAssemblyState = &pi->inputAssembly;
+-    pi->pipelineInfo.pViewportState      = &pi->viewportState;
+-    pi->pipelineInfo.pRasterizationState = &pi->rasterization;
+-    pi->pipelineInfo.pMultisampleState   = &pi->multisampling;
+-    pi->pipelineInfo.pDepthStencilState  = &pi->depthStencil;
+-    pi->pipelineInfo.pColorBlendState    = &pi->colorBlend;
+-    pi->pipelineInfo.pDynamicState       = &pi->dynamicState;
+-    pi->pipelineInfo.layout              = pipelineLayout;
+-    pi->pipelineInfo.renderPass          = renderPass;
+-    pi->pipelineInfo.subpass             = 0;
+-
+-    return pi;
+-}
+-
+-static void DestroySpvShaderModules(vector<SpvReflectShaderModule*> modules)
+-{
+-    for (SpvReflectShaderModule* m : modules)
+-    {
+-        spvReflectDestroyShaderModule(m);
+-        delete m;
+-    }
+-};
+-
+-namespace KalaGraphics::Resources
+-{
+-    static KalaGraphicsRegistry<Shader> registry{};
+-
+-    KalaGraphicsRegistry<Shader>& Shader::GetRegistry() { return registry; }
+-
+-    Shader* Shader::Initialize(
+-        u32 viewportID,
+-        bool is2D,
+-        path&& vertPath,
+-        path&& fragPath,
+-        path&& geomPath)
+-    {
+-        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
+-        if (logicalDevice == VK_NULL_HANDLE)
+-        {
+-            KalaGraphicsCore::ForceClose(
+-                "KalaGraphics shader error",
+-                "Failed to initialize shader because the logical device was invalid!");
+-        }
+-
+-        Viewport* vp{};
+-        string err = Viewport::GetRegistry().GetContent(viewportID, vp);
+-        if (!err.empty())
+-        {
+-            Log::Print(
+-                "Failed to initialize shader because its viewport was invalid! Reason: " + err,
+-                "KG_SHADER",
+-                LogType::LOG_ERROR,
+-                2);
+-
+-            return nullptr;
+-        }
+-
+-        GraphicsContext* gctx{};
+-        err = GraphicsContext::GetRegistry().GetContent(vp->contextID, gctx);
+-        if (!err.empty())
+-        {
+-            Log::Print(
+-                "Failed to initialize shader because its viewports graphics context was invalid! Reason: " + err,
+-                "KG_SHADER",
+-                LogType::LOG_ERROR,
+-                2);
+-
+-            return nullptr;
+-        }
+-
+-        auto empty_path = [](string_view shaderType) -> void
+-            {
+-                Log::Print(
+-                    "Failed to initialize shader because it did not contain a " 
+-                    + string(shaderType) + " shader file!", 
+-                    "KG_SHADER",
+-                    LogType::LOG_ERROR,
+-                    2);
+-            };
+-        auto bad_ext = [](string_view shaderType) -> void
+-            {
+-                Log::Print(
+-                    "Failed to initialize shader because its " + string(shaderType) 
+-                    + " shader had a missing or incorrect extension!", 
+-                    "KG_SHADER",
+-                    LogType::LOG_ERROR,
+-                    2);
+-            };
+-        auto invalid_path = [](
+-            string_view shaderType,
+-            string_view shaderPath) -> void
+-            {
+-                Log::Print(
+-                    "Failed to initialize shader because its " + string(shaderType) 
+-                    + " shader path '" + string(shaderPath) + "' was invalid!", 
+-                    "KG_SHADER",
+-                    LogType::LOG_ERROR,
+-                    2);
+-            };
+-
+-        if (vertPath.empty())
+-        {
+-            empty_path("vertex");
+-            return nullptr;
+-        }
+-        if (!vertPath.has_extension()
+-            || vertPath.extension() != ".spv")
+-        {
+-            bad_ext("vertex");
+-            return nullptr;
+-        }
+-        if (!exists(vertPath))
+-        {
+-            invalid_path("vertex", vertPath.string());
+-            return nullptr;
+-        }
+-
+-        if (fragPath.empty())
+-        {
+-            empty_path("fragment");
+-            return nullptr;
+-        }
+-        if (!fragPath.has_extension()
+-            || fragPath.extension() != ".spv")
+-        {
+-            bad_ext("fragment");
+-            return nullptr;
+-        }
+-        if (!exists(fragPath))
+-        {
+-            invalid_path("fragment", fragPath.string());
+-            return nullptr;
+-        }
+-
+-        if (!geomPath.empty())
+-        {
+-            if (!geomPath.has_extension()
+-                || geomPath.extension() != ".spv")
+-            {
+-                bad_ext("geometry");
+-                return nullptr;
+-            }
+-            if (!exists(geomPath))
+-            {
+-                invalid_path("geometry", geomPath.string());
+-                return nullptr;
+-            }
+-        }
+-
+-        unordered_map<string, string> shaderPaths =
+-        {
+-            { "vertex",   vertPath.string() },
+-            { "fragment", fragPath.string() },
+-            { "geometry", geomPath.string() }
+-        };
+-        unordered_map<string, string> seen{};
+-
+-        for (auto& [shaderStage, shaderPath] : shaderPaths)
+-        {
+-            if (shaderPath.empty()) continue;
+-
+-            auto [it, inserted] = seen.insert({shaderPath, shaderStage});
+-            if (!inserted)
+-            {
+-                Log::Print(
+-                    "Failed to initialize shader because " + shaderStage + " was the same as " + it->second + "!", 
+-                    "KG_SHADER",
+-                    LogType::LOG_ERROR,
+-                    2);
+-
+-                return nullptr;
+-            }
+-        }
+-
+-        auto create_shader_module = [&logicalDevice](
+-            string_view shaderType, 
+-            const path& shaderPath) -> ShaderModule
+-            {
+-                vector<u8> outData{};
+-                string errMsg = ReadBinaryDataFromFile(shaderPath, outData);
+-
+-                if (!errMsg.empty())
+-                {
+-                    Log::Print(
+-                        "Failed to initialize shader because binary data "
+-                        "couldn't be read from shader type " + string(shaderType) + "! Reason : " + errMsg,
+-                        "KG_SHADER",
+-                        LogType::LOG_ERROR,
+-                        2);
+-
+-                    return { false };
+-                }
+-
+-                VkShaderModuleCreateInfo createInfo{};
+-                createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+-                createInfo.codeSize = outData.size();
+-                createInfo.pCode = rcast<const u32*>(outData.data());
+-
+-                VkShaderModule vkShaderModule{};
+-                VkResult vkResult = vkCreateShaderModule(
+-                    logicalDevice,
+-                    &createInfo,
+-                    nullptr,
+-                    &vkShaderModule);
+-
+-                if (vkResult != VK_SUCCESS)
+-                {
+-                    string message = 
+-                        "Failed to initialize shader because module '" 
+-                        + string(shaderType) + "' creation failed! Reason: " 
+-                        + GraphicsContext::GetVkResultMessage(vkResult);
+-
+-                    if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::SEVERITY_FATAL)
+-                    {
+-                        KalaGraphicsCore::ForceClose(
+-                            "KalaGraphics shader error",
+-                            std::move(message));
+-                    }
+-                    else
+-                    {
+-                        Log::Print(
+-                            message,
+-                            "KG_SHADER",
+-                            LogType::LOG_ERROR,
+-                            2);
+-                    }
+-
+-                    return {};
+-                }
+-
+-                SpvReflectShaderModule* spvShaderModule = new SpvReflectShaderModule{};
+-                SpvReflectResult reflResult = spvReflectCreateShaderModule(
+-                    outData.size(),
+-                    outData.data(),
+-                    spvShaderModule);
+-
+-                if (reflResult != SPV_REFLECT_RESULT_SUCCESS)
+-                {
+-                    Log::Print(
+-                        "Failed to initialize shader because module '" 
+-                        + string(shaderType) + "' failed! Reflect result error code: " 
+-                        + to_string(static_cast<int>(reflResult)),
+-                        "KG_SHADER",
+-                        LogType::LOG_ERROR,
+-                        2);
+-
+-                    delete spvShaderModule;
+-
+-                    return {};
+-                }
+-
+-                return 
+-                { 
+-                    .success = true, 
+-                    .vkModule = vkShaderModule, 
+-                    .spvModule = spvShaderModule
+-                };
+-            };
+-
+-        //
+-        // MODULES
+-        //
+-
+-        ShaderModuleData newShaderModuleData{};
+-
+-        ShaderModule module_vert = create_shader_module("vertex", vertPath);
+-        if (!module_vert.success) return nullptr;
+-        else
+-        {
+-            newShaderModuleData.vkModule_vert = module_vert.vkModule;
+-            newShaderModuleData.spvModule_vert = FromVar(module_vert.spvModule);
+-        }
+-
+-        ShaderModule module_frag = create_shader_module("fragment", fragPath);
+-        if (!module_frag.success)
+-        {
+-            DestroyVkShaderModules({ module_vert.vkModule });
+-            DestroySpvShaderModules({ module_vert.spvModule });
+-
+-            return nullptr;
+-        }
+-        else
+-        {
+-            newShaderModuleData.vkModule_frag = module_frag.vkModule;
+-            newShaderModuleData.spvModule_frag = FromVar(module_frag.spvModule);
+-        }
+-
+-        ShaderModule module_geom{};
+-        if (!geomPath.empty())
+-        {
+-            module_geom = create_shader_module("geometry", geomPath);
+-            if (!module_geom.success)
+-            {
+-                DestroyVkShaderModules(
+-                    { 
+-                        module_vert.vkModule,
+-                        module_frag.vkModule
+-                    });
+-
+-                DestroySpvShaderModules(
+-                    {
+-                        module_vert.spvModule,
+-                        module_frag.spvModule
+-                    });
+-
+-                return nullptr;
+-            }
+-            else
+-            {
+-                newShaderModuleData.usingGeom = true;
+-
+-                newShaderModuleData.vkModule_geom = module_geom.vkModule;
+-                newShaderModuleData.spvModule_geom = FromVar(module_geom.spvModule);
+-            }
+-        }
+-
+-        auto add_stage = [](
+-            vector<VkPipelineShaderStageCreateInfo>& stages,
+-            VkShaderStageFlagBits flag,
+-            VkShaderModule module) -> void
+-            {
+-                VkPipelineShaderStageCreateInfo stage{};
+-                stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+-                stage.stage = flag;
+-                stage.module = module;
+-                stage.pName = "main";
+-                stages.push_back(stage);
+-            };
+-
+-        //
+-        // PUSH CONSTANT LAYOUT
+-        //
+-
+-        VkPushConstantRange pushConstantRange{};
+-        pushConstantRange.stageFlags = 0;
+-        pushConstantRange.offset = UINT32_MAX;
+-        pushConstantRange.size = 0;
+-
+-        vector<SpvReflectShaderModule*> modules{};
+-        
+-        modules.push_back(ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_vert));
+-        modules.push_back(ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_frag));
+-
+-        if (newShaderModuleData.usingGeom)
+-        {
+-            modules.push_back(ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_geom));
+-        }
+-
+-        for (auto* mod : modules)
+-        {
+-            u32 count{};
+-            spvReflectEnumeratePushConstantBlocks(
+-                mod,
+-                &count,
+-                nullptr);
+-
+-            for (u32 i = 0; i < count; ++i)
+-            {
+-                SpvReflectResult result{};
+-                const SpvReflectBlockVariable* pBlock = spvReflectGetPushConstantBlock(
+-                    mod,
+-                    i,
+-                    &result); 
+-                    
+-                if (result != SPV_REFLECT_RESULT_SUCCESS
+-                    || pBlock == nullptr)
+-                {
+-                    Log::Print(
+-                        "Failed to get push constant block '" + to_string(i) + "' "
+-                        "for shader stage " + to_string(scast<int>(mod->shader_stage))
+-                        + " when initializing shader!"
+-                        "SpvReflectResult: " + to_string(scast<int>(result)),
+-                        "KG_SHADER",
+-                        LogType::LOG_WARNING);
+-
+-                    continue;
+-                }
+-
+-                pushConstantRange.stageFlags |= scast<VkShaderStageFlags>(mod->shader_stage);
+-
+-                u32 blockEnd = pBlock->offset + pBlock->size;
+-                pushConstantRange.offset = std::min(
+-                    pushConstantRange.offset,
+-                    pBlock->offset);
+-
+-                u32 currentEnd = pushConstantRange.offset + pushConstantRange.size;
+-                pushConstantRange.size = 
+-                    std::max(currentEnd, blockEnd)
+-                    - pushConstantRange.offset;
+-            }
+-        }
+-
+-        if (pushConstantRange.stageFlags == 0)
+-        {
+-            pushConstantRange.offset = 0;
+-            pushConstantRange.size = 0;
+-        }
+-
+-        //
+-        // DESCRIPTOR SET LAYOUT
+-        //
+-
+-        map<pair<u32, u32>, VkDescriptorSetLayoutBinding> bindingMap{};
+-
+-        for (auto* mod : modules)
+-        {
+-            u32 bindingCount{};
+-            spvReflectEnumerateDescriptorBindings(
+-                mod,
+-                &bindingCount,
+-                nullptr);
+-
+-            vector<SpvReflectDescriptorBinding*> reflBindings(bindingCount);
+-            spvReflectEnumerateDescriptorBindings(
+-                mod,
+-                &bindingCount,
+-                reflBindings.data());
+-
+-            for (u32 i = 0; i < bindingCount; ++i)
+-            {
+-                auto* refl = reflBindings[i];
+-                auto key = make_pair(refl->set, refl->binding);
+-
+-                auto& layoutBinding = bindingMap[key];
+-                layoutBinding.binding = refl->binding;
+-                layoutBinding.descriptorType = scast<VkDescriptorType>(refl->descriptor_type);
+-                layoutBinding.descriptorCount = std::max(
+-                    1u,
+-                    refl->count);
+-                layoutBinding.stageFlags |= 
+-                    scast<VkShaderStageFlags>(refl->accessed)
+-                    | scast<VkShaderStageFlags>(mod->shader_stage);
+-                layoutBinding.pImmutableSamplers = nullptr;
+-            }
+-        }
+-
+-        map<u32, vector<VkDescriptorSetLayoutBinding>> bindingsBySet{};
+-        for (const auto& [key, layoutBinding] : bindingMap)
+-        {
+-            bindingsBySet[key.first].push_back(layoutBinding);
+-        }
+-    
+-        vector<VkDescriptorSetLayout> newDescriptorSetLayouts(bindingsBySet.size());
+-        u32 setIndex{};
+-        for (const auto& [set, setBindings] : bindingsBySet)
+-        {
+-            VkDescriptorSetLayoutCreateInfo setLayoutInfo{};
+-            setLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+-            setLayoutInfo.bindingCount = scast<u32>(setBindings.size());
+-            setLayoutInfo.pBindings = setBindings.data();
+-
+-            VkResult vkResult = vkCreateDescriptorSetLayout(
+-                logicalDevice,
+-                &setLayoutInfo,
+-                nullptr,
+-                &newDescriptorSetLayouts[setIndex]);
+-
+-            if (vkResult != VK_SUCCESS)
+-            {
+-                //destroy already created descriptor set layouts
+-                for (u32 i = 0; i < setIndex; ++i)
+-                {
+-                    vkDestroyDescriptorSetLayout(
+-                        logicalDevice,
+-                        newDescriptorSetLayouts[i],
+-                        nullptr);
+-                }
+-
+-                vector<VkShaderModule> badVkShaders = 
+-                {
+-                    newShaderModuleData.vkModule_vert,
+-                    newShaderModuleData.vkModule_frag
+-                };
+-                if (newShaderModuleData.usingGeom)
+-                {
+-                    badVkShaders.push_back(newShaderModuleData.vkModule_geom);
+-                }
+-
+-                vector<SpvReflectShaderModule*> badSpvShaders =
+-                {
+-                    ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_vert),
+-                    ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_frag)
+-                };
+-                if (newShaderModuleData.usingGeom)
+-                {
+-                    badSpvShaders.push_back(ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_geom));
+-                }
+-
+-                DestroyVkShaderModules(badVkShaders);
+-                DestroySpvShaderModules(badSpvShaders);
+-
+-                string message =
+-                    "Failed to initialize shader because descriptor set layout creation for set " + to_string(set)
+-                    + " failed! Reason: " + GraphicsContext::GetVkResultMessage(vkResult);
+-
+-                if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::SEVERITY_FATAL)
+-                {
+-                    KalaGraphicsCore::ForceClose(
+-                        "KalaGraphics shader error", 
+-                        std::move(message));
+-                }
+-                else
+-                {
+-                    Log::Print(
+-                        message, 
+-                        "KG_SHADER", 
+-                        LogType::LOG_ERROR, 
+-                        2);
+-                }
+-
+-                return nullptr;
+-            }
+-            ++setIndex;
+-        }
+-        
+-        //
+-        // PIPELINE LAYOUT
+-        //
+-
+-        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+-        pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+-        pipelineLayoutInfo.setLayoutCount         = scast<u32>(newDescriptorSetLayouts.size());
+-        pipelineLayoutInfo.pSetLayouts            = newDescriptorSetLayouts.data();
+-        pipelineLayoutInfo.pushConstantRangeCount = (pushConstantRange.size > 0) ? 1u : 0u;
+-        pipelineLayoutInfo.pPushConstantRanges    = &pushConstantRange;
+-
+-        VkPipelineLayout newPipelineLayout{};
+-        VkResult vkResult = vkCreatePipelineLayout(
+-            logicalDevice,
+-            &pipelineLayoutInfo,
+-            nullptr,
+-            &newPipelineLayout);
+-
+-        if (vkResult != VK_SUCCESS)
+-        {
+-            for (auto& sl : newDescriptorSetLayouts)
+-            {
+-                vkDestroyDescriptorSetLayout(
+-                    logicalDevice,
+-                    sl,
+-                    nullptr);
+-            }
+-
+-            vector<VkShaderModule> badVkShaders = 
+-            {
+-                newShaderModuleData.vkModule_vert,
+-                newShaderModuleData.vkModule_frag
+-            };
+-            if (newShaderModuleData.usingGeom)
+-            {
+-                badVkShaders.push_back(newShaderModuleData.vkModule_geom);
+-            }
+-
+-            vector<SpvReflectShaderModule*> badSpvShaders =
+-            {
+-                ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_vert),
+-                ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_frag)
+-            };
+-            if (newShaderModuleData.usingGeom)
+-            {
+-                badSpvShaders.push_back(ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_geom));
+-            }
+-
+-            DestroyVkShaderModules(badVkShaders);
+-            DestroySpvShaderModules(badSpvShaders);
+-
+-            string message = 
+-                "Failed to initialize shader because pipeline layout creation failed! Reason: " 
+-                + GraphicsContext::GetVkResultMessage(vkResult);
+-
+-            if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::SEVERITY_FATAL)
+-            {
+-                KalaGraphicsCore::ForceClose(
+-                    "KalaGraphics shader error",
+-                    std::move(message));
+-            }
+-            else
+-            {
+-                Log::Print(
+-                    message,
+-                    "KG_SHADER",
+-                    LogType::LOG_ERROR,
+-                    2);
+-            }
+-
+-            return nullptr;
+-        }
+-
+-        //
+-        // PIPELINE
+-        //
+-
+-        vector<VkPipelineShaderStageCreateInfo> stages{};
+-
+-        add_stage(
+-            stages,
+-            VK_SHADER_STAGE_VERTEX_BIT,
+-            newShaderModuleData.vkModule_vert);
+-        add_stage(
+-            stages,
+-            VK_SHADER_STAGE_FRAGMENT_BIT,
+-            newShaderModuleData.vkModule_frag);
+-
+-        if (newShaderModuleData.usingGeom)
+-        {
+-            add_stage(
+-                stages,
+-                VK_SHADER_STAGE_GEOMETRY_BIT,
+-                newShaderModuleData.vkModule_geom);
+-        }
+-
+-        VkFormat colorFormat = scast<VkFormat>(gctx->GetDefaultColorFormat());
+-        VkFormat depthFormat = scast<VkFormat>(gctx->GetDefaultDepthFormat());
+-
+-        VkPipelineRenderingCreateInfo pipelineRenderingInfo{};
+-        pipelineRenderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+-        pipelineRenderingInfo.colorAttachmentCount = 1;
+-        pipelineRenderingInfo.pColorAttachmentFormats = &colorFormat;
+-        pipelineRenderingInfo.depthAttachmentFormat = depthFormat;
+-        pipelineRenderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+-
+-        unique_ptr<PipelineInfo> newPipelineInfo = GetPipelineInfo(
+-            is2D,
+-            std::move(stages),
+-            newPipelineLayout,
+-            VK_NULL_HANDLE);
+-
+-        newPipelineInfo->pipelineInfo.pNext = &pipelineRenderingInfo;
+-        newPipelineInfo->pipelineInfo.renderPass = VK_NULL_HANDLE;
+-
+-        VkPipeline newPipeline{};
+-        vkResult = vkCreateGraphicsPipelines(
+-            logicalDevice,
+-            VK_NULL_HANDLE,
+-            1,
+-            &newPipelineInfo->pipelineInfo,
+-            nullptr,
+-            &newPipeline);
+-
+-        if (vkResult != VK_SUCCESS)
+-        {
+-            vkDestroyPipelineLayout(
+-                logicalDevice,
+-                newPipelineLayout,
+-                nullptr);
+-
+-            for (auto& sl : newDescriptorSetLayouts)
+-            {
+-                vkDestroyDescriptorSetLayout(
+-                    logicalDevice,
+-                    sl,
+-                    nullptr);
+-            }
+-
+-            vector<VkShaderModule> badVkShaders = 
+-            {
+-                newShaderModuleData.vkModule_vert,
+-                newShaderModuleData.vkModule_frag
+-            };
+-            if (newShaderModuleData.usingGeom)
+-            {
+-                badVkShaders.push_back(newShaderModuleData.vkModule_geom);
+-            }
+-
+-            vector<SpvReflectShaderModule*> badSpvShaders =
+-            {
+-                ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_vert),
+-                ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_frag)
+-            };
+-            if (newShaderModuleData.usingGeom)
+-            {
+-                badSpvShaders.push_back(ToVar<SpvReflectShaderModule*>(newShaderModuleData.spvModule_geom));
+-            }
+-
+-            DestroyVkShaderModules(badVkShaders);
+-            DestroySpvShaderModules(badSpvShaders);
+-
+-            string message = 
+-                "Failed to initialize shader because pipeline creation failed! Reason: " 
+-                + GraphicsContext::GetVkResultMessage(vkResult);
+-
+-            if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::SEVERITY_FATAL)
+-            {
+-                KalaGraphicsCore::ForceClose(
+-                    "KalaGraphics shader error",
+-                    std::move(message));
+-            }
+-            else
+-            {
+-                Log::Print(
+-                    message,
+-                    "KG_SHADER",
+-                    LogType::LOG_ERROR,
+-                    2);
+-            }
+-
+-            return nullptr;
+-        }
+-
+-        //
+-        // FINISH
+-        //
+-
+-        unique_ptr<Shader> newShader = make_unique<Shader>();
+-        Shader* shaderPtr = newShader.get();
+-
+-        u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
+-        KalaGraphicsCore::SetGlobalID(newID);
+-
+-        shaderPtr->ID = newID;
+-        shaderPtr->is2D = is2D;
+-        shaderPtr->pipeline = newPipeline;
+-        shaderPtr->pipelineLayout = newPipelineLayout;
+-        shaderPtr->descriptorSetLayouts = std::move(newDescriptorSetLayouts);
+-        shaderPtr->shaderModuleData = std::move(newShaderModuleData);
+-
+-        if (!is2D)
+-        {
+-            if (vp->primary3DShaderID == 0) vp->primary3DShaderID = newID;
+-            else                            vp->extra3DShaderIDs.push_back(newID);
+-        }
+-        else
+-        {
+-            if (vp->primary2DShaderID == 0) vp->primary2DShaderID = newID;
+-            else                            vp->extra2DShaderIDs.push_back(newID);
+-        }
+-        shaderPtr->is2D = is2D;
+-        shaderPtr->viewportID = viewportID;
+-
+-        err = registry.AddContent(newID, std::move(newShader));
+-        if (!err.empty())
+-        {
+-			KalaGraphicsCore::ForceClose(
+-				"KalaGraphics shader error",
+-				"Failed to initialize shader! Reason: " + err);
+-        }
+-
+-        Log::Print(
+-			"Created new shader '" + to_string(newID) + "'!",
+-			"KG_SHADER",
+-			LogType::LOG_SUCCESS);
+-
+-        return shaderPtr;
+-    }
+-
+-    u32 Shader::GetID() const { return ID; }
+-    u32 Shader::GetViewportID() const { return viewportID; }
+-    const vector<u32>& Shader::GetMeshIDs() const { return meshIDs; }
+-    const vector<u32>& Shader::GetTextureIDs() const { return textureIDs; }
+-    const vector<u32>& Shader::GetCameraIDs() const { return cameraIDs; }
+-
+-    bool Shader::Is2D() const { return is2D; }
+-
+-    void Shader::DestroyVkShaderModules(vector<VkShaderModule> modules)
+-    {
+-        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
+-
+-        for (const auto& m : modules)
+-        {
+-            vkDestroyShaderModule(
+-                logicalDevice,
+-                m,
+-                nullptr);
+-        }
+-    };
+-
+-    void Shader::Destroy()
+-    {
+-        Viewport* vp{};
+-        string err = Viewport::GetRegistry().GetContent(viewportID, vp);
+-        if (err.empty()
+-            && !isDestroyingViewport)
+-        {
+-            if (vp->primary3DShaderID == ID)
+-            {
+-                Log::Print(
+-                    "Cannot delete shader '" + to_string(ID) 
+-                    + "' because it is the primary 3D shader of viewport '" + to_string(viewportID) + "'!",
+-                    "KG_SHADER",
+-                    LogType::LOG_ERROR,
+-                    2);
+-
+-                return;
+-            }
+-            if (vp->primary2DShaderID == ID)
+-            {
+-                Log::Print(
+-                    "Cannot delete shader '" + to_string(ID) 
+-                    + "' because it is the primary 2D shader of viewport '" + to_string(viewportID) + "'!",
+-                    "KG_SHADER",
+-                    LogType::LOG_ERROR,
+-                    2);
+-
+-                return;
+-            }
+-
+-            auto it = find(
+-                vp->extra3DShaderIDs.begin(),
+-                vp->extra3DShaderIDs.end(),
+-                viewportID);
+-
+-            erase(
+-                (it != vp->extra3DShaderIDs.end()
+-                    ? vp->extra3DCameraIDs
+-                    : vp->extra2DShaderIDs), 
+-                ID);
+-
+-            if (vp->lastBoundShaderID == ID) vp->lastBoundShaderID = 0;
+-        }
+-
+-        for (u32 cID : cameraIDs)
+-        {
+-            Camera* c{};
+-            string err = Camera::GetRegistry().GetContent(cID, c);
+-            if (err.empty()) c->shaderID = 0;
+-        }
+-        cameraIDs.clear();
+-
+-        for (u32 tID : textureIDs)
+-        {
+-            Texture* t{};
+-            string err = Texture::GetRegistry().GetContent(tID, t);
+-            if (err.empty()) t->shaderID = 0;
+-        }
+-        textureIDs.clear();
+-
+-        for (u32 mID : meshIDs)
+-        {
+-            Mesh* m{};
+-            string err = Mesh::GetRegistry().GetContent(mID, m);
+-            if (err.empty()) m->shaderID = 0;
+-        }
+-        meshIDs.clear();
+-
+-        err = registry.DestroyContent(ID);
+-        if (!err.empty())
+-        {
+-            KalaGraphicsCore::ForceClose(
+-                "KalaGraphics shader error",
+-                "Failed to destroy shader '" + to_string(ID) + "'! Reason: " + err);
+-        }
+-    }
+-
+-    Shader::~Shader()
+-    {
+-        Log::Print(
+-			"Destroying shader '" + to_string(ID) + "'.",
+-			"KG_SHADER",
+-			LogType::LOG_INFO);
+-
+-        VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
+-        if (logicalDevice == VK_NULL_HANDLE) 
+-        {
+-            KalaGraphicsCore::ForceClose(
+-                "KalaGraphics shader error",
+-                "Failed to clear shader '" + to_string(ID) 
+-                + "' data because the logical device was invalid!");
+-        }
+-
+-        //drain the gpu before destroying this shader
+-        VkResult vkResult = vkDeviceWaitIdle(logicalDevice);
+-        if (vkResult != VK_SUCCESS)
+-        {
+-            GraphicsContext::ForceClose(
+-                "KalaGraphics shader error",
+-                "Failed to destroy shader '" 
+-                + to_string(ID) + "' because vkDeviceWaitIdle did not succeed!",
+-                vkResult);
+-        }
+-
+-        vkDestroyPipeline(
+-            logicalDevice,
+-            pipeline,
+-            nullptr);
+-        vkDestroyPipelineLayout(
+-            logicalDevice,
+-            pipelineLayout,
+-            nullptr);
+-
+-        for (auto& sl : descriptorSetLayouts)
+-        {
+-            vkDestroyDescriptorSetLayout(
+-                logicalDevice,
+-                sl,
+-                nullptr);
+-        }
+-
+-        if (shaderModuleData.vkModule_vert != VK_NULL_HANDLE)
+-        {
+-            vector<VkShaderModule> oldVkShaders = 
+-            {
+-                shaderModuleData.vkModule_vert,
+-                shaderModuleData.vkModule_frag
+-            };
+-            if (shaderModuleData.usingGeom)
+-            {
+-                oldVkShaders.push_back(shaderModuleData.vkModule_geom);
+-            }
+-
+-            vector<SpvReflectShaderModule*> oldSpvShaders =
+-            {
+-                ToVar<SpvReflectShaderModule*>(shaderModuleData.spvModule_vert),
+-                ToVar<SpvReflectShaderModule*>(shaderModuleData.spvModule_frag)
+-            };
+-            if (shaderModuleData.usingGeom)
+-            {
+-                oldSpvShaders.push_back(ToVar<SpvReflectShaderModule*>(shaderModuleData.spvModule_geom));
+-            }
+-
+-            DestroyVkShaderModules(oldVkShaders);
+-            DestroySpvShaderModules(oldSpvShaders);
+-        }
+-    }
+-}
+\ No newline at end of file
+diff --git a/src/resources/kg_texture.cpp b/src/resources/kg_texture.cpp
+index be3cf22..4e070c4 100644
+--- a/src/resources/kg_texture.cpp
++++ b/src/resources/kg_texture.cpp
+@@ -15,8 +15,8 @@ KG_VK_MEM_ALLOC_IGNORE_POP
+ #include "log_utils.hpp"
+ 
+ #include "resources/kg_texture.hpp"
+-#include "resources/kg_shader.hpp"
+ #include "resources/kg_mesh.hpp"
++#include "core/kg_shader.hpp"
+ #include "core/kg_context.hpp"
+ #include "core/kg_viewport.hpp"
+ 
+@@ -26,7 +26,8 @@ using KalaHeaders::KalaLog::LogType;
+ using KalaGraphics::Core::KalaGraphicsCore;
+ using KalaGraphics::Core::GraphicsContext;
+ using KalaGraphics::Core::Viewport;
+-using KalaGraphics::Resources::PixelFormat;
++using KalaGraphics::Core::Shader;
++using KalaGraphics::Resources::TexturePixelFormat;
+ using KalaGraphics::Resources::TextureType;
+ using KalaGraphics::Resources::TextureFilterMode;
+ using KalaGraphics::Resources::TextureShadowMapMode;
+@@ -40,40 +41,40 @@ using std::make_unique;
+ static bool retreivedProps{};
+ static VkPhysicalDeviceProperties props{};
+ 
+-static VkFormat ToVkFormat(PixelFormat pf)
++static VkFormat ToVkFormat(TexturePixelFormat pf)
+ {
+     switch (pf)
+     {
+     default:
+-    case PixelFormat::FORMAT_BASIC_R8:
++    case TexturePixelFormat::FORMAT_BASIC_R8:
+         return VkFormat::VK_FORMAT_R8_UNORM;
+-    case PixelFormat::FORMAT_BASIC_R8G8:
++    case TexturePixelFormat::FORMAT_BASIC_R8G8:
+         return VkFormat::VK_FORMAT_R8G8_UNORM;
+-    case PixelFormat::FORMAT_BASIC_R8G8B8:
++    case TexturePixelFormat::FORMAT_BASIC_R8G8B8:
+         return VkFormat::VK_FORMAT_R8G8B8_UNORM;
+-    case PixelFormat::FORMAT_BASIC_R8G8B8A8:
++    case TexturePixelFormat::FORMAT_BASIC_R8G8B8A8:
+         return VkFormat::VK_FORMAT_R8G8B8A8_UNORM;
+ 
+-    case PixelFormat::FORMAT_SRGB_R8G8B8:
++    case TexturePixelFormat::FORMAT_SRGB_R8G8B8:
+         return VkFormat::VK_FORMAT_R8G8B8_SRGB;
+-    case PixelFormat::FORMAT_SRGB_R8G8B8A8:
++    case TexturePixelFormat::FORMAT_SRGB_R8G8B8A8:
+         return VkFormat::VK_FORMAT_R8G8B8A8_SRGB;
+ 
+-    case PixelFormat::FORMAT_HDR_R16_FLOAT:
++    case TexturePixelFormat::FORMAT_HDR_R16_FLOAT:
+         return VkFormat::VK_FORMAT_R16_SFLOAT;
+-    case PixelFormat::FORMAT_HDR_R16G16_FLOAT:
++    case TexturePixelFormat::FORMAT_HDR_R16G16_FLOAT:
+         return VkFormat::VK_FORMAT_R16G16_SFLOAT;
+-    case PixelFormat::FORMAT_HDR_R16G16B16_FLOAT:
++    case TexturePixelFormat::FORMAT_HDR_R16G16B16_FLOAT:
+         return VkFormat::VK_FORMAT_R16G16B16_SFLOAT;
+-    case PixelFormat::FORMAT_HDR_R16G16B16A16_FLOAT:
++    case TexturePixelFormat::FORMAT_HDR_R16G16B16A16_FLOAT:
+         return VkFormat::VK_FORMAT_R16G16B16A16_SFLOAT;
+-    case PixelFormat::FORMAT_HDR_R32_FLOAT:
++    case TexturePixelFormat::FORMAT_HDR_R32_FLOAT:
+         return VkFormat::VK_FORMAT_R32_SFLOAT;
+-    case PixelFormat::FORMAT_HDR_R32G32_FLOAT:
++    case TexturePixelFormat::FORMAT_HDR_R32G32_FLOAT:
+         return VkFormat::VK_FORMAT_R32G32_SFLOAT;
+-    case PixelFormat::FORMAT_HDR_R32G32B32_FLOAT:
++    case TexturePixelFormat::FORMAT_HDR_R32G32B32_FLOAT:
+         return VkFormat::VK_FORMAT_R32G32B32_SFLOAT;
+-    case PixelFormat::FORMAT_HDR_R32G32B32A32_FLOAT:
++    case TexturePixelFormat::FORMAT_HDR_R32G32B32A32_FLOAT:
+         return VkFormat::VK_FORMAT_R32G32B32A32_SFLOAT;
+     };
+ }
+@@ -231,7 +232,7 @@ namespace KalaGraphics::Resources
+         texPtr->SetPixelData(std::move(textureData.pixelData));
+ 
+         texPtr->SetPixelFormat(textureData.format);
+-        texPtr->SetTextureType(textureData.type);
++        texPtr->SetType(textureData.type);
+         texPtr->SetFilterMode(textureData.filterMode);
+         texPtr->SetShadowMapMode(textureData.shadowMode);
+         texPtr->SetWrapMode(textureData.wrapMode);
+@@ -350,9 +351,6 @@ namespace KalaGraphics::Resources
+     const vector<u8>& Texture::GetPixelData() const { return pixelData; }
+     void Texture::SetPixelData(vector<u8>&& newPixelData)
+     {
+-        //ignore if already the same
+-        if (pixelData == newPixelData) return;
+-
+         if (newPixelData.empty())
+         {
+             Log::Print(
+@@ -368,8 +366,8 @@ namespace KalaGraphics::Resources
+         pixelData = std::move(newPixelData);
+     }
+ 
+-    PixelFormat Texture::GetPixelFormat() const { return format; }
+-    void Texture::SetPixelFormat(PixelFormat newFormat)
++    TexturePixelFormat Texture::GetPixelFormat() const { return format; }
++    void Texture::SetPixelFormat(TexturePixelFormat newFormat)
+     {
+         //ignore if already the same
+         if (newFormat == format) return;
+@@ -382,48 +380,48 @@ namespace KalaGraphics::Resources
+         switch (format)
+         {
+         default:
+-        case PixelFormat::FORMAT_BASIC_R8:
++        case TexturePixelFormat::FORMAT_BASIC_R8:
+             texFormat = "R8";
+             break;
+-        case PixelFormat::FORMAT_BASIC_R8G8:
++        case TexturePixelFormat::FORMAT_BASIC_R8G8:
+             texFormat = "r8g8";
+             break;
+-        case PixelFormat::FORMAT_BASIC_R8G8B8:
++        case TexturePixelFormat::FORMAT_BASIC_R8G8B8:
+             texFormat = "r8g8b8";
+             break;
+-        case PixelFormat::FORMAT_BASIC_R8G8B8A8:
++        case TexturePixelFormat::FORMAT_BASIC_R8G8B8A8:
+             texFormat = "r8g8b8a8";
+             break;
+ 
+-        case PixelFormat::FORMAT_SRGB_R8G8B8:
++        case TexturePixelFormat::FORMAT_SRGB_R8G8B8:
+             texFormat = "srgb_r8g8b8";
+             break;
+-        case PixelFormat::FORMAT_SRGB_R8G8B8A8:
++        case TexturePixelFormat::FORMAT_SRGB_R8G8B8A8:
+             texFormat = "srgb_r8g8b8a8";
+             break;
+ 
+-        case PixelFormat::FORMAT_HDR_R16_FLOAT:
++        case TexturePixelFormat::FORMAT_HDR_R16_FLOAT:
+             texFormat = "hdr_r16";
+             break;
+-        case PixelFormat::FORMAT_HDR_R16G16_FLOAT:
++        case TexturePixelFormat::FORMAT_HDR_R16G16_FLOAT:
+             texFormat = "hdr_r16g16";
+             break;
+-        case PixelFormat::FORMAT_HDR_R16G16B16_FLOAT:
++        case TexturePixelFormat::FORMAT_HDR_R16G16B16_FLOAT:
+             texFormat = "hdr_r16g6b16";
+             break;
+-        case PixelFormat::FORMAT_HDR_R16G16B16A16_FLOAT:
++        case TexturePixelFormat::FORMAT_HDR_R16G16B16A16_FLOAT:
+             texFormat = "hdr_r16g16b16a16";
+             break;
+-        case PixelFormat::FORMAT_HDR_R32_FLOAT:
++        case TexturePixelFormat::FORMAT_HDR_R32_FLOAT:
+             texFormat = "hdr_r32";
+             break;
+-        case PixelFormat::FORMAT_HDR_R32G32_FLOAT:
++        case TexturePixelFormat::FORMAT_HDR_R32G32_FLOAT:
+             texFormat = "hdr_r32g32";
+             break;
+-        case PixelFormat::FORMAT_HDR_R32G32B32_FLOAT:
++        case TexturePixelFormat::FORMAT_HDR_R32G32B32_FLOAT:
+             texFormat = "hdr_r32g32b32";
+             break;
+-        case PixelFormat::FORMAT_HDR_R32G32B32A32_FLOAT:
++        case TexturePixelFormat::FORMAT_HDR_R32G32B32A32_FLOAT:
+             texFormat = "hdr_r32g32b32a32";
+             break;
+         }
+@@ -434,8 +432,8 @@ namespace KalaGraphics::Resources
+             LogType::LOG_SUCCESS);
+     }
+ 
+-    TextureType Texture::GetTextureType() const { return type; }
+-    void Texture::SetTextureType(TextureType newType)
++    TextureType Texture::GetType() const { return type; }
++    void Texture::SetType(TextureType newType)
+     {
+         //ignore if already the same
+         if (newType == type) return;
+@@ -676,9 +674,6 @@ namespace KalaGraphics::Resources
+     vec2 Texture::GetSize() const { return size; }
+     void Texture::SetSize(vec2 newSize)
+     {
+-        //ignore if already the same
+-        if (size == newSize) return;
+-
+         if (newSize.x < 1
+             || newSize.y < 1)
+         {

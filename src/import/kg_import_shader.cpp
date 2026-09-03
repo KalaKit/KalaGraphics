@@ -18,12 +18,18 @@ using KalaHeaders::KalaFile::ReadBinaryDataFromFile;
 
 using KalaGraphics::Core::KalaGraphicsCore;
 
-using std::string;
+using std::string_view;
 using std::to_string;
 using std::unique_ptr;
 using std::make_unique;
 using std::filesystem::exists;
 using std::filesystem::is_regular_file;
+
+static constexpr string_view EXT_VERT = ".vert";
+static constexpr string_view EXT_FRAG = ".frag";
+
+static constexpr string_view EXT_SPV = ".spv";
+static constexpr string_view EXT_KSHA = ".ksha";
 
 namespace KalaGraphics::Import
 {
@@ -215,7 +221,7 @@ namespace KalaGraphics::Import
         }
 
         ShaderData shaderData{};
-        if (ext == ".png")
+        if (ext == EXT_SPV)
         {
             errMsg = Init_SPV(
                 std::move(outData),

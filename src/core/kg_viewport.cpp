@@ -13,7 +13,7 @@
 #include "core/kg_core.hpp"
 #include "core/kg_context.hpp"
 #include "core/kg_hit_test.hpp"
-#include "resources/kg_shader.hpp"
+#include "core/kg_shader.hpp"
 #include "resources/kg_mesh.hpp"
 #include "resources/kg_camera.hpp"
 #include "resources/kg_texture.hpp"
@@ -31,10 +31,6 @@ using KalaHeaders::KalaMath::isnear;
 using KalaHeaders::KalaMath::PosTarget;
 
 using KalaGraphics::Core::ViewportStaticSize;
-using KalaGraphics::Core::KalaGraphicsCore;
-using KalaGraphics::Core::GraphicsContext;
-using KalaGraphics::Core::Viewport;
-using KalaGraphics::Resources::Shader;
 using KalaGraphics::Resources::Mesh;
 using KalaGraphics::Resources::Camera;
 using KalaGraphics::Resources::Texture;
