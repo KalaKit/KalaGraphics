@@ -127,19 +127,17 @@ namespace KalaGraphics::Resources
         //always assign descriptor set data at camera init
         cameraPtr->isDirty = true;
 
-        if (newType == CameraType::CAM_PERSPECTIVE)
+        if (newType == CameraType::CAM_PERSPECTIVE
+            && vp->primary3DCameraID == 0)
         {
-            if (vp->primary3DCameraID == 0) vp->primary3DCameraID = newID;
-            else                            vp->extra3DCameraIDs.push_back(newID);
-
+            vp->primary3DCameraID = newID;
             cameraPtr->viewportID = vp->ID;
         }
 
-        if (newType == CameraType::CAM_ORTHOGRAPHIC)
+        if (newType == CameraType::CAM_ORTHOGRAPHIC
+            && vp->primary2DCameraID == 0)
         {
-            if (vp->primary2DCameraID == 0) vp->primary2DCameraID = newID;
-            else                            vp->extra2DCameraIDs.push_back(newID);
-
+            vp->primary2DCameraID = newID;
             cameraPtr->viewportID = vp->ID;
         }
 
@@ -166,7 +164,122 @@ namespace KalaGraphics::Resources
 
     u32 Camera::GetID() const { return ID; }
     u32 Camera::GetViewportID() const { return viewportID; }
+
     u32 Camera::GetShaderID() const { return shaderID; }
+    void Camera::SetShaderID(u32 newValue)
+    {
+        if (newValue == 0)
+        {
+            Log::Print(
+                "Failed to set camera '" + to_string(ID) 
+                + "' shader ID because it was empty!",
+                "KG_CAMERA",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (shaderID == newValue)
+        {
+            Log::Print(
+                "Failed to set camera '" + to_string(ID) + "' shader ID to '" 
+                + to_string(newValue) + "' because it is already the same!",
+                "KG_CAMERA",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        Shader* newShader{};
+        string err = Shader::GetRegistry().GetContent(newValue, newShader);
+        if (!err.empty())
+        {
+            Log::Print(
+                "Failed to set camera '" + to_string(ID) 
+                + "' shader ID to '" + to_string(newValue) + "' because it was invalid! Reason: " + err,
+                "KG_CAMERA",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (shaderID != 0)
+        {
+            Shader* shader{};
+            string err = Shader::GetRegistry().GetContent(shaderID, shader);
+            if (!err.empty())
+            {
+                Log::Print(
+                    "Failed to set camera '" + to_string(ID) 
+                    + "' shader ID to '" + to_string(newValue) + "' because the old shader '" 
+                    + to_string(shaderID) + "' was invalid! Reason: " + err,
+                    "KG_CAMERA",
+                    LogType::LOG_ERROR,
+                    2);
+
+                return;
+            }
+
+            if (viewportID != 0)
+            {
+                Viewport* vp{};
+                err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
+                if (!err.empty())
+                {
+                    KalaGraphicsCore::ForceClose(
+                        "KalaGraphics camera error",
+                        "Failed to set camera '" + to_string(ID) + "' shader to '" 
+                        + to_string(newValue) + "' because the shaders viewport was invalid! Reason: " + err);
+                }
+
+                if (vp->primary2DCameraID == ID
+                    || vp->primary3DCameraID == ID)
+                {
+                    Log::Print(
+                        "Failed to set camera '" + to_string(ID) 
+                        + "' shader ID to '" + to_string(newValue) 
+                        + "' because its viewport '" + to_string(vp->ID) 
+                        + "' uses this camera as its primary camera!",
+                        "KG_CAMERA",
+                        LogType::LOG_ERROR,
+                        2);
+
+                    return;
+                }
+            }
+
+            if (meshID != 0)
+            {
+                Mesh* m{};
+                string err = Mesh::GetRegistry().GetContent(meshID, m);
+                if (!err.empty())
+                {
+                    KalaGraphicsCore::ForceClose(
+                        "KalaGraphics camera error",
+                        "Failed to set camera '" + to_string(ID) + "' shader to '" 
+                        + to_string(newValue) + "' because the shaders mesh was invalid! Reason: " + err);
+                }
+
+                meshID = 0;
+            }
+
+            erase(
+                shader->cameraIDs,
+                ID);
+        }
+
+        shaderID = newValue;
+        newShader->cameraIDs.push_back(ID);
+
+        Log::Print(
+            "Set camera '" + to_string(ID) 
+            + "' shader ID to '" + to_string(shaderID) + "'!",
+            "KG_SHADER",
+            LogType::LOG_SUCCESS);
+    }
     
     u32 Camera::GetMeshID() const { return meshID; }
     void Camera::SetMeshID(u32 newValue)

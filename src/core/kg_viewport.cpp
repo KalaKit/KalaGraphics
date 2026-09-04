@@ -459,7 +459,7 @@ namespace KalaGraphics::Core
         //
 
         Camera* cam3D = Camera::Initialize(
-            vpPtr->primary3DShaderID,
+            vpPtr->shader3DIDs.front(),
             CameraType::CAM_PERSPECTIVE);
 
         if (!cam3D)
@@ -470,7 +470,7 @@ namespace KalaGraphics::Core
         }
 
         Camera* cam2D = Camera::Initialize(
-            vpPtr->primary2DShaderID,
+            vpPtr->shader2DIDs.front(),
             CameraType::CAM_ORTHOGRAPHIC);
 
         if (!cam2D)
@@ -500,14 +500,8 @@ namespace KalaGraphics::Core
     u32 Viewport::GetPrimary3DCameraID() const { return primary3DCameraID; }
     u32 Viewport::GetPrimary2DCameraID() const { return primary2DCameraID; }
 
-    const vector<u32>& Viewport::GetExtra3DCameraIDs() const { return extra3DCameraIDs; }
-    const vector<u32>& Viewport::GetExtra2DCameraIDs() const { return extra2DCameraIDs; }
-
-    u32 Viewport::GetPrimary3DShaderID() const { return primary3DShaderID; }
-    u32 Viewport::GetPrimary2DShaderID() const { return primary2DShaderID; }
-
-    const vector<u32>& Viewport::GetExtra3DShaderIDs() const { return extra3DShaderIDs; }
-    const vector<u32>& Viewport::GetExtra2DShaderIDs() const { return extra2DShaderIDs; }
+    const vector<u32>& Viewport::GetShader3DIDs() const { return shader3DIDs; }
+    const vector<u32>& Viewport::GetShader2DIDs() const { return shader2DIDs; }
 
     u32 Viewport::GetRootShaderID(RootShaderTarget target)
     {
@@ -1159,16 +1153,8 @@ namespace KalaGraphics::Core
         vec3 camPos = scast<Transform3D&>(primary3DCam->GetTransform()).getpos(PosTarget::POS_WORLD);
 
         vector<Mesh*> meshes{};
-        vector<u32> shaderIDs{};
 
-        shaderIDs.push_back(primary3DShaderID);
-
-        shaderIDs.insert(
-            shaderIDs.end(),
-            extra3DShaderIDs.begin(),
-            extra3DShaderIDs.end());
-
-        for (u32 shaderID : shaderIDs)
+        for (u32 shaderID : shader3DIDs)
         {
             Shader* shader{};
             string err = Shader::GetRegistry().GetContent(shaderID, shader);
@@ -1279,16 +1265,8 @@ namespace KalaGraphics::Core
 
         vector<Mesh*> opaqueMeshes{};
         vector<Mesh*> transparentMeshes{};
-        vector<u32> shaderIDs{};
 
-        shaderIDs.push_back(primary2DShaderID);
-
-        shaderIDs.insert(
-            shaderIDs.end(),
-            extra2DShaderIDs.begin(),
-            extra2DShaderIDs.end());
-
-        for (u32 shaderID : shaderIDs)
+        for (u32 shaderID : shader2DIDs)
         {
             Shader* shader{};
             string err = Shader::GetRegistry().GetContent(shaderID, shader);
@@ -1633,18 +1611,16 @@ namespace KalaGraphics::Core
                     &scissor);
 
                 vector<u32> shaderIDs{};
-                shaderIDs.push_back(primary3DShaderID);
-                shaderIDs.push_back(primary2DShaderID);
 
                 shaderIDs.insert(
                     shaderIDs.end(),
-                    extra3DShaderIDs.begin(),
-                    extra3DShaderIDs.end());
+                    shader3DIDs.begin(),
+                    shader3DIDs.end());
 
                 shaderIDs.insert(
                     shaderIDs.end(),
-                    extra2DShaderIDs.begin(),
-                    extra2DShaderIDs.end());
+                    shader2DIDs.begin(),
+                    shader2DIDs.end());
 
                 for (u32 shaderID : shaderIDs)
                 {
@@ -1993,20 +1969,6 @@ namespace KalaGraphics::Core
         }
         c3d->Move({}, {});
 
-        for (u32 cID : extra3DCameraIDs)
-        {
-            Camera* ec3d{};
-            err = Camera::GetRegistry().GetContent(cID, ec3d);
-            if (!err.empty())
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics viewport error",
-                    "Failed to resize viewport '" + to_string(ID) 
-                    + "' because its extra 3D camera was invalid! Reason: " + err);
-            }
-            ec3d->Move({}, {});
-        }
-
         Camera* c2d{};
         err = Camera::GetRegistry().GetContent(primary2DCameraID, c2d);
         if (!err.empty())
@@ -2017,20 +1979,6 @@ namespace KalaGraphics::Core
                 + "' because its primary 2D camera was invalid! Reason: " + err);
         }
         c2d->Move({}, {});
-
-        for (u32 cID : extra2DCameraIDs)
-        {
-            Camera* ec2d{};
-            err = Camera::GetRegistry().GetContent(cID, ec2d);
-            if (!err.empty())
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics viewport error",
-                    "Failed to resize viewport '" + to_string(ID) 
-                    + "' because its extra 2D camera was invalid! Reason: " + err);
-            }
-            ec2d->Move({}, {});
-        }
     }
 
     void Viewport::Destroy()
@@ -2069,35 +2017,7 @@ namespace KalaGraphics::Core
         string err = HitTest::GetRegistry().GetContent(hitTestID, hitTest);
         if (err.empty()) hitTest->viewportID = 0;
 
-        Shader* p3d{};
-        err = Shader::GetRegistry().GetContent(primary3DShaderID, p3d);
-        if (!err.empty())
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics context error",
-                "Failed to destroy viewport '" + to_string(ID) + "' because "
-                "its primary 3D shader was invalid! Reason: " + err);
-        }
-
-        p3d->isDestroyingViewport = true;
-        p3d->overrideRootDeletePermission = true;
-        p3d->Destroy();
-
-        Shader* p2d{};
-        err = Shader::GetRegistry().GetContent(primary2DShaderID, p2d);
-        if (!err.empty())
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics context error",
-                "Failed to destroy viewport '" + to_string(ID) + "' because "
-                "its primary 2D shader was invalid! Reason: " + err);
-        }
-
-        p2d->isDestroyingViewport = true;
-        p2d->overrideRootDeletePermission = true;
-        p2d->Destroy();
-
-        for (u32 sID : extra3DShaderIDs)
+        for (u32 sID : shader3DIDs)
         {
             Shader* s{};
             err = Shader::GetRegistry().GetContent(sID, s);
@@ -2114,7 +2034,7 @@ namespace KalaGraphics::Core
             s->Destroy();
         }
 
-        for (u32 sID : extra2DShaderIDs)
+        for (u32 sID : shader2DIDs)
         {
             Shader* s{};
             err = Shader::GetRegistry().GetContent(sID, s);
@@ -2129,60 +2049,6 @@ namespace KalaGraphics::Core
             s->isDestroyingViewport = true;
             s->overrideRootDeletePermission = true;
             s->Destroy();
-        }
-
-        Camera* pc3{};
-        err = Camera::GetRegistry().GetContent(primary3DCameraID, pc3);
-        if (!err.empty())
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics viewport error",
-                "Failed to destroy viewport '" + to_string(ID) 
-                + "' because its 3D camera was invalid! Reason: " + err);
-        }
-
-        pc3->Destroy();
-
-        Camera* pc2{};
-        err = Camera::GetRegistry().GetContent(primary2DCameraID, pc2);
-        if (!err.empty())
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics viewport error",
-                "Failed to destroy viewport '" + to_string(ID) 
-                + "' because its 2D camera was invalid! Reason: " + err);
-        }
-
-        pc2->Destroy();
-
-        for (u32 cID : extra3DCameraIDs)
-        {
-            Camera* c{};
-            err = Camera::GetRegistry().GetContent(cID, c);
-            if (!err.empty())
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics context error",
-                    "Failed to destroy viewport '" + to_string(ID) + "' because "
-                    "its extra 3D camera was invalid! Reason: " + err);
-            }
-
-            c->Destroy();
-        }
-
-        for (u32 cID : extra2DCameraIDs)
-        {
-            Camera* c{};
-            err = Camera::GetRegistry().GetContent(cID, c);
-            if (!err.empty())
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics context error",
-                    "Failed to destroy viewport '" + to_string(ID) + "' because "
-                    "its extra 2D camera was invalid! Reason: " + err);
-            }
-
-            c->Destroy();
         }
 
         err = registry.DestroyContent(ID);

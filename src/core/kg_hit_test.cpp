@@ -207,33 +207,20 @@ namespace KalaGraphics::Core
             {
                 vector<u32> existingMeshes{};
 
-                Shader* primary2DShader{};
-                string err = Shader::GetRegistry().GetContent(vp->primary2DShaderID, primary2DShader);
-                if (!err.empty())
+                for (u32 sID : vp->shader2DIDs)
                 {
-                    KalaGraphicsCore::ForceClose(
-                        "KalaGraphics hit test error", 
-                        "Failed to update hit test '" + to_string(ID) 
-                        + "' because viewport '" + to_string(vp->ID) 
-                        + "' primary 2D shader was invalid! Reason: " + err);
-                }
-
-                existingMeshes = primary2DShader->meshIDs;
-
-                for (u32 extra2DShaderID : vp->extra2DShaderIDs)
-                {
-                    Shader* extra2DShader{};
-                    string err = Shader::GetRegistry().GetContent(extra2DShaderID, extra2DShader);
+                    Shader* s{};
+                    string err = Shader::GetRegistry().GetContent(sID, s);
                     if (!err.empty())
                     {
                         KalaGraphicsCore::ForceClose(
                             "KalaGraphics hit test error", 
                             "Failed to update hit test '" + to_string(ID) 
                             + "' because viewport '" + to_string(vp->ID) 
-                            + "' extra 2D shader was invalid! Reason: " + err);
+                            + "' 2D shader was invalid! Reason: " + err);
                     }
 
-                    for (u32 ID : extra2DShader->meshIDs)
+                    for (u32 ID : s->meshIDs)
                     {
                         existingMeshes.push_back(ID);
                     }

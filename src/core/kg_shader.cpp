@@ -970,16 +970,9 @@ namespace KalaGraphics::Core
         shaderPtr->descriptorSetLayouts = std::move(newDescriptorSetLayouts);
         shaderPtr->shaderModuleData = std::move(newShaderModuleData);
 
-        if (!is2D)
-        {
-            if (vp->primary3DShaderID == 0) vp->primary3DShaderID = newID;
-            else                            vp->extra3DShaderIDs.push_back(newID);
-        }
-        else
-        {
-            if (vp->primary2DShaderID == 0) vp->primary2DShaderID = newID;
-            else                            vp->extra2DShaderIDs.push_back(newID);
-        }
+        if (!is2D) vp->shader3DIDs.push_back(newID);
+        else       vp->shader2DIDs.push_back(newID);
+
         shaderPtr->is2D = is2D;
         shaderPtr->viewportID = viewportID;
 
@@ -1043,39 +1036,64 @@ namespace KalaGraphics::Core
         if (err.empty()
             && !isDestroyingViewport)
         {
-            if (vp->primary3DShaderID == ID)
+            if (!is2D)
             {
-                Log::Print(
-                    "Cannot delete shader '" + to_string(ID) 
-                    + "' because it is the primary 3D shader of viewport '" + to_string(viewportID) + "'!",
-                    "KG_SHADER",
-                    LogType::LOG_ERROR,
-                    2);
+                Camera* c{};
+                string err = Camera::GetRegistry().GetContent(vp->primary3DCameraID, c);
+                if (!err.empty())
+                {
+                    KalaGraphicsCore::ForceClose(
+                        "KalaGraphics shader error",
+                        "Failed to destroy shader '" + to_string(ID) 
+                        + "' because viewport '" + to_string(viewportID) 
+                        + "' primary 3D camera was invalid! Reason: " + err);
+                }
 
-                return;
+                if (c->shaderID == ID)
+                {
+                    Log::Print(
+                        "Failed to delete shader '" + to_string(ID) 
+                        + "' because it belongs to the primary 3D camera of viewport '" + to_string(viewportID) + "'!",
+                        "KG_SHADER",
+                        LogType::LOG_ERROR,
+                        2);
+
+                    return;
+                }
+
+                erase(
+                    vp->shader3DIDs, 
+                    ID);
             }
-            if (vp->primary2DShaderID == ID)
+            else
             {
-                Log::Print(
-                    "Cannot delete shader '" + to_string(ID) 
-                    + "' because it is the primary 2D shader of viewport '" + to_string(viewportID) + "'!",
-                    "KG_SHADER",
-                    LogType::LOG_ERROR,
-                    2);
+                Camera* c{};
+                string err = Camera::GetRegistry().GetContent(vp->primary2DCameraID, c);
+                if (!err.empty())
+                {
+                    KalaGraphicsCore::ForceClose(
+                        "KalaGraphics shader error",
+                        "Failed to destroy shader '" + to_string(ID) 
+                        + "' because viewport '" + to_string(viewportID) 
+                        + "' primary 2D camera was invalid! Reason: " + err);
+                }
 
-                return;
+                if (c->shaderID == ID)
+                {
+                    Log::Print(
+                        "Failed to delete shader '" + to_string(ID) 
+                        + "' because it belongs to the primary 2D camera of viewport '" + to_string(viewportID) + "'!",
+                        "KG_SHADER",
+                        LogType::LOG_ERROR,
+                        2);
+
+                    return;
+                }
+
+                erase(
+                    vp->shader2DIDs, 
+                    ID);
             }
-
-            auto it = find(
-                vp->extra3DShaderIDs.begin(),
-                vp->extra3DShaderIDs.end(),
-                viewportID);
-
-            erase(
-                (it != vp->extra3DShaderIDs.end()
-                    ? vp->extra3DCameraIDs
-                    : vp->extra2DShaderIDs), 
-                ID);
 
             if (vp->lastBoundShaderID == ID) vp->lastBoundShaderID = 0;
         }

@@ -1208,6 +1208,18 @@ namespace KalaGraphics::Resources
     u32 Mesh::GetShaderID() const { return shaderID; }
     void Mesh::SetShaderID(u32 newValue)
     {
+        if (newValue == 0)
+        {
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) 
+                + "' shader ID because it was empty!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
         if (shaderID == newValue)
         {
             Log::Print(

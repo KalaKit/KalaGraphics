@@ -183,19 +183,9 @@ namespace KalaGraphics::Core
 		u32 GetPrimary2DCameraID() const;
 
         KNODISCARD
-		const vector<u32>& GetExtra3DCameraIDs() const;
+		const vector<u32>& GetShader3DIDs() const;
         KNODISCARD
-		const vector<u32>& GetExtra2DCameraIDs() const;
-
-        KNODISCARD
-		u32 GetPrimary3DShaderID() const;
-        KNODISCARD
-		u32 GetPrimary2DShaderID() const;
-
-        KNODISCARD
-		const vector<u32>& GetExtra3DShaderIDs() const;
-        KNODISCARD
-		const vector<u32>& GetExtra2DShaderIDs() const;
+		const vector<u32>& GetShader2DIDs() const;
 
         //The ID of this root shader
         u32 GetRootShaderID(RootShaderTarget rootShaderTarget);
@@ -335,17 +325,12 @@ namespace KalaGraphics::Core
         u32 primary3DCameraID{};
         u32 primary2DCameraID{};
 
-        vector<u32> extra3DCameraIDs{};
-        vector<u32> extra2DCameraIDs{};
-
-        //the last shader that was bound during runtime loop
+        //the last shader that was bound during runtime loop,
+        //used for meshes to prevent binding the same shader and camera again
         u32 lastBoundShaderID{};
 
-        u32 primary3DShaderID{};
-        u32 primary2DShaderID{};
-
-        vector<u32> extra3DShaderIDs{};
-        vector<u32> extra2DShaderIDs{};
+        vector<u32> shader3DIDs{};
+        vector<u32> shader2DIDs{};
 
         vector<u32> sorted3DOpaqueMeshes{};
         vector<u32> sorted3DTransparentMeshes{};
