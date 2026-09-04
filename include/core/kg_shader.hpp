@@ -104,12 +104,20 @@ namespace KalaGraphics::Core
 
         static void DestroyVkShaderModules(vector<VkShaderModule> modules);
 
+        KNODISCARD
+		static const vector<path>& GetRequiredRootVertexShaders();
+        KNODISCARD
+		static const vector<path>& GetRequiredRootFragmentShaders();
+
         u32 ID{};
         u32 viewportID{};
 
         vector<u32> textureIDs{};
         vector<u32> cameraIDs{};
         vector<u32> meshIDs{};
+
+        bool overrideRootDeletePermission{};
+        bool isRootShader{};
 
         //used only to prevent shader from removing its ID from
         //viewport shader IDs list if the viewport

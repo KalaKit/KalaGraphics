@@ -14,7 +14,7 @@
 
 #if defined(KWIN_ANY)
 #include <windows.h>
-#elif defined(KLIN_ANY)
+#else
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #endif
@@ -845,7 +845,7 @@ namespace KalaGraphics::Core
                 "KalaGraphics context error",
                 "Failed to initialize graphics context because it did not contain a real window!");
         }
-#elif defined(KLIN_ANY)
+#else
         if (!in_context.context_display
             || !in_context.context_window)
         {

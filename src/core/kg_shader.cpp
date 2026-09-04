@@ -32,8 +32,8 @@ using KalaHeaders::KalaFile::ReadBinaryDataFromFile;
 using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Core::GraphicsContext;
 using KalaGraphics::Core::Viewport;
+using KalaGraphics::Core::Shader;
 using KalaGraphics::Core::Severity;
-
 using KalaGraphics::Resources::Vertex;
 using KalaGraphics::Resources::Vertex2D;
 using KalaGraphics::Resources::Mesh;
@@ -50,6 +50,7 @@ using std::string_view;
 using std::map;
 using std::pair;
 using std::make_pair;
+using std::filesystem::absolute;
 
 struct ShaderModule
 {
@@ -303,6 +304,17 @@ namespace KalaGraphics::Core
                     LogType::LOG_ERROR,
                     2);
             };
+        auto root_shader = [viewportID](const pair<path, path>& shaders) -> void
+            {
+                Log::Print(
+                    "Failed to initialize shader because its "
+                    "vertex shader '" + shaders.first.string() + "' and "
+                    "frag shader '" + shaders.second.string() + "' "
+                    "are already used in an existing root shader in viewport '" + to_string(viewportID) + "'!", 
+                    "KG_SHADER",
+                    LogType::LOG_ERROR,
+                    2);
+            };
 
         if (vertPath.empty())
         {
@@ -349,6 +361,44 @@ namespace KalaGraphics::Core
             if (!exists(geomPath))
             {
                 invalid_path("geometry", geomPath.string());
+                return nullptr;
+            }
+        }
+
+        vector<const RootShader*> rootShaders = vp->GetAllRootShaders();
+
+        path absVert = absolute(vertPath);
+        path absFrag = absolute(fragPath);
+
+        for (const RootShader* rs : rootShaders)
+        {
+            //skip not-yet-initialized root shaders
+            if (rs->shaderID == 0) continue;
+
+            Shader* s{};
+            string err = Shader::GetRegistry().GetContent(rs->shaderID, s);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics shader error",
+                    "Failed to initialize shader during root shader '" 
+                    + to_string(rs->shaderID) + "' verification because it was invalid!");
+            }
+            
+            /*
+            Log::Print(
+                "@@@@@\n"
+                "this vert: " + absVert.string() + "\n"
+                "this frag: " + absFrag.string() + "\n"
+                "root vert: " + rs->vertShader.shaderPath.string() + "\n"
+                "root frag: " + rs->fragShader.shaderPath.string());
+            */
+
+            if (absVert == rs->vertShader.shaderPath
+                && absFrag == rs->fragShader.shaderPath)
+            {
+                root_shader({ vertPath, fragPath });
+
                 return nullptr;
             }
         }
@@ -974,6 +1024,22 @@ namespace KalaGraphics::Core
     {
         Viewport* vp{};
         string err = Viewport::GetRegistry().GetContent(viewportID, vp);
+
+        if (isRootShader
+            && !overrideRootDeletePermission
+            && err.empty())
+        {
+            Log::Print(
+                "Failed to delete shader '" + to_string(ID) 
+                + "' because it is a root shader of viewport '" + to_string(viewportID) 
+                + "' and it is required for normal operation of KalaGraphics!",
+                "KG_SHADER",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
         if (err.empty()
             && !isDestroyingViewport)
         {

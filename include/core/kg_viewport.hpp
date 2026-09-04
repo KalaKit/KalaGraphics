@@ -37,6 +37,7 @@ namespace KalaGraphics::Core
     using std::vector;
     using std::unordered_map;
     using std::array;
+    using std::pair;
     using std::function;
     using std::default_delete;
 
@@ -108,6 +109,40 @@ namespace KalaGraphics::Core
         VP_CUSTOM = 3
     };
 
+    enum class RootShaderTarget : u8
+    {
+        T_UNLIT = 0,  //unlit_vert.spv + unlit_frag.spv
+        T_RECT  = 1,  //ui_rect_vert.spv + ui_rect_frag.spv
+        T_FONT  = 2   //ui_rect_vert.spv + ui_font_frag.spv
+    };
+    
+    enum class RootShaderType : u8
+    {
+        S_VERT_UNLIT = 0, //unlit_vert.spv
+        S_VERT_RECT  = 1, //ui_rect_vert.spv
+
+        S_FRAG_UNLIT = 2, //unlit_frag.spv
+        S_FRAG_RECT  = 3, //ui_rect_frag.spv
+        S_FRAG_FONT  = 4  //ui_font_frag.spv
+    };
+
+    struct RootShaderTypeData
+    {
+        RootShaderType shaderType{};
+        path shaderPath{};
+    };
+
+    struct RootShader
+    {
+        RootShaderTarget shaderTarget{};
+        u32 shaderID{};
+
+        RootShaderTypeData vertShader{};
+        RootShaderTypeData fragShader{};
+    };
+
+    //TODO: check root shader validity with spir-v reflect
+
     class LIB_API Viewport
     {
     friend class KalaGraphics::Resources::Mesh;
@@ -161,6 +196,9 @@ namespace KalaGraphics::Core
 		const vector<u32>& GetExtra3DShaderIDs() const;
         KNODISCARD
 		const vector<u32>& GetExtra2DShaderIDs() const;
+
+        //The ID of this root shader
+        u32 GetRootShaderID(RootShaderTarget rootShaderTarget);
 
         //Returns true if this viewport is
         //currently being detected by the Hit Test logic
@@ -277,6 +315,8 @@ namespace KalaGraphics::Core
     private:
         ~Viewport();
 
+        vector<const RootShader*> GetAllRootShaders();
+
         void Sort3DMeshes();
         void Sort2DMeshes();
 
@@ -312,6 +352,8 @@ namespace KalaGraphics::Core
 
         vector<u32> sorted2DOpaqueMeshes{};
         vector<u32> sorted2DTransparentMeshes{};
+
+        array<RootShader, 3> rootShaderTable{};
 
         //used only to prevent viewport from removing its ID from
         //graphics context viewport IDs list if the graphics context

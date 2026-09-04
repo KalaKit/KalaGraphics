@@ -127,7 +127,7 @@ namespace KalaGraphics::Core
 
 #if defined(KWIN_ANY)
         uintptr_t context_window{};
-#elif defined(KLIN_ANY)
+#else
         uintptr_t context_display{};
         uintptr_t context_window{};
 #endif

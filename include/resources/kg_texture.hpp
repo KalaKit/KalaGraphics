@@ -263,7 +263,7 @@ namespace KalaGraphics::Resources
         vector<u32> meshIDs{};
 
         //set to true if any texture-breaking data was adjusted
-        bool isDirty{};
+        bool isDirty = true;
 
         vector<u8> pixelData{};
 

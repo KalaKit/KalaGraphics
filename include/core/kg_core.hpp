@@ -35,6 +35,7 @@
 #include <string>
 #include <functional>
 #include <vector>
+#include <filesystem>
 
 #include "core_utils.hpp"
 
@@ -44,6 +45,7 @@ namespace KalaGraphics::Core
     using std::string_view;
     using std::function;
     using std::vector;
+    using std::filesystem::path;
 
     static constexpr u8 MAX_NAME_LENGTH = 64;
 
@@ -52,6 +54,9 @@ namespace KalaGraphics::Core
     public:
         static u32 GetGlobalID();
 		static void SetGlobalID(u32 newID);
+
+		KNODISCARD
+		static path GetExePath();
 
         //External handler for force close, overrides local version so external version can do its own action
         static void SetExternalHandler(function<void(string, string)>&& externalHandler);

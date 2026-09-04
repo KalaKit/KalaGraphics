@@ -141,7 +141,7 @@ namespace KalaGraphics::Import
         while(fgets(buffer, sizeof(buffer), pipe)) errMsg += buffer;
 
         int exitCode = _pclose(pipe);
-#elif defined(KLIN_ANY)
+#else
         FILE* pipe = popen(command.c_str(), "r");
         if (!pipe)
         {

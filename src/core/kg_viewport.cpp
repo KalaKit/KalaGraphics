@@ -20,6 +20,7 @@
 
 using KalaHeaders::KalaCore::EnumHash;
 using KalaHeaders::KalaCore::EnumToString;
+using KalaHeaders::KalaCore::RemoveDuplicates;
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
@@ -31,6 +32,9 @@ using KalaHeaders::KalaMath::isnear;
 using KalaHeaders::KalaMath::PosTarget;
 
 using KalaGraphics::Core::ViewportStaticSize;
+using KalaGraphics::Core::RootShader;
+using KalaGraphics::Core::RootShaderType;
+using KalaGraphics::Core::RootShaderTarget;
 using KalaGraphics::Resources::Mesh;
 using KalaGraphics::Resources::Camera;
 using KalaGraphics::Resources::Texture;
@@ -40,6 +44,16 @@ using std::to_string;
 using std::unordered_map;
 using std::vector;
 using std::min;
+using std::find_if;
+using std::filesystem::path;
+using std::filesystem::recursive_directory_iterator;
+
+static constexpr string_view ROOT_SHADER_VERT_UNLIT   = "unlit_vert.spv";
+static constexpr string_view ROOT_SHADER_VERT_UI_RECT = "ui_rect_vert.spv";
+
+static constexpr string_view ROOT_SHADER_FRAG_UNLIT   = "unlit_frag.spv";
+static constexpr string_view ROOT_SHADER_FRAG_UI_RECT = "ui_rect_frag.spv";
+static constexpr string_view ROOT_SHADER_FRAG_UI_FONT = "ui_font_frag.spv";
 
 //
 // 4:3
@@ -216,6 +230,226 @@ namespace KalaGraphics::Core
 				"Failed to initialize viewport! Reason: " + err);
         }
 
+        vpPtr->rootShaderTable = 
+        {{
+            {
+                    .shaderTarget = RootShaderTarget::T_UNLIT,
+                    .vertShader = 
+                    {
+                        .shaderType = RootShaderType::S_VERT_UNLIT,
+                        .shaderPath = ROOT_SHADER_VERT_UNLIT
+                    },
+                    .fragShader =
+                    {
+                        .shaderType = RootShaderType::S_FRAG_UNLIT,
+                        .shaderPath = ROOT_SHADER_FRAG_UNLIT
+                    }
+                },
+            {
+                    .shaderTarget = RootShaderTarget::T_RECT,
+                    .vertShader = 
+                    {
+                        .shaderType = RootShaderType::S_VERT_RECT,
+                        .shaderPath = ROOT_SHADER_VERT_UI_RECT
+                    },
+                    .fragShader =
+                    {
+                        .shaderType = RootShaderType::S_FRAG_RECT,
+                        .shaderPath = ROOT_SHADER_FRAG_UI_RECT
+                    }
+                },
+            {
+                    .shaderTarget = RootShaderTarget::T_FONT,
+                    .vertShader = 
+                    {
+                        .shaderType = RootShaderType::S_VERT_RECT,
+                        .shaderPath = ROOT_SHADER_VERT_UI_RECT
+                    },
+                    .fragShader =
+                    {
+                        .shaderType = RootShaderType::S_FRAG_FONT,
+                        .shaderPath = ROOT_SHADER_FRAG_UI_FONT
+                    }
+                }
+        }};
+
+        auto init_shader = [vpPtr](
+            RootShaderType vertType,
+            RootShaderType fragType,
+            bool is2D) -> u32
+            {
+                auto get_shader_name = [vpPtr](RootShaderType type) -> string
+                    {
+                        string name{};
+                        for (const RootShader& rs : vpPtr->rootShaderTable)
+                        {
+                            if (rs.vertShader.shaderType == type)
+                            {
+                                name = rs.vertShader.shaderPath.string();
+                                break;
+                            }
+                            else if (rs.fragShader.shaderType == type)
+                            {
+                                name = rs.fragShader.shaderPath.string();
+                                break;
+                            }
+                        }
+
+                        if (name.empty())
+                        {
+                            KalaGraphicsCore::ForceClose(
+                                "KalaGraphics viewport error",
+                                "Failed to initialize viewport because root shader initialization failed! Reason: "
+                                "Failed to get shader name for root shader type '" + to_string(scast<u8>(type)) + "'!");
+                        }
+
+                        return name;
+                    };
+
+                auto get_shader_path = [](string shaderName) -> path
+                    {
+                        path exePath = KalaGraphicsCore::GetExePath();
+                        path shaderPath{};
+
+                        //prevent searching shaders which have already been previously resolved
+                        if (exists(path(shaderName))) return shaderName;
+
+                        for (const auto& de : recursive_directory_iterator(exePath.parent_path()))
+                        {
+                            if (path(de).filename() == shaderName)
+                            {
+                                shaderPath = de;
+                                break;
+                            }
+                        }
+
+                        if (shaderPath.empty())
+                        {
+                            KalaGraphicsCore::ForceClose(
+                                "KalaGraphics viewport error",
+                                "Failed to initialize viewport because root shader initialization failed! Reason: "
+                                "Failed to get shader path for root shader '" + shaderName + "'!");
+                        }
+
+                        return shaderPath;
+                    };
+
+                auto store_path = [vpPtr](
+                    RootShaderType type,
+                    path value) -> void
+                    {
+                        bool stored{};
+
+                        for (RootShader& rs : vpPtr->rootShaderTable)
+                        {
+                            if (rs.vertShader.shaderType == type)
+                            {
+                                stored = true;
+                                rs.vertShader.shaderPath = value;
+                            }
+                            if (rs.fragShader.shaderType == type)
+                            {
+                                stored = true;
+                                rs.fragShader.shaderPath = value;
+                            }
+                        }
+
+                        if (!stored)
+                        {
+                            KalaGraphicsCore::ForceClose(
+                                "KalaGraphics viewport error",
+                                "Failed to initialize viewport because root shader initialization failed! Reason: "
+                                "Failed to store path for root shader of type '"
+                                + to_string(scast<u8>(type)) + "'!");
+                        }
+                    };
+
+                auto store_id = [vpPtr](
+                    RootShaderType vertType,
+                    RootShaderType fragType,
+                    Shader* shader) -> void
+                    {
+                        RootShader* rs = find_if(
+                            vpPtr->rootShaderTable.begin(),
+                            vpPtr->rootShaderTable.end(),
+                            [vertType, fragType](const RootShader& entry)
+                            { 
+                                return 
+                                    entry.vertShader.shaderType == vertType
+                                    && entry.fragShader.shaderType == fragType;
+                            });
+
+                        if (!rs)
+                        {
+                            KalaGraphicsCore::ForceClose(
+                                "KalaGraphics viewport error",
+                                "Failed to initialize viewport because root shader initialization failed! Reason: "
+                                "Failed to store root shader ID for shader of vert type '" 
+                                + to_string(scast<u8>(vertType)) + "' and frag type '" 
+                                + to_string(scast<u8>(fragType)) + "'!");
+                        }
+
+                        rs->shaderID = shader->ID;
+                    };
+
+                path vertPath = get_shader_path(get_shader_name(vertType));
+                path fragPath = get_shader_path(get_shader_name(fragType));
+
+                Shader* shader = Shader::Initialize(
+                    vpPtr->ID,
+                    is2D,
+                    path(vertPath),
+                    path(fragPath));
+
+                string stype = is2D ? "2D" : "3D";
+
+                if (!shader)
+                {
+                    KalaGraphicsCore::ForceClose(
+                        "KalaGraphics viewport error",
+                        "Failed to initialize " + stype + " shader from "
+                        "vert shader '" + vertPath.string() + "' and "
+                        "frag shader '" + fragPath.string() + "'!");
+                }
+
+                store_path(vertType, vertPath);
+                store_path(fragType, fragPath);
+
+                store_id(
+                    vertType,
+                    fragType,
+                    shader);
+
+                shader->isRootShader = true;
+
+                return shader->GetID();
+            };
+
+        for (RootShader& rs : vpPtr->rootShaderTable)
+        {
+            if (rs.shaderTarget == RootShaderTarget::T_UNLIT)
+            {
+                rs.shaderID = init_shader(
+                    RootShaderType::S_VERT_UNLIT, 
+                    RootShaderType::S_FRAG_UNLIT,
+                    false);
+            }
+            else if (rs.shaderTarget == RootShaderTarget::T_RECT)
+            {
+                rs.shaderID = init_shader(
+                    RootShaderType::S_VERT_RECT, 
+                    RootShaderType::S_FRAG_RECT,
+                    true);
+            }
+            else if (rs.shaderTarget == RootShaderTarget::T_FONT)
+            {
+                rs.shaderID = init_shader(
+                    RootShaderType::S_VERT_RECT, 
+                    RootShaderType::S_FRAG_FONT,
+                    true);
+            }
+        }
+
         Log::Print(
             "Created new viewport '" + to_string(newID) + "'!",
             "KG_VIEWPORT",
@@ -240,6 +474,29 @@ namespace KalaGraphics::Core
 
     const vector<u32>& Viewport::GetExtra3DShaderIDs() const { return extra3DShaderIDs; }
     const vector<u32>& Viewport::GetExtra2DShaderIDs() const { return extra2DShaderIDs; }
+
+    u32 Viewport::GetRootShaderID(RootShaderTarget target)
+    {
+        RootShader* rs = find_if(
+            rootShaderTable.begin(),
+            rootShaderTable.end(),
+            [target](const RootShader& entry)
+            { 
+                return entry.shaderTarget == target;
+            });
+
+        if (!rs)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics viewport error",
+                "Failed to get shader ID for root shader target '" 
+                + to_string(scast<u8>(target)) + "'!");
+
+            return {};
+        }
+
+        return rs->shaderID;
+    }
 
     bool Viewport::IsHovered() const { return hitTestID != 0; }
 
@@ -834,6 +1091,25 @@ namespace KalaGraphics::Core
         scrollDownCallback = std::move(newValue);
     }
 
+    vector<const RootShader*> Viewport::GetAllRootShaders()
+    {
+        vector<const RootShader*> rootShaders{};
+
+        for (const RootShader& rs : rootShaderTable)
+        {
+            rootShaders.push_back(&rs);
+        }
+
+        if (rootShaders.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics viewport error",
+                "Failed to get root shaders for viewport '" + to_string(ID) + "'!");
+        }
+
+        return rootShaders;
+    } 
+
     void Viewport::Sort3DMeshes()
     {
         Camera* primary3DCam{};
@@ -841,7 +1117,7 @@ namespace KalaGraphics::Core
         if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(
-                "KalaGraphics shader error",
+                "KalaGraphics viewport error",
                 "Failed to sort meshes because its viewport '" 
                 + to_string(ID) + "' primary 3D camera was invalid! Reason: " + err);
         }
@@ -1770,6 +2046,7 @@ namespace KalaGraphics::Core
         }
 
         p3d->isDestroyingViewport = true;
+        p3d->overrideRootDeletePermission = true;
         p3d->Destroy();
 
         Shader* p2d{};
@@ -1783,6 +2060,7 @@ namespace KalaGraphics::Core
         }
 
         p2d->isDestroyingViewport = true;
+        p2d->overrideRootDeletePermission = true;
         p2d->Destroy();
 
         for (u32 sID : extra3DShaderIDs)
@@ -1798,6 +2076,7 @@ namespace KalaGraphics::Core
             }
 
             s->isDestroyingViewport = true;
+            s->overrideRootDeletePermission = true;
             s->Destroy();
         }
 
@@ -1814,6 +2093,7 @@ namespace KalaGraphics::Core
             }
 
             s->isDestroyingViewport = true;
+            s->overrideRootDeletePermission = true;
             s->Destroy();
         }
 
