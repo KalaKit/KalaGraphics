@@ -20,7 +20,6 @@
 
 using KalaHeaders::KalaCore::EnumHash;
 using KalaHeaders::KalaCore::EnumToString;
-using KalaHeaders::KalaCore::RemoveDuplicates;
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
@@ -36,6 +35,7 @@ using KalaGraphics::Core::RootShader;
 using KalaGraphics::Core::RootShaderType;
 using KalaGraphics::Core::RootShaderTarget;
 using KalaGraphics::Resources::Mesh;
+using KalaGraphics::Resources::CameraType;
 using KalaGraphics::Resources::Camera;
 using KalaGraphics::Resources::Texture;
 
@@ -229,6 +229,10 @@ namespace KalaGraphics::Core
 				"KalaGraphics viewport error",
 				"Failed to initialize viewport! Reason: " + err);
         }
+
+        //
+        // CREATE ROOT SHADERS
+        //
 
         vpPtr->rootShaderTable = 
         {{
@@ -449,6 +453,36 @@ namespace KalaGraphics::Core
                     true);
             }
         }
+
+        //
+        // CREATE PRIMARY CAMERAS
+        //
+
+        Camera* cam3D = Camera::Initialize(
+            vpPtr->primary3DShaderID,
+            CameraType::CAM_PERSPECTIVE);
+
+        if (!cam3D)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics viewport error",
+                "Failed to initialize viewport because primary 3D camera couldn't be created!");
+        }
+
+        Camera* cam2D = Camera::Initialize(
+            vpPtr->primary2DShaderID,
+            CameraType::CAM_ORTHOGRAPHIC);
+
+        if (!cam2D)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics viewport error",
+                "Failed to initialize viewport because primary 2D camera couldn't be created!");
+        }
+
+        //
+        // FINISH
+        //
 
         Log::Print(
             "Created new viewport '" + to_string(newID) + "'!",
