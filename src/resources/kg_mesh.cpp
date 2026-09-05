@@ -41,6 +41,7 @@ using KalaGraphics::Core::Shader;
 using std::to_string;
 using std::unique_ptr;
 using std::make_unique;
+using std::swap;
 
 namespace KalaGraphics::Resources
 {
@@ -1712,6 +1713,68 @@ namespace KalaGraphics::Resources
     }
 
     const mat4& Mesh::GetMatrix() const { return meshMatrix; }
+
+    void Mesh::FlipFaceDirection()
+    {
+        if (is2D)
+        {
+            Log::Print(
+                "Failed to flip mesh '" + to_string(ID) 
+                + "' face direction because it is a 2D mesh!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (!indices.empty())
+        {
+            for (size_t i = 0; i + 2 < indices.size(); i += 3)
+            {
+                swap(indices[i + 1], indices[i + 2]);
+            }
+        }
+        else
+        {
+            for (size_t i = 0; i + 2 < vertices.size(); i += 3)
+            {
+                swap(vertices[i + 1], vertices[i + 2]);
+            }
+        }
+
+        if (shaderID != 0)
+        {
+            Shader* shader{};
+            string err = Shader::GetRegistry().GetContent(shaderID, shader);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics mesh error",
+                    "Failed to flip mesh '" + to_string(ID) + "' face direction "
+                    "because its shader was invalid! Reason: " + err);
+            }
+
+            Viewport* vp{};
+            err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics mesh error",
+                    "Failed to flip mesh '" + to_string(ID) + "' face direction "
+                    "because its shader '" + to_string(shaderID) + "' viewport was invalid! Reason: " + err);
+            }
+
+            vp->is3DMeshSortDirty = true;
+        }
+    
+        isMeshDataDirty = true;
+
+        Log::Print(
+            "Flipped mesh '" + to_string(ID) + "' face directions!",
+            "KG_MESH",
+            LogType::LOG_SUCCESS);
+    }
 
     void Mesh::SetHoverCallback(function<void()>&& newValue)
     { 

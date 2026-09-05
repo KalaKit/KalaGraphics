@@ -29,6 +29,8 @@ using KalaHeaders::KalaLog::LogType;
 
 using KalaHeaders::KalaFile::ReadBinaryDataFromFile;
 
+using KalaHeaders::KalaMath::vec4;
+
 using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Core::GraphicsContext;
 using KalaGraphics::Core::Viewport;
@@ -110,6 +112,13 @@ static unique_ptr<PipelineInfo> GetPipelineInfo(
                 VK_FORMAT_R32G32_SFLOAT,
                 offsetof(Vertex2D, uv)
             });
+        pi->attributeDescriptions.push_back(
+            {
+                2,
+                0,
+                VK_FORMAT_R32G32B32A32_SFLOAT,
+                offsetof(Vertex2D, color)
+            });
     }
     else
     {
@@ -133,6 +142,13 @@ static unique_ptr<PipelineInfo> GetPipelineInfo(
                 0,
                 VK_FORMAT_R32G32_SFLOAT,
                 offsetof(Vertex, uv)
+            });
+        pi->attributeDescriptions.push_back(
+            {
+                3,
+                0,
+                VK_FORMAT_R32G32B32A32_SFLOAT,
+                offsetof(Vertex, color)
             });
     }
 
@@ -169,7 +185,7 @@ static unique_ptr<PipelineInfo> GetPipelineInfo(
     pi->multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     pi->multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-    pi->depthStencil.sType            = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    pi->depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     if (!is2D)
     {
         pi->depthStencil.depthTestEnable  = VK_TRUE;

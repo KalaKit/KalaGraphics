@@ -147,6 +147,8 @@ namespace KalaGraphics::Resources
         vec3 normal{};
         //U, V texture coordinates
         vec2 uv{};
+        //RGBA per-vertex color, defaults to white opaque
+        vec4 color{ 1.0f };
 
         bool operator==(const Vertex&) const = default;
     };
@@ -156,6 +158,8 @@ namespace KalaGraphics::Resources
         vec2 pos{};
         //U, V texture coordinates
         vec2 uv{};
+        //RGBA per-vertex color, defaults to white opaque
+        vec4 color{ 1.0f };
 
         bool operator==(const Vertex2D&) const = default;
     };
@@ -323,6 +327,10 @@ namespace KalaGraphics::Resources
 
         KNODISCARD
 		const mat4& GetMatrix() const;
+
+        //Flips the direction of indices, or vertices if no indices exist for this mesh,
+        //only for 3D meshes
+        void FlipFaceDirection();
 
         //Called while hovered 
         void SetHoverCallback(function<void()>&& newValue);

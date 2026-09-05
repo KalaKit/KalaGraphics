@@ -9,21 +9,53 @@
 #include <vector>
 
 #include "core_utils.hpp"
+#include "math_utils.hpp"
 
 #include "core/kg_registry.hpp"
 
+#include "resources/kg_mesh.hpp"
+
 namespace KalaGraphics::Import
 {
+    using KalaHeaders::KalaMath::vec4;
+    using KalaHeaders::KalaMath::Transform3D;
+
     using KalaGraphics::Core::KalaGraphicsRegistry;
+
+    using KalaGraphics::Resources::Vertex;
 
     using std::filesystem::path;
     using std::vector;
     using std::string;
     using std::default_delete;
 
-    struct MeshData
+    struct ImportMeshData
     {
+        vector<Vertex> vertices{};
+        vector<u32> indices{};
+    };
+    struct ImportMaterialData
+    {
+        //RGBA color, defaults to white opaque
+        vec4 baseColor{ 1.0f };
 
+        //TODO: add texture data and material slots...
+    };
+
+    struct ImportPrimitiveData
+    {
+        ImportMeshData meshData{};
+        ImportMaterialData matData{};
+
+        //TODO: add import anim, bone data etc...
+    };
+
+    struct ImportNodeData
+    {
+        string nodeName{};
+        Transform3D transform{};
+        
+        vector<ImportPrimitiveData> primitiveData{};
     };
 
     class LIB_API ImportMesh
@@ -42,24 +74,25 @@ namespace KalaGraphics::Import
         KNODISCARD
 		const path& GetMeshPath() const;
         KNODISCARD
-		const MeshData& GetMeshData() const;
+		const vector<ImportNodeData>& GetMeshData() const;
 
         void Destroy();
     private:
         ~ImportMesh();
 
         KNODISCARD
-		static string Init_GLTF(
+		static string Init_GLTF_GLB(
+            const path& meshPath,
             vector<u8>&& binaryData,
-            MeshData& outMeshData);
+            vector<ImportNodeData>& outNodeData);
         KNODISCARD
 		static string Init_KMOD(
             vector<u8>&& binaryData,
-            MeshData& outMeshData);
+            vector<ImportNodeData>& outNodeData);
 
         u32 ID{};
 
         path meshPath{};
-        MeshData meshData{};
+        vector<ImportNodeData> nodeData{};
     };
 }

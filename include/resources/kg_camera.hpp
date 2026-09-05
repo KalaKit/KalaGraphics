@@ -150,7 +150,7 @@ namespace KalaGraphics::Resources
         f32 speedMultiplier = 1.0f;
         f32 sensitivityMultiplier = 1.0f;
         f32 fov = 90.0f;
-        vec2 drawDistance = { 0.001f, 1000.0f };
+        vec2 drawDistance = { 0.1f, 1000.0f };
 
         mat4 projectionMatrix{};
         mat4 orthographicMatrix{};
