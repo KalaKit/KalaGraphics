@@ -5,6 +5,8 @@
 
 #include <memory>
 
+#include "cgltf.h"
+
 #include "log_utils.hpp"
 #include "file_utils.hpp"
 
@@ -35,6 +37,17 @@ namespace KalaGraphics::Import
 
     ImportMesh* ImportMesh::Initialize(path&& meshPath)
     {
+        if (!exists(meshPath))
+        {
+            Log::Print(
+                "Failed to import mesh '" + meshPath.string() + "' because it was not found!",
+                "KG_IMPORT_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return nullptr;
+        }
+
         if (!is_regular_file(meshPath))
         {
             Log::Print(

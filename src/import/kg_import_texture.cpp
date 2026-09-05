@@ -34,6 +34,17 @@ namespace KalaGraphics::Import
 
     ImportTexture* ImportTexture::Initialize(path&& texturePath)
     {
+        if (!exists(texturePath))
+        {
+            Log::Print(
+                "Failed to import texture '" + texturePath.string() + "' because it was not found!",
+                "KG_IMPORT_TEXTURE",
+                LogType::LOG_ERROR,
+                2);
+
+            return nullptr;
+        }
+
         if (!is_regular_file(texturePath))
         {
             Log::Print(

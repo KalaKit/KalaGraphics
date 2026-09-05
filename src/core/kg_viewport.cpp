@@ -1612,15 +1612,20 @@ namespace KalaGraphics::Core
 
                 vector<u32> shaderIDs{};
 
-                shaderIDs.insert(
-                    shaderIDs.end(),
-                    shader3DIDs.begin(),
-                    shader3DIDs.end());
-
-                shaderIDs.insert(
-                    shaderIDs.end(),
-                    shader2DIDs.begin(),
-                    shader2DIDs.end());
+                if (!is2D)
+                {
+                    shaderIDs.insert(
+                        shaderIDs.end(),
+                        shader3DIDs.begin(),
+                        shader3DIDs.end());
+                }
+                else
+                {
+                    shaderIDs.insert(
+                        shaderIDs.end(),
+                        shader2DIDs.begin(),
+                        shader2DIDs.end());
+                }
 
                 for (u32 shaderID : shaderIDs)
                 {
@@ -1677,6 +1682,10 @@ namespace KalaGraphics::Core
 
                         m->Update(cmdBuffer);
                     };
+
+                //always clear last bound shaders before drawing meshes
+                lastBoundShader3DID = 0;
+                lastBoundShader2DID = 0;
 
                 if (!is2D)
                 {

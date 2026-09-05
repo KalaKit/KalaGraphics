@@ -1095,7 +1095,8 @@ namespace KalaGraphics::Core
                     ID);
             }
 
-            if (vp->lastBoundShaderID == ID) vp->lastBoundShaderID = 0;
+            if (vp->lastBoundShader3DID == ID) vp->lastBoundShader3DID = 0;
+            if (vp->lastBoundShader2DID == ID) vp->lastBoundShader2DID = 0;
         }
 
         for (u32 cID : cameraIDs)

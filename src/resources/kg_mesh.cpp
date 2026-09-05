@@ -1346,7 +1346,6 @@ namespace KalaGraphics::Resources
     bool Mesh::IsVisible() const { return isVisible; }
     void Mesh::SetVisibleState(bool newValue)
     {
-
         if (newValue == isVisible)
         {
             Log::Print(
@@ -2367,13 +2366,18 @@ namespace KalaGraphics::Resources
         /*
         Log::Print(
             "@@@@@\n"
-            "mesh: '" + to_string(ID) + "'\n"
-            "shader: '" + to_string(shaderID) + "'\n"
-            "last bound shader: '" + to_string(vp->lastBoundShaderID));
+            "mesh: " + to_string(ID) + "\n"
+            "shader: " + to_string(shaderID) + "\n"
+            "is 2D: " + (shader->is2D ? "true" : "false") + "\n"
+            "last bound 3D shader: " + to_string(vp->lastBoundShader3DID) + "\n"
+            "last bound 2D shader: " + to_string(vp->lastBoundShader2DID));
         */
 
         //only bind pipeline if last bound shader is not the same as this mesh shader
-        if (vp->lastBoundShaderID != shaderID)
+        if ((!shader->is2D 
+            && vp->lastBoundShader3DID != shaderID)
+            || (shader->is2D 
+            && vp->lastBoundShader2DID != shaderID))
         {
             vkCmdBindPipeline(
                 buffer,
@@ -2407,7 +2411,8 @@ namespace KalaGraphics::Resources
                 0,
                 nullptr);
 
-            vp->lastBoundShaderID = shaderID;
+            if (!shader->is2D) vp->lastBoundShader3DID = shaderID;
+            else               vp->lastBoundShader2DID = shaderID;
         }
 
         if (vkVertexBuffer == VK_NULL_HANDLE)
