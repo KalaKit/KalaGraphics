@@ -36,6 +36,7 @@ namespace KalaGraphics::Import
     };
     struct ImportMaterialData
     {
+        string materialName{};
         //RGBA color, defaults to white opaque
         vec4 baseColor{ 1.0f };
 

@@ -464,11 +464,16 @@ namespace KalaGraphics::Import
             {
                 if (mesh->material)
                 {
-                    cgltf_material* material = mesh->material;
+                    cgltf_material& material = *mesh->material;
 
-                    if (material->has_pbr_metallic_roughness)
+                    import.matData.materialName =
+                        material.name
+                        ? material.name
+                        : "unnamed_material";
+
+                    if (material.has_pbr_metallic_roughness)
                     {
-                        const cgltf_float* baseColor = material->pbr_metallic_roughness.base_color_factor;
+                        const cgltf_float* baseColor = material.pbr_metallic_roughness.base_color_factor;
 
                         import.matData.baseColor = 
                         {
@@ -478,6 +483,18 @@ namespace KalaGraphics::Import
                             baseColor[3]
                         };
                     }
+
+                    /*
+                    Log::Print(
+                        "@@@@@\n"
+                        "node: " + nodeName + "\n"
+                        "material: " + import.matData.materialName + "\n"
+                        "base color: "
+                        + to_string(import.matData.baseColor.x) + ", "
+                        + to_string(import.matData.baseColor.y) + ", "
+                        + to_string(import.matData.baseColor.z) + ", "
+                        + to_string(import.matData.baseColor.w));
+                    */
                 }
             }
 
