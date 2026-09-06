@@ -7,6 +7,7 @@
 
 #include <filesystem>
 #include <vector>
+#include <string>
 
 #include "core_utils.hpp"
 
@@ -14,18 +15,17 @@ namespace KalaGraphics::Export
 {
     using std::filesystem::path;
     using std::vector;
+    using std::string;
 
     class LIB_API ExportMesh
     {
     public:
-        //Exports a mesh to a new .glb file
-        static void ExportSingle(
-            u32 meshID,
-            const path& targetPath);
-
-        //Exports multiple meshes to a new .glb file
-        static void ExportMultiple(
+        //Exports one or more meshes to a new .glb file
+        static void ExportMeshes(
             const vector<u32>& meshIDs,
-            const path& targetPath);
+            const path& exportPath);
+
+        //Returns the json data from meshes without exporting a glb file
+        static string GetJsonData(const vector<u32>& meshIDs);
     };
 }
