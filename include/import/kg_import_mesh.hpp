@@ -14,16 +14,23 @@
 
 #include "core/kg_registry.hpp"
 
-#include "resources/kg_mesh.hpp"
+#include "graphics/kg_mesh.hpp"
+#include "graphics/kg_texture.hpp"
+#include "import/kg_import_texture.hpp"
 
 namespace KalaGraphics::Import
 {
+    using KalaHeaders::KalaMath::vec2;
     using KalaHeaders::KalaMath::vec4;
     using KalaHeaders::KalaMath::Transform3D;
 
     using KalaGraphics::Core::KalaGraphicsRegistry;
 
-    using KalaGraphics::Resources::Vertex;
+    using KalaGraphics::Graphics::Vertex;
+    using KalaGraphics::Graphics::AlphaMode;
+    using KalaGraphics::Graphics::TextureFilterMode;
+
+    using KalaGraphics::Import::ImportTextureData;
 
     using std::string;
     using std::vector;
@@ -35,13 +42,19 @@ namespace KalaGraphics::Import
         vector<Vertex> vertices{};
         vector<u32> indices{};
     };
+
     struct ImportMaterialData
     {
         string materialName{};
         //RGBA color, defaults to white opaque
         vec4 baseColor{ 1.0f };
 
-        //TODO: add texture data and material slots...
+        AlphaMode alphaMode{};
+        f32 alphaCutoff{};
+
+        ImportTextureData textureData{};
+
+        //TODO: add material slots...
     };
 
     struct ImportPrimitiveData

@@ -9,20 +9,17 @@
 
 #include "core/kg_registry.hpp"
 
-namespace KalaGraphics::Resources
+namespace KalaGraphics::Graphics
 {
-    class Mesh;
-}
+    using KalaGraphics::Core::KalaGraphicsRegistry;
 
-namespace KalaGraphics::Core
-{
     using std::default_delete;
 
     class LIB_API HitTest
     {
-    friend class KalaGraphics::Resources::Mesh;
-    friend class Viewport;
     friend class GraphicsContext;
+    friend class Viewport;
+    friend class Mesh;
     friend struct default_delete<HitTest>;
     public:
         KNODISCARD

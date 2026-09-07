@@ -7,10 +7,11 @@
 #include <unordered_map>
 #include <vector>
 #include <array>
+#include <memory>
 #include <mutex>
 #include <shared_mutex>
 
-#include "core/kg_context.hpp"
+#include "graphics/kg_context.hpp"
 
 #if defined(KWIN_ANY)
 #include <windows.h>
@@ -20,8 +21,6 @@
 #endif
 
 #include "vulkan/vulkan_core.h"
-
-#include "core/kg_viewport.hpp"
 
 struct VmaStdMutex
 {
@@ -53,11 +52,12 @@ KG_VK_MEM_ALLOC_IGNORE_POP
 #include "math_utils.hpp"
 
 #include "core/kg_registry.hpp"
-#include "core/kg_hit_test.hpp"
-#include "core/kg_shader.hpp"
-#include "resources/kg_texture.hpp"
-#include "resources/kg_mesh.hpp"
-#include "resources/kg_camera.hpp"
+#include "graphics/kg_hit_test.hpp"
+#include "graphics/kg_viewport.hpp"
+#include "graphics/kg_shader.hpp"
+#include "graphics/kg_texture.hpp"
+#include "graphics/kg_mesh.hpp"
+#include "graphics/kg_camera.hpp"
 #include "import/kg_import_shader.hpp"
 #include "import/kg_import_texture.hpp"
 #include "import/kg_import_mesh.hpp"
@@ -73,10 +73,7 @@ using KalaHeaders::KalaLog::LogType;
 using KalaHeaders::KalaMath::vec2;
 using KalaHeaders::KalaMath::mat4;
 
-using KalaGraphics::Core::Severity;
-using KalaGraphics::Resources::Texture;
-using KalaGraphics::Resources::Mesh;
-using KalaGraphics::Resources::Camera;
+using KalaGraphics::Graphics::Severity;
 using KalaGraphics::Import::ImportShader;
 using KalaGraphics::Import::ImportTexture;
 using KalaGraphics::Import::ImportMesh;
@@ -90,6 +87,8 @@ using std::vector;
 using std::array;
 using std::pair;
 using std::clamp;
+using std::unique_ptr;
+using std::make_unique;
 
 static constexpr array<const char*, 2> DEVICE_EXTENSIONS =
 {
@@ -256,7 +255,7 @@ static void PrintError(string_view message)
         2);
 }
 
-namespace KalaGraphics::Core
+namespace KalaGraphics::Graphics
 {
     static KalaGraphicsRegistry<GraphicsContext> registry{};
 

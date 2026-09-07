@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <array>
 #include <functional>
+#include <filesystem>
 
 #include "core_utils.hpp"
 #include "math_utils.hpp"
@@ -17,20 +18,15 @@
 
 #include "core/kg_registry.hpp"
 
-namespace KalaGraphics::Resources
-{
-    class Texture;
-    class Mesh;
-    class Camera;
-}
-
-namespace KalaGraphics::Core
+namespace KalaGraphics::Graphics
 {
     using KalaHeaders::KalaMath::vec2;
     using KalaHeaders::KalaMath::vec4;
 
     using KalaHeaders::KalaKeyStandards::KeyboardButton;
     using KalaHeaders::KalaKeyStandards::MouseButton;
+
+    using KalaGraphics::Core::KalaGraphicsRegistry;
 
     using std::string;
     using std::string_view;
@@ -39,6 +35,7 @@ namespace KalaGraphics::Core
     using std::array;
     using std::pair;
     using std::function;
+    using std::filesystem::path;
     using std::default_delete;
 
     enum class ViewportAnchorPosition : u8
@@ -145,12 +142,12 @@ namespace KalaGraphics::Core
 
     class LIB_API Viewport
     {
-    friend class KalaGraphics::Resources::Mesh;
-    friend class KalaGraphics::Resources::Texture;
-    friend class KalaGraphics::Resources::Camera;
+    friend class GraphicsContext;
     friend class Shader;
     friend class HitTest;
-    friend class GraphicsContext;
+    friend class Camera;
+    friend class Texture;
+    friend class Mesh;
     friend struct default_delete<Viewport>;
     public:
         KNODISCARD

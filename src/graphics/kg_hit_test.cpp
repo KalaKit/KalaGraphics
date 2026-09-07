@@ -3,16 +3,16 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#include "core/kg_hit_test.hpp"
+#include "graphics/kg_hit_test.hpp"
 
 #include <memory>
 
 #include "log_utils.hpp"
 
-#include "core/kg_context.hpp"
-#include "core/kg_viewport.hpp"
-#include "core/kg_shader.hpp"
-#include "resources/kg_mesh.hpp"
+#include "graphics/kg_context.hpp"
+#include "graphics/kg_viewport.hpp"
+#include "graphics/kg_shader.hpp"
+#include "graphics/kg_mesh.hpp"
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
@@ -23,12 +23,10 @@ using KalaHeaders::KalaMath::RotTarget;
 using KalaHeaders::KalaMath::SizeTarget;
 using KalaHeaders::KalaMath::Transform2D;
 
-using KalaGraphics::Resources::Mesh;
-
 using std::unique_ptr;
 using std::make_unique;
 
-namespace KalaGraphics::Core
+namespace KalaGraphics::Graphics
 {
     static KalaGraphicsRegistry<HitTest> registry{};
 

@@ -14,11 +14,11 @@ KG_VK_MEM_ALLOC_IGNORE_POP
 
 #include "log_utils.hpp"
 
-#include "resources/kg_camera.hpp"
-#include "core/kg_context.hpp"
-#include "core/kg_viewport.hpp"
-#include "core/kg_shader.hpp"
-#include "resources/kg_mesh.hpp"
+#include "graphics/kg_camera.hpp"
+#include "graphics/kg_context.hpp"
+#include "graphics/kg_viewport.hpp"
+#include "graphics/kg_shader.hpp"
+#include "graphics/kg_mesh.hpp"
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
@@ -30,16 +30,11 @@ using KalaHeaders::KalaMath::ortho;
 using KalaHeaders::KalaMath::perspective;
 using KalaHeaders::KalaMath::isnear;
 
-using KalaGraphics::Core::KalaGraphicsCore;
-using KalaGraphics::Core::GraphicsContext;
-using KalaGraphics::Core::Viewport;
-using KalaGraphics::Core::Shader;
-
 using std::unique_ptr;
 using std::make_unique;
 using std::to_string;
 
-namespace KalaGraphics::Resources
+namespace KalaGraphics::Graphics
 {
     static KalaGraphicsRegistry<Camera> registry{};
 

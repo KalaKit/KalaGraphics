@@ -14,13 +14,13 @@ KG_VK_MEM_ALLOC_IGNORE_POP
 
 #include "log_utils.hpp"
 
-#include "resources/kg_mesh.hpp"
-#include "core/kg_context.hpp"
-#include "core/kg_viewport.hpp"
-#include "core/kg_hit_test.hpp"
-#include "core/kg_shader.hpp"
-#include "resources/kg_texture.hpp"
-#include "resources/kg_camera.hpp"
+#include "graphics/kg_mesh.hpp"
+#include "graphics/kg_context.hpp"
+#include "graphics/kg_viewport.hpp"
+#include "graphics/kg_hit_test.hpp"
+#include "graphics/kg_shader.hpp"
+#include "graphics/kg_texture.hpp"
+#include "graphics/kg_camera.hpp"
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
@@ -33,17 +33,14 @@ using KalaHeaders::KalaMath::RotTarget;
 using KalaHeaders::KalaMath::SizeTarget;
 
 using KalaGraphics::Core::KalaGraphicsCore;
-using KalaGraphics::Core::GraphicsContext;
-using KalaGraphics::Core::Viewport;
-using KalaGraphics::Core::HitTest;
-using KalaGraphics::Core::Shader;
 
 using std::to_string;
 using std::unique_ptr;
 using std::make_unique;
 using std::swap;
+using std::clamp;
 
-namespace KalaGraphics::Resources
+namespace KalaGraphics::Graphics
 {
     static KalaGraphicsRegistry<Mesh> registry{};
 
@@ -1117,16 +1114,46 @@ namespace KalaGraphics::Resources
         }
 
         Texture* texture{};
-        err = Texture::GetRegistry().GetContent(textureID, texture);
-        if (!err.empty())
+        if (textureID == 0)
         {
             Log::Print(
-                "Failed to create mesh because the texture was invalid! Reason: " + err,
+                "Mesh texture was unassigned! Assigning root texture '" + to_string(shader->rootTextureID) + "'.",
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
-            return nullptr;
+            textureID = shader->rootTextureID;
+
+            err = Texture::GetRegistry().GetContent(textureID, texture);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics mesh error",
+                    "Failed to create mesh because the shader '" + to_string(shaderID) 
+                    + "' root texture '" + to_string(textureID) + "' was invalid!");
+            }
+        }
+        else
+        {
+            err = Texture::GetRegistry().GetContent(textureID, texture);
+            if (!err.empty())
+            {
+                Log::Print(
+                    "Mesh texture was invalid! Assigning fallback texture '" + to_string(shader->fallbackTextureID) + "'.",
+                    "KG_MESH",
+                    LogType::LOG_ERROR,
+                    2);
+
+                textureID = shader->fallbackTextureID;
+
+                err = Texture::GetRegistry().GetContent(textureID, texture);
+                if (!err.empty())
+                {
+                    KalaGraphicsCore::ForceClose(
+                        "KalaGraphics mesh error",
+                        "Failed to create mesh because the shader '" + to_string(shaderID) 
+                        + "' fallback texture '" + to_string(textureID) + "' was invalid!");
+                }
+            }
         }
 
         unique_ptr<Mesh> newMesh = make_unique<Mesh>();
@@ -1568,7 +1595,7 @@ namespace KalaGraphics::Resources
             + to_string(color.w);
 
         if (!isnear(color.w, 1.0f)
-            && isTransparent != 1)
+            && alphaMode != AlphaMode::A_OPAQUE)
         {
             Log::Print(
                 "Mesh '" + to_string(ID) + "' color alpha "
@@ -1583,14 +1610,14 @@ namespace KalaGraphics::Resources
             LogType::LOG_SUCCESS);
     }
 
-    bool Mesh::IsTransparent() const { return isTransparent; }
-    void Mesh::SetTransparentState(bool newValue)
+    AlphaMode Mesh::GetAlphaMode() const { return alphaMode; }
+    void Mesh::SetAlphaMode(AlphaMode newValue)
     {
-        if (newValue == isTransparent)
+        if (newValue == alphaMode)
         {
             Log::Print(
                 "Failed to set mesh '" + to_string(ID) + "' "
-                "transparent state because it already is the same!",
+                "alpha mode because it already is the same!",
                 "KG_MESH",
                 LogType::LOG_ERROR,
                 2);
@@ -1606,7 +1633,7 @@ namespace KalaGraphics::Resources
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics mesh error",
-                    "Failed to update mesh '" + to_string(ID) + "' transparent state "
+                    "Failed to set mesh '" + to_string(ID) + "' alpha mode "
                     "because its shader was invalid! Reason: " + err);
             }
 
@@ -1616,7 +1643,7 @@ namespace KalaGraphics::Resources
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics mesh error",
-                    "Failed to update mesh '" + to_string(ID) + "' transparent state "
+                    "Failed to set mesh '" + to_string(ID) + "' alpha mode "
                     "because its shader '" + to_string(shaderID) + "' viewport was invalid! Reason: " + err);
             }
 
@@ -1624,11 +1651,50 @@ namespace KalaGraphics::Resources
             else       vp->is2DMeshSortDirty = true;
         }
 
-        isTransparent = newValue;
-        string transparentStr = newValue ? "true" : "false";
+        alphaMode = newValue;
+        string alphaModeString = alphaMode == AlphaMode::A_OPAQUE 
+            ? "opaque" 
+            : (alphaMode == AlphaMode::A_BLEND 
+                ? "blend" 
+                : "mask");
 
         Log::Print(
-            "Set mesh '" + to_string(ID) + "' transparent state to '" + transparentStr + "'!",
+            "Set mesh '" + to_string(ID) + "' alpha mode to '" + alphaModeString + "'!",
+            "KG_MESH",
+            LogType::LOG_SUCCESS);
+    }
+
+    f32 Mesh::GetAlphaCutoff() const { return alphaCutoff; }
+    void Mesh::SetAlphaCutoff(f32 newValue)
+    {
+        if (newValue == alphaCutoff)
+        {
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) + "' "
+                "alpha cutoff because it already is the same!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (alphaMode != AlphaMode::A_MASK)
+        {
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) + "' "
+                "alpha cutoff because alpha mode is not mask!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        alphaCutoff = clamp(newValue, 0.0f, 1.0f);
+
+        Log::Print(
+            "Set mesh '" + to_string(ID) + "' alpha cutoff to '" + to_string(alphaCutoff) + "'!",
             "KG_MESH",
             LogType::LOG_SUCCESS);
     }
@@ -2519,13 +2585,23 @@ namespace KalaGraphics::Resources
             0,
             sizeof(color),
             &color);
+
+        u32 alphaModeValue = scast<u32>(alphaMode);
         vkCmdPushConstants(
             buffer,
             shader->pipelineLayout,
             VK_SHADER_STAGE_VERTEX_BIT,
             sizeof(color),
-            sizeof(isTransparent),
-            &isTransparent);
+            sizeof(alphaModeValue),
+            &alphaModeValue);
+
+        vkCmdPushConstants(
+            buffer,
+            shader->pipelineLayout,
+            VK_SHADER_STAGE_VERTEX_BIT,
+            sizeof(color) + sizeof(alphaModeValue),
+            sizeof(alphaCutoff),
+            &alphaCutoff);
 
         Texture* texture{};
         err = Texture::GetRegistry().GetContent(textureID, texture);

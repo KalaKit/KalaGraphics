@@ -4,19 +4,20 @@
 //Read LICENSE.md for more information.
 
 #include <unordered_map>
+#include <memory>
 
 #include "vulkan/vulkan_core.h"
 
 #include "log_utils.hpp"
 
-#include "core/kg_viewport.hpp"
+#include "graphics/kg_viewport.hpp"
 #include "core/kg_core.hpp"
-#include "core/kg_context.hpp"
-#include "core/kg_hit_test.hpp"
-#include "core/kg_shader.hpp"
-#include "resources/kg_mesh.hpp"
-#include "resources/kg_camera.hpp"
-#include "resources/kg_texture.hpp"
+#include "graphics/kg_context.hpp"
+#include "graphics/kg_hit_test.hpp"
+#include "graphics/kg_shader.hpp"
+#include "graphics/kg_mesh.hpp"
+#include "graphics/kg_camera.hpp"
+#include "graphics/kg_texture.hpp"
 
 using KalaHeaders::KalaCore::EnumHash;
 using KalaHeaders::KalaCore::EnumToString;
@@ -30,14 +31,13 @@ using KalaHeaders::KalaMath::vec2;
 using KalaHeaders::KalaMath::isnear;
 using KalaHeaders::KalaMath::PosTarget;
 
-using KalaGraphics::Core::ViewportStaticSize;
-using KalaGraphics::Core::RootShader;
-using KalaGraphics::Core::RootShaderType;
-using KalaGraphics::Core::RootShaderTarget;
-using KalaGraphics::Resources::Mesh;
-using KalaGraphics::Resources::CameraType;
-using KalaGraphics::Resources::Camera;
-using KalaGraphics::Resources::Texture;
+using KalaGraphics::Graphics::ViewportStaticSize;
+using KalaGraphics::Graphics::RootShader;
+using KalaGraphics::Graphics::RootShaderType;
+using KalaGraphics::Graphics::RootShaderTarget;
+using KalaGraphics::Graphics::AlphaMode;
+using KalaGraphics::Graphics::CameraType;
+using KalaGraphics::Graphics::Texture;
 
 using std::string_view;
 using std::to_string;
@@ -47,6 +47,8 @@ using std::min;
 using std::find_if;
 using std::filesystem::path;
 using std::filesystem::recursive_directory_iterator;
+using std::unique_ptr;
+using std::make_unique;
 
 static constexpr string_view ROOT_SHADER_VERT_UNLIT   = "unlit_vert.spv";
 static constexpr string_view ROOT_SHADER_VERT_UI_RECT = "ui_rect_vert.spv";
@@ -144,7 +146,7 @@ static unordered_map<ViewportStaticSize, vec2, EnumHash<ViewportStaticSize>> vpS
     { ViewportStaticSize::VP_5120_1440, vec2(5120, 1440) }
 };
 
-namespace KalaGraphics::Core
+namespace KalaGraphics::Graphics
 {
     static KalaGraphicsRegistry<Viewport> registry{};
 
@@ -1189,7 +1191,7 @@ namespace KalaGraphics::Core
         for (Mesh* m : meshes)
         {
             //skip opaque 3D meshes
-            if (!m->isTransparent) continue;
+            if (m->alphaMode != AlphaMode::A_OPAQUE) continue;
 
             vec3 currentPos = scast<Transform3D&>(m->GetTransform()).getpos(PosTarget::POS_WORLD);
 
@@ -1213,8 +1215,8 @@ namespace KalaGraphics::Core
 
         for (Mesh* m : meshes)
         {
-            if (!m->isTransparent) opaqueMeshes.push_back(m);
-            else                   transparentMeshes.push_back(m);
+            if (m->alphaMode == AlphaMode::A_OPAQUE) opaqueMeshes.push_back(m);
+            else                                     transparentMeshes.push_back(m);
         }
 
         if (transparentMeshes.size() > 1)
@@ -1293,8 +1295,8 @@ namespace KalaGraphics::Core
                 //ignore invisible meshes
                 if (!m->isVisible) continue;
 
-                if (!m->isTransparent) opaqueMeshes.push_back(m);
-                else                   transparentMeshes.push_back(m);
+                if (m->alphaMode == AlphaMode::A_OPAQUE) opaqueMeshes.push_back(m);
+                else                                     transparentMeshes.push_back(m);
             }
         }
 

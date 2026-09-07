@@ -11,8 +11,11 @@
 #include "file_utils.hpp"
 
 #include "import/kg_import_mesh.hpp"
+#include "import/kg_import_texture.hpp"
 #include "core/kg_core.hpp"
-#include "resources/kg_mesh.hpp"
+#include "graphics/kg_mesh.hpp"
+#include "graphics/kg_texture.hpp"
+#include "graphics/kg_shader.hpp"
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
@@ -32,11 +35,16 @@ using KalaHeaders::KalaMath::toquat;
 using KalaHeaders::KalaMath::tosize;
 
 using KalaGraphics::Core::KalaGraphicsCore;
-using KalaGraphics::Resources::Vertex;
+using KalaGraphics::Graphics::Vertex;
+using KalaGraphics::Graphics::AlphaMode;
+using KalaGraphics::Graphics::Texture;
+using KalaGraphics::Graphics::Shader;
 using KalaGraphics::Import::ImportNodeData;
 using KalaGraphics::Import::ImportPrimitiveData;
 using KalaGraphics::Import::ImportMeshData;
 using KalaGraphics::Import::ImportMaterialData;
+using KalaGraphics::Import::ImportTextureData;
+using KalaGraphics::Import::ImportTexture;
 
 using std::string;
 using std::string_view;
@@ -77,6 +85,13 @@ static string Init_GLTF_GLB(
     const path& meshPath,
     vector<u8>&& binaryData,
     vector<ImportNodeData>& outNodeData);
+
+static bool GetPixelData(
+    const u32 nodeIndex,
+    const string& nodeName,
+    const string& materialName,
+    cgltf_texture& texture,
+    ImportTextureData& texData);
 
 namespace KalaGraphics::Import
 {
@@ -201,7 +216,8 @@ namespace KalaGraphics::Import
         }
 
         Log::Print(
-			"Created new import mesh '" + to_string(newID) + "'!",
+			"Created new import mesh '" + to_string(newID) 
+            + "' from path '" + meshPtr->meshPath.string() + "'!",
 			"KG_IMPORT_MESH",
 			LogType::LOG_SUCCESS);
 
@@ -530,7 +546,38 @@ string Init_GLTF_GLB(
                         baseColor[2],
                         baseColor[3]
                     };
+
+                    cgltf_texture_view& textureView = material.pbr_metallic_roughness.base_color_texture;
+
+                    if (textureView.texture)
+                    {
+                        if (!GetPixelData(
+                            nodeIndex,
+                            nodeName,
+                            matData.materialName,
+                            *textureView.texture,
+                            matData.textureData))
+                        {
+                            continue;
+                        }
+                    }
                 }
+
+                switch (material.alpha_mode)
+                {
+                    default:
+                    case cgltf_alpha_mode_opaque:
+                        matData.alphaMode = AlphaMode::A_OPAQUE;
+                        break;
+                    case cgltf_alpha_mode_blend:
+                        matData.alphaMode = AlphaMode::A_BLEND;
+                        break;
+                    case cgltf_alpha_mode_mask:
+                        matData.alphaMode = AlphaMode::A_MASK;
+                        break;
+                }
+
+                matData.alphaCutoff = material.alpha_cutoff;
 
                 /*
                 Log::Print(
@@ -616,4 +663,216 @@ string Init_GLTF_GLB(
     cgltf_free(data);
 
     return "";
+}
+
+bool GetPixelData(
+    const u32 nodeIndex,
+    const string& nodeName,
+    const string& materialName,
+    cgltf_texture& texture,
+    ImportTextureData& texData)
+{
+    auto set_fallback_texture = [&texData]() -> u32
+        {
+            Shader* first = Shader::GetRegistry().GetAllContent().front();
+
+            Texture* fallback{};
+            string err = Texture::GetRegistry().GetContent(first->GetFallbackTextureID(), fallback);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "Import mesh error",
+                    "Failed to import mesh because shader '" + to_string(first->GetID()) 
+                    + "' fallback texture was invalid! Reason: " + err);
+            }
+
+            texData = 
+            {
+                .pixelData = fallback->GetPixelData(),
+                .size = fallback->GetSize(),
+                .pixelFormat = fallback->GetPixelFormat()
+            };
+
+            return fallback->GetID();
+        };
+
+    auto verify_image_uri = [
+        &nodeIndex,
+        &nodeName,
+        &materialName,
+        &texData,
+        set_fallback_texture](cgltf_image& image) -> void
+        {
+            string ext = path(image.uri).extension().string();
+
+            if (ext != ".png")
+            {
+                u32 fallbackID = set_fallback_texture();
+
+                Log::Print(
+                    "Node '" + to_string(nodeIndex) 
+                    + "' with name '" + nodeName + "' material '" + materialName 
+                    + "' texture '" + path(image.uri).string() + "' extension '" + ext + "' is unsupported! "
+                    "Assigning fallback texture '" + to_string(fallbackID) + "'.",
+                    "KG_MESH",
+                    LogType::LOG_ERROR,
+                    2);
+
+                return;
+            }
+
+            ImportTexture* importTexture = ImportTexture::Initialize(path(image.uri));
+
+            if (importTexture)
+            {
+                texData = importTexture->GetTextureData();
+                importTexture->Destroy();
+
+                return;
+            }
+
+            u32 fallbackID = set_fallback_texture();
+
+            Log::Print(
+                "Node '" + to_string(nodeIndex) 
+                    + "' with name '" + nodeName + "' material '" + materialName 
+                + "' texture '" + path(image.uri).string() + "' was invalid! "
+                "Assigning fallback texture '" + to_string(fallbackID) + "'.",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+        };
+
+    auto verify_image_buffer_view = [
+        &nodeIndex,
+        &nodeName,
+        &materialName,
+        &texData,
+        set_fallback_texture](
+        cgltf_image& image,
+        bool& outResult) -> void
+        {
+            if (!image.mime_type)
+            {
+                u32 fallbackID = set_fallback_texture();
+
+                Log::Print(
+                    "Node '" + to_string(nodeIndex) 
+                    + "' with name '" + nodeName + "' material '" + materialName 
+                    + "' embedded texture has invalid mime type! "
+                    "Assigning fallback texture '" + to_string(fallbackID) + "'.",
+                    "KG_MESH",
+                    LogType::LOG_ERROR,
+                    2);
+
+                return;
+            }
+
+            if (string(image.mime_type) != "image/png")
+            {
+                u32 fallbackID = set_fallback_texture();
+
+                Log::Print(
+                    "Node '" + to_string(nodeIndex) 
+                    + "' with name '" + nodeName + "' material '" + materialName 
+                    + "' embedded texture mime type '" + image.mime_type + "' is not supported! "
+                    "Assigning fallback texture '" + to_string(fallbackID) + "'.",
+                    "KG_MESH",
+                    LogType::LOG_ERROR,
+                    2);
+
+                return;
+            }
+
+            cgltf_buffer_view& bufferView = *image.buffer_view;
+
+            if (!bufferView.buffer
+                || !bufferView.buffer->data)
+            {
+                Log::Print(
+                    "Skipped importing node '" + to_string(nodeIndex) 
+                    + "' with name '" + nodeName + "' because its buffer was invalid!",
+                    "KG_IMPORT_MESH",
+                    LogType::LOG_WARNING);
+
+                outResult = false;
+                return;
+            }
+
+            const u8* imageStart = 
+                scast<const u8*>(bufferView.buffer->data)
+                + bufferView.offset;
+
+            vector<u8> imageData(
+                imageStart,
+                imageStart + bufferView.size);
+
+            ImportTexture* importTexture = ImportTexture::Initialize(std::move(imageData));
+
+            if (importTexture)
+            {
+                texData = importTexture->GetTextureData();
+                importTexture->Destroy();
+
+                return;
+            }
+
+            u32 fallbackID = set_fallback_texture();
+
+            Log::Print(
+                "Node '" + to_string(nodeIndex) 
+                + "' with name '" + nodeName + "' material '" + materialName 
+                + "' embedded texture was invalid! "
+                "Assigning fallback texture '" + to_string(fallbackID) + "'.",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+        };
+
+    if (!texture.image)
+    {
+        u32 fallbackID = set_fallback_texture();
+
+        Log::Print(
+            "Node '" + to_string(nodeIndex) 
+            + "' with name '" + nodeName + "' material '" + materialName 
+            + "' texture was invalid! "
+            "Assigning fallback texture '" + to_string(fallbackID) + "'.",
+            "KG_MESH",
+            LogType::LOG_ERROR,
+            2);
+
+        return true;
+    }
+
+    cgltf_image& image = *texture.image;
+
+    if (image.uri)
+    {
+        verify_image_uri(image);
+    }
+    else if (image.buffer_view)
+    {
+        bool result = true;
+        verify_image_buffer_view(image, result);
+
+        if (!result) return false;
+    }
+    else
+    {
+        u32 fallbackID = set_fallback_texture();
+
+        Log::Print(
+            "Node '" + to_string(nodeIndex) 
+            + "' with name '" + nodeName + "' material '" + materialName 
+            + "' texture had no URI or buffer view! "
+            "Assigning fallback texture '" + to_string(fallbackID) + "'.",
+            "KG_MESH",
+            LogType::LOG_ERROR,
+            2);
+
+        return true;
+    }
+
+    return true;
 }

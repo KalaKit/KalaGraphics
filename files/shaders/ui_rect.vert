@@ -17,13 +17,15 @@ layout(set = 1, binding = 0) uniform Mesh
 layout(push_constant) uniform PushConstants
 {
     vec4 color;
-    uint isTransparent;
+    uint alphaMode;
+    float alphaCutoff;
 } pushData;
 
 layout(location = 0) out vec2 outUV;
 layout(location = 1) out vec4 outVertexColor;
 layout(location = 2) out vec4 outColor;
-layout(location = 3) flat out uint outIsTransparent;
+layout(location = 3) flat out uint outAlphaMode;
+layout(location = 4) flat out float outAlphaCutoff;
 
 void main()
 {
@@ -35,5 +37,6 @@ void main()
     outUV = inUV;
     outVertexColor = inColor;
     outColor = pushData.color;
-    outIsTransparent = pushData.isTransparent;
+    outAlphaMode = pushData.alphaMode;
+    outAlphaCutoff = pushData.alphaCutoff;
 }

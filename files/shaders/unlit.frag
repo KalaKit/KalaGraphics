@@ -4,7 +4,8 @@ layout(location = 0) in vec3 inNormal;
 layout(location = 1) in vec2 inUV;
 layout(location = 2) in vec4 inVertexColor;
 layout(location = 3) in vec4 inColor;
-layout(location = 4) flat in uint isTransparent;
+layout(location = 4) flat in uint alphaMode;
+layout(location = 5) flat in float alphaCutoff;
 
 layout(set = 2, binding = 0) uniform sampler2D uTexture;
 
@@ -17,7 +18,15 @@ void main()
         * inVertexColor
         * inColor;
 
-    if (isTransparent == 0) baseColor.w = 1.0;
+    //A_OPAQUE
+    if (alphaMode == 0) baseColor.a = 1.0;
+    //A_MASK
+    else if (alphaMode == 2)
+    {
+        if (baseColor.a < alphaCutoff) discard;
+
+        baseColor.a = 1.0;
+    }
 
     vec3 normal = normalize(inNormal);
 

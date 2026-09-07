@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <array>
+#include <functional>
 
 #include "core_utils.hpp"
 #include "math_utils.hpp"
@@ -66,24 +67,20 @@ using VkCommandPool = VkCommandPool_T*;
 struct VkCommandBuffer_T;
 using VkCommandBuffer = VkCommandBuffer_T*;
 
-namespace KalaGraphics::Resources
-{
-    class Texture;
-    class Mesh;
-    class Camera;
-}
-
-namespace KalaGraphics::Core
+namespace KalaGraphics::Graphics
 {
     using KalaHeaders::KalaMath::vec2;
 
     using KalaHeaders::KalaKeyStandards::KeyboardButton;
     using KalaHeaders::KalaKeyStandards::MouseButton;
 
+    using KalaGraphics::Core::KalaGraphicsRegistry;
+
     using std::string;
     using std::string_view;
     using std::vector;
     using std::array;
+    using std::function;
     using std::default_delete;
 
     static constexpr u8 MAX_FRAMES_IN_FLIGHT = 2;
@@ -137,12 +134,12 @@ namespace KalaGraphics::Core
 
     class LIB_API GraphicsContext
     {
-    friend class KalaGraphics::Resources::Mesh;
-    friend class KalaGraphics::Resources::Texture;
-    friend class KalaGraphics::Resources::Camera;
-    friend class Shader;
-    friend class Viewport;
     friend class HitTest;
+    friend class Viewport;
+    friend class Shader;
+    friend class Camera;
+    friend class Texture;
+    friend class Mesh;
     friend struct default_delete<GraphicsContext>;
     public:
         KNODISCARD

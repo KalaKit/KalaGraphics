@@ -14,25 +14,22 @@ KG_VK_MEM_ALLOC_IGNORE_POP
 
 #include "log_utils.hpp"
 
-#include "resources/kg_texture.hpp"
-#include "resources/kg_mesh.hpp"
-#include "core/kg_shader.hpp"
-#include "core/kg_context.hpp"
-#include "core/kg_viewport.hpp"
+#include "graphics/kg_texture.hpp"
+#include "graphics/kg_mesh.hpp"
+#include "graphics/kg_shader.hpp"
+#include "graphics/kg_context.hpp"
+#include "graphics/kg_viewport.hpp"
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
 
 using KalaGraphics::Core::KalaGraphicsCore;
-using KalaGraphics::Core::GraphicsContext;
-using KalaGraphics::Core::Viewport;
-using KalaGraphics::Core::Shader;
-using KalaGraphics::Resources::TexturePixelFormat;
-using KalaGraphics::Resources::TextureType;
-using KalaGraphics::Resources::TextureFilterMode;
-using KalaGraphics::Resources::TextureShadowMapMode;
-using KalaGraphics::Resources::TextureWrapMode;
-using KalaGraphics::Resources::TextureBorderColor;
+using KalaGraphics::Graphics::TexturePixelFormat;
+using KalaGraphics::Graphics::TextureType;
+using KalaGraphics::Graphics::TextureFilterMode;
+using KalaGraphics::Graphics::TextureShadowMapMode;
+using KalaGraphics::Graphics::TextureWrapMode;
+using KalaGraphics::Graphics::TextureBorderColor;
 
 using std::to_string;
 using std::unique_ptr;
@@ -149,7 +146,7 @@ static VkBorderColor ToVkBorderColor(TextureBorderColor tc)
     }
 }
 
-namespace KalaGraphics::Resources
+namespace KalaGraphics::Graphics
 {
     static KalaGraphicsRegistry<Texture> registry{};
 
@@ -1538,6 +1535,19 @@ namespace KalaGraphics::Resources
 
     void Texture::Destroy()
     {
+        if (isRootTexture)
+        {
+            Log::Print(
+                "Failed to delete texture '" + to_string(ID) 
+                + "' because it is a root texture and it is required "
+                "for normal operation of KalaGraphics!",
+                "KG_TEXTURE",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
         for (u32 mID : meshIDs)
         {
             Mesh* m{};

@@ -22,7 +22,7 @@ using KalaHeaders::KalaMath::vec2;
 
 using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Import::ImportTextureData;
-using KalaGraphics::Resources::TexturePixelFormat;
+using KalaGraphics::Graphics::TexturePixelFormat;
 
 using std::string;
 using std::string_view;
@@ -134,7 +134,62 @@ namespace KalaGraphics::Import
         }
 
         Log::Print(
-			"Created new import texture '" + to_string(newID) + "'!",
+			"Created new import texture '" + to_string(newID) 
+            + "' from path '" + texPtr->texturePath.string() + "'!",
+			"KG_IMPORT_TEXTURE",
+			LogType::LOG_SUCCESS);
+
+        return texPtr;
+    }
+
+    ImportTexture* ImportTexture::Initialize(vector<u8>&& imageData)
+    {
+        if (imageData.empty())
+        {
+            Log::Print(
+                "Failed to import texture from image data because no image data was provided!",
+                "KG_IMPORT_TEXTURE",
+                LogType::LOG_ERROR,
+                2);
+
+            return nullptr;
+        }
+
+        ImportTextureData textureData{};
+        string errMsg = Init_PNG(
+            std::move(imageData),
+            textureData);
+
+        if (!errMsg.empty())
+        {
+            Log::Print(
+                "Failed to import texture from image data! Reason: " + errMsg,
+                "KG_IMPORT_TEXTURE",
+                LogType::LOG_ERROR,
+                2);
+
+            return nullptr;
+        }
+
+        unique_ptr<ImportTexture> newTex = make_unique<ImportTexture>();
+        ImportTexture* texPtr = newTex.get();
+
+        u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
+        KalaGraphicsCore::SetGlobalID(newID);
+
+        texPtr->ID = newID;
+        texPtr->textureData = std::move(textureData);
+
+        string err = registry.AddContent(newID, std::move(newTex));
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics import texture error",
+				"Failed to initialize import texture! Reason: " + err);
+        }
+
+        Log::Print(
+			"Created new import texture '" + to_string(newID) + "' from binary data!",
 			"KG_IMPORT_TEXTURE",
 			LogType::LOG_SUCCESS);
 

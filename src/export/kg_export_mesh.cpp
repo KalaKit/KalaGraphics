@@ -7,7 +7,7 @@
 #include "log_utils.hpp"
 
 #include "export/kg_export_mesh.hpp"
-#include "resources/kg_mesh.hpp"
+#include "graphics/kg_mesh.hpp"
 
 using KalaHeaders::KalaMath::vec4;
 using KalaHeaders::KalaMath::Transform3D;
@@ -22,8 +22,9 @@ using KalaHeaders::KalaExportGLB::ExportMeshData;
 using KalaHeaders::KalaExportGLB::ExportMaterialData;
 using KalaHeaders::KalaExportGLB::ExportNodeData;
 
-using KalaGraphics::Resources::Mesh;
-using KalaGraphics::Resources::Vertex;
+using KalaGraphics::Graphics::Mesh;
+using KalaGraphics::Graphics::Vertex;
+using KalaGraphics::Graphics::AlphaMode;
 
 using std::string;
 using std::to_string;
@@ -199,6 +200,23 @@ string GetNodeData(
         matData.baseColor[1] = meshColor.y;
         matData.baseColor[2] = meshColor.z;
         matData.baseColor[3] = meshColor.w;
+
+        auto alphaType = m->GetAlphaMode();
+        switch (alphaType)
+        {
+        default:
+        case AlphaMode::A_OPAQUE:
+            matData.alphaMode = KalaHeaders::KalaExportGLB::AlphaMode::A_OPAQUE;
+            break;
+        case AlphaMode::A_BLEND:
+            matData.alphaMode = KalaHeaders::KalaExportGLB::AlphaMode::A_BLEND;
+            break;
+        case AlphaMode::A_MASK:
+            matData.alphaMode = KalaHeaders::KalaExportGLB::AlphaMode::A_MASK;
+            break;
+        }
+
+        matData.alphaCutoff = m->GetAlphaCutoff();
 
         exportNodeData.push_back(
         {

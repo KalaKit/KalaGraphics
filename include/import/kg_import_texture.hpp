@@ -14,7 +14,7 @@
 
 #include "core/kg_registry.hpp"
 
-#include "resources/kg_texture.hpp"
+#include "graphics/kg_texture.hpp"
 
 namespace KalaGraphics::Import
 {
@@ -22,7 +22,7 @@ namespace KalaGraphics::Import
 
     using KalaGraphics::Core::KalaGraphicsRegistry;
 
-    using KalaGraphics::Resources::TexturePixelFormat;
+    using KalaGraphics::Graphics::TexturePixelFormat;
 
     using std::string;
     using std::vector;
@@ -43,8 +43,13 @@ namespace KalaGraphics::Import
         KNODISCARD
 		static KalaGraphicsRegistry<ImportTexture>& GetRegistry();
 
+        //Import from path
         KNODISCARD
 		static ImportTexture* Initialize(path&& texturePath);
+
+        //Import from raw png binary data
+        KNODISCARD
+		static ImportTexture* Initialize(vector<u8>&& imageData);
 
         KNODISCARD
 		u32 GetID() const;

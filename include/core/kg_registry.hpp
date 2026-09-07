@@ -16,6 +16,31 @@
 #include <algorithm>
 #include <type_traits>
 
+namespace KalaGraphics::Graphics
+{
+	class GraphicsContext;
+	class HitTest;
+	class Viewport;
+	class Shader;
+	class Camera;
+	class Texture;
+	class Mesh;
+}
+
+namespace KalaGraphics::Import
+{
+	class ImportTexture;
+	class ImportMesh;
+	class ImportFont;
+	class ImportShader;
+}
+
+namespace KalaGraphics::PrimitiveWidgets
+{
+	class Text;
+	class ClipArea;
+}
+
 namespace KalaGraphics::Core
 {
 	using std::unordered_map;
@@ -39,6 +64,20 @@ namespace KalaGraphics::Core
 		requires is_class_v<T>
 	struct LIB_API KalaGraphicsRegistry
 	{
+	friend class KalaGraphics::Graphics::GraphicsContext;
+	friend class KalaGraphics::Graphics::HitTest;
+	friend class KalaGraphics::Graphics::Viewport;
+	friend class KalaGraphics::Graphics::Shader;
+	friend class KalaGraphics::Graphics::Camera;
+	friend class KalaGraphics::Graphics::Texture;
+	friend class KalaGraphics::Graphics::Mesh;
+	friend class KalaGraphics::Import::ImportTexture;
+	friend class KalaGraphics::Import::ImportMesh;
+	friend class KalaGraphics::Import::ImportFont;
+	friend class KalaGraphics::Import::ImportShader;
+	friend class KalaGraphics::PrimitiveWidgets::Text;
+	friend class KalaGraphics::PrimitiveWidgets::ClipArea;
+	public:
 		//Get a runtime iteration safe list of all
 		//created object pointers of this registry
 		KNODISCARD
@@ -73,7 +112,7 @@ namespace KalaGraphics::Core
 
 			return "";
 		}
-
+	private:
 		//Add a new unique ptr and its ID, returns error string on failure
 		KNODISCARD
 		static inline string AddContent(
@@ -171,7 +210,7 @@ namespace KalaGraphics::Core
 			runtimeContent.clear();
 			createdContent.clear();
 		}
-	private:
+
 		static inline unordered_map<u32, unique_ptr<T>> createdContent{};
 		static inline vector<T*> runtimeContent{};
 	};

@@ -7,7 +7,7 @@
 
 #include "log_utils.hpp"
 
-#include "widgets/primitive/kg_widget_cliparea.hpp"
+#include "widgets_primitive/kg_widget_text.hpp"
 #include "core/kg_core.hpp"
 
 using KalaHeaders::KalaLog::Log;
@@ -22,14 +22,14 @@ using std::make_unique;
 
 namespace KalaGraphics::PrimitiveWidgets
 {
-    static KalaGraphicsRegistry<ClipArea> registry{};
+    static KalaGraphicsRegistry<Text> registry{};
 
-    KalaGraphicsRegistry<ClipArea>& ClipArea::GetRegistry() { return registry; }
+    KalaGraphicsRegistry<Text>& Text::GetRegistry() { return registry; }
 
-    ClipArea* ClipArea::Initialize()
+    Text* Text::Initialize(u32 fontID)
     {
-        unique_ptr<ClipArea> newText = make_unique<ClipArea>();
-        ClipArea* textPtr = newText.get();
+        unique_ptr<Text> newText = make_unique<Text>();
+        Text* textPtr = newText.get();
 
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
@@ -40,36 +40,36 @@ namespace KalaGraphics::PrimitiveWidgets
         if (!err.empty())
         {
 			KalaGraphicsCore::ForceClose(
-				"KalaGraphics clip area error",
-				"Failed to initialize clip area! Reason: " + err);
+				"KalaGraphics text widget error",
+				"Failed to initialize text widget! Reason: " + err);
         }
 
         Log::Print(
-			"Created new clip area '" + to_string(newID) + "'!",
-			"KG_WIDGET_CLIP_AREA",
+			"Created new text widget '" + to_string(newID) + "'!",
+			"KG_WIDGET_TEXT",
 			LogType::LOG_SUCCESS);
 
         return textPtr;
     }
 
-    u32 ClipArea::GetID() const { return ID; }
+    u32 Text::GetID() const { return ID; }
 
-    void ClipArea::Destroy()
+    void Text::Destroy()
     {
         string err = registry.DestroyContent(ID);
         if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(
-                "KalaGraphics clip area error",
-                "Failed to destroy clip area '" + to_string(ID) + "'! Reason: " + err);
+                "KalaGraphics text widget error",
+                "Failed to destroy text widget '" + to_string(ID) + "'! Reason: " + err);
         }
     }
 
-    ClipArea::~ClipArea()
+    Text::~Text()
     {
         Log::Print(
-            "Destroying clip area '" + to_string(ID) + "'.",
-            "KG_WIDGET_CLIP_AREA",
+            "Destroying text widget '" + to_string(ID) + "'.",
+            "KG_WIDGET_TEXT",
             LogType::LOG_INFO);
     }
 }

@@ -19,14 +19,7 @@ using VmaAllocation = VmaAllocation_T*;
 struct VkDescriptorSet_T;
 using VkDescriptorSet = VkDescriptorSet_T*;
 
-namespace KalaGraphics::Core
-{
-    class GraphicsContext;
-    class Viewport;
-    class Shader;
-}
-
-namespace KalaGraphics::Resources
+namespace KalaGraphics::Graphics
 {
     using KalaHeaders::KalaMath::Transform3D;
     using KalaHeaders::KalaMath::vec2;
@@ -62,10 +55,10 @@ namespace KalaGraphics::Resources
 
     class LIB_API Camera
     {
+    friend class GraphicsContext;
+    friend class Viewport;
+    friend class Shader;
     friend class Mesh;
-    friend class KalaGraphics::Core::Shader;
-    friend class KalaGraphics::Core::GraphicsContext;
-    friend class KalaGraphics::Core::Viewport;
     friend struct default_delete<Camera>;
     public:
         KNODISCARD

@@ -34,13 +34,7 @@ using VkImageView = VkImageView_T*;
 struct VkCommandBuffer_T;
 using VkCommandBuffer = VkCommandBuffer_T*;
 
-namespace KalaGraphics::Core
-{
-    class Viewport;
-    class Shader;
-};
-
-namespace KalaGraphics::Resources
+namespace KalaGraphics::Graphics
 {
     using KalaHeaders::KalaMath::vec2;
 
@@ -50,40 +44,13 @@ namespace KalaGraphics::Resources
     using std::array;
     using std::default_delete;
 
-    //Pixel data for a fallback 16x16 sized checkerboard texture with pink and black tiles
-    static constexpr array<u8, 16 * 16 * 4> FALLBACK_TEXTURE = []
-    {
-        array<u8, 16 * 16 * 4> data{};
-    
-        constexpr u8 pink[4] = { 255, 0, 255, 255 };
-        constexpr u8 black[4] = { 0, 0, 0, 255 };
-
-        for (int y = 0; y < 16; ++y)
-        {
-            for (int x = 0; x < 16; ++x)
-            {
-                //2x2 tile index: flips every 2 pixels in each axis
-                bool tileParity = ((x / 2) + (y / 2)) % 2 == 0;
-                const u8* color = tileParity ? pink : black;
-
-                int pixelIndex = (y * 16 + x) * 4;
-                data[pixelIndex + 0] = color[0];
-                data[pixelIndex + 1] = color[1];
-                data[pixelIndex + 2] = color[2];
-                data[pixelIndex + 3] = color[3];
-            }
-        }
-
-        return data;
-    }();
-
     enum class TexturePixelFormat : u8
     {
-        FORMAT_BASIC_R8               = 0, //1 channel,  8-bit UNORM
-        FORMAT_BASIC_R8G8             = 1, //2 channels, 8-bit UNORM
-        FORMAT_BASIC_R8G8B8A8         = 3, //4 channels, 8-bit UNORM
+        FORMAT_BASIC_R8       = 0, //1 channel,  8-bit UNORM
+        FORMAT_BASIC_R8G8     = 1, //2 channels, 8-bit UNORM
+        FORMAT_BASIC_R8G8B8A8 = 3, //4 channels, 8-bit UNORM
 
-        FORMAT_SRGB_R8G8B8A8          = 4  //4 channels, 8-bit sRGB-encoded
+        FORMAT_SRGB_R8G8B8A8  = 4  //4 channels, 8-bit sRGB-encoded
 
         //TODO: consider if HDR is worth adding or not
     };
@@ -166,9 +133,9 @@ namespace KalaGraphics::Resources
 
     class LIB_API Texture
     {
+    friend class Viewport;
+    friend class Shader;
     friend class Mesh;
-    friend class KalaGraphics::Core::Shader;
-    friend class KalaGraphics::Core::Viewport;
     friend struct default_delete<Texture>;
     public:
         KNODISCARD
@@ -252,6 +219,8 @@ namespace KalaGraphics::Resources
 
         //meshes that contain this texture
         vector<u32> meshIDs{};
+
+        bool isRootTexture{};
 
         //set to true if any texture-breaking data was adjusted
         bool isDirty = true;

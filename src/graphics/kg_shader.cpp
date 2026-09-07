@@ -6,6 +6,7 @@
 #include <memory>
 #include <vector>
 #include <unordered_map>
+#include <array>
 
 #include "vulkan/vulkan_core.h"
 #include "spirv_reflect.h"
@@ -13,12 +14,12 @@
 #include "log_utils.hpp"
 #include "file_utils.hpp"
 
-#include "core/kg_shader.hpp"
-#include "resources/kg_mesh.hpp"
-#include "resources/kg_texture.hpp"
-#include "resources/kg_camera.hpp"
-#include "core/kg_context.hpp"
-#include "core/kg_viewport.hpp"
+#include "graphics/kg_shader.hpp"
+#include "graphics/kg_mesh.hpp"
+#include "graphics/kg_texture.hpp"
+#include "graphics/kg_camera.hpp"
+#include "graphics/kg_context.hpp"
+#include "graphics/kg_viewport.hpp"
 #include "core/kg_core.hpp"
 
 using KalaHeaders::KalaCore::ToVar;
@@ -32,27 +33,49 @@ using KalaHeaders::KalaFile::ReadBinaryDataFromFile;
 using KalaHeaders::KalaMath::vec4;
 
 using KalaGraphics::Core::KalaGraphicsCore;
-using KalaGraphics::Core::GraphicsContext;
-using KalaGraphics::Core::Viewport;
-using KalaGraphics::Core::Shader;
-using KalaGraphics::Core::Severity;
-using KalaGraphics::Resources::Vertex;
-using KalaGraphics::Resources::Vertex2D;
-using KalaGraphics::Resources::Mesh;
-using KalaGraphics::Resources::Texture;
-using KalaGraphics::Resources::Camera;
+using KalaGraphics::Graphics::Vertex;
+using KalaGraphics::Graphics::Vertex2D;
+using KalaGraphics::Graphics::TextureFilterMode;
 
 using std::unique_ptr;
 using std::make_unique;
 using std::to_string;
 using std::vector;
 using std::unordered_map;
+using std::array;
 using std::string;
 using std::string_view;
 using std::map;
 using std::pair;
 using std::make_pair;
 using std::filesystem::absolute;
+
+    //Pixel data for a fallback 16x16 sized checkerboard texture with pink and black tiles
+    static constexpr array<u8, 16 * 16 * 4> FALLBACK_TEXTURE = []
+    {
+        array<u8, 16 * 16 * 4> data{};
+    
+        constexpr u8 pink[4] = { 255, 0, 255, 255 };
+        constexpr u8 black[4] = { 0, 0, 0, 255 };
+
+        for (int y = 0; y < 16; ++y)
+        {
+            for (int x = 0; x < 16; ++x)
+            {
+                //2x2 tile index: flips every 2 pixels in each axis
+                bool tileParity = ((x / 2) + (y / 2)) % 2 == 0;
+                const u8* color = tileParity ? pink : black;
+
+                int pixelIndex = (y * 16 + x) * 4;
+                data[pixelIndex + 0] = color[0];
+                data[pixelIndex + 1] = color[1];
+                data[pixelIndex + 2] = color[2];
+                data[pixelIndex + 3] = color[3];
+            }
+        }
+
+        return data;
+    }();
 
 struct ShaderModule
 {
@@ -244,7 +267,7 @@ static void DestroySpvShaderModules(vector<SpvReflectShaderModule*> modules)
     }
 };
 
-namespace KalaGraphics::Core
+namespace KalaGraphics::Graphics
 {
     static KalaGraphicsRegistry<Shader> registry{};
 
@@ -1000,6 +1023,40 @@ namespace KalaGraphics::Core
 				"Failed to initialize shader! Reason: " + err);
         }
 
+        Texture* fallbackTexture = Texture::Initialize(
+            shaderPtr->ID,
+            {
+                .pixelData = vector<u8>(
+                    FALLBACK_TEXTURE.begin(), 
+                    FALLBACK_TEXTURE.end()),
+                .filterMode = TextureFilterMode::FILTER_NEAREST,
+                .size = 16
+            });
+
+        if (!fallbackTexture)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics shader error",
+                "Failed to initialize shader because fallback texture couldn't be created!");
+        }
+
+        Texture* rootTexture = Texture::Initialize(
+            shaderPtr->ID,
+            {});
+
+        if (!rootTexture)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics shader error",
+                "Failed to initialize shader because root texture couldn't be created!");
+        }
+
+        fallbackTexture->isRootTexture = true;
+        rootTexture->isRootTexture = true;
+
+        shaderPtr->fallbackTextureID = fallbackTexture->ID;
+        shaderPtr->rootTextureID = rootTexture->ID;
+
         Log::Print(
 			"Created new shader '" + to_string(newID) + "'!",
 			"KG_SHADER",
@@ -1013,6 +1070,9 @@ namespace KalaGraphics::Core
     const vector<u32>& Shader::GetMeshIDs() const { return meshIDs; }
     const vector<u32>& Shader::GetTextureIDs() const { return textureIDs; }
     const vector<u32>& Shader::GetCameraIDs() const { return cameraIDs; }
+
+    u32 Shader::GetFallbackTextureID() const { return fallbackTextureID; }
+    u32 Shader::GetRootTextureID() const { return rootTextureID; }
 
     bool Shader::Is2D() const { return is2D; }
 
@@ -1031,23 +1091,22 @@ namespace KalaGraphics::Core
 
     void Shader::Destroy()
     {
-        Viewport* vp{};
-        string err = Viewport::GetRegistry().GetContent(viewportID, vp);
-
         if (isRootShader
-            && !overrideRootDeletePermission
-            && err.empty())
+            && !overrideRootDeletePermission)
         {
             Log::Print(
                 "Failed to delete shader '" + to_string(ID) 
-                + "' because it is a root shader of viewport '" + to_string(viewportID) 
-                + "' and it is required for normal operation of KalaGraphics!",
+                + "' because it is a root shader and it is required "
+                "for normal operation of KalaGraphics!",
                 "KG_SHADER",
                 LogType::LOG_ERROR,
                 2);
 
             return;
         }
+
+        Viewport* vp{};
+        string err = Viewport::GetRegistry().GetContent(viewportID, vp);
 
         if (err.empty()
             && !isDestroyingViewport)

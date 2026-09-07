@@ -30,14 +30,7 @@ using VmaAllocation = VmaAllocation_T*;
 struct VkDescriptorSet_T;
 using VkDescriptorSet = VkDescriptorSet_T*;
 
-namespace KalaGraphics::Core
-{
-    class Shader;
-    class HitTest;
-    class Viewport;
-}
-
-namespace KalaGraphics::Resources
+namespace KalaGraphics::Graphics
 {
     using KalaGraphics::Core::KalaGraphicsCore;
     using KalaGraphics::Core::KalaGraphicsRegistry;
@@ -70,6 +63,16 @@ namespace KalaGraphics::Resources
 
     static constexpr u8 MIN_SPHERE_DETAIL_LEVEL = 1;
     static constexpr u8 MAX_SPHERE_DETAIL_LEVEL = 8;
+
+    enum class AlphaMode : u8
+    {
+        //default opaque mesh
+        A_OPAQUE = 0,
+        //makes alpha-based values transparent if transparency is enabled 
+        A_BLEND = 1,
+        //fragments below alpha cutoff are discarded, otherwise rendered fully opaque
+        A_MASK = 2
+    };
 
     enum class FaceDirection : u8
     {
@@ -229,11 +232,11 @@ namespace KalaGraphics::Resources
 
     class LIB_API Mesh
     {
-    friend class Texture;
+    friend class HitTest;
+    friend class Viewport;
+    friend class Shader;
     friend class Camera;
-    friend class KalaGraphics::Core::Shader;
-    friend class KalaGraphics::Core::HitTest;
-    friend class KalaGraphics::Core::Viewport;
+    friend class Texture;
     friend struct default_delete<Mesh>;
     public:
         KNODISCARD
@@ -243,11 +246,12 @@ namespace KalaGraphics::Resources
         //2D mesh creates its own canonical data during initialization, 
         //3D mesh stays empty and must be updated via SetMeshData, 
         //all meshes require a shader even if that shader is also blank,
-        //all meshes require a texture even if that texture is also a default 1x1 texture
+        //assigns root texture if texture ID is unassigned,
+        //assigns fallback texture if texture ID is invalid
         KNODISCARD
 		static Mesh* Initialize(
             u32 shaderID,
-            u32 textureID);
+            u32 textureID = 0);
 
         //Generate a 3D cube or 3D cylinder
         KNODISCARD
@@ -310,10 +314,16 @@ namespace KalaGraphics::Resources
         void SetColor(vec4&& newValue);
 
         KNODISCARD
-        bool IsTransparent() const;
-        //If true, then this mesh is filtered separately from opaque models
+        AlphaMode GetAlphaMode() const;
+        //If set to A_BLEND or A_MASK then this mesh is filtered separately from opaque models
         //and allows to use .w in color and textures
-        void SetTransparentState(bool newValue);
+        void SetAlphaMode(AlphaMode newValue);
+
+        KNODISCARD
+        f32 GetAlphaCutoff() const;
+        //Set the new alpha cutoff value for mask transparency mode,
+        //cannot be used if alpha type is not A_MASK, clamped from 0.0f to 1.0f
+        void SetAlphaCutoff(f32 newValue);
 
         KNODISCARD
 		const vector<Vertex>& GetVertices() const;
@@ -415,8 +425,10 @@ namespace KalaGraphics::Resources
 
         //RGBA color - default is white
         vec4 color = 1;
-        //shader stores as u32 instead of bool
-        u32 isTransparent{};
+
+        //shader stores as u32
+        AlphaMode alphaMode{};
+        f32 alphaCutoff = 0.5f;
 
         //vertex data
 
