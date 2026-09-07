@@ -100,7 +100,8 @@ namespace KalaGraphics::Export
         string result{};
         err = KalaHeaders::KalaExportGLB::GetJsonDataFromNodeData(
             std::move(exportNodeData),
-            result);
+            result,
+            true);
 
         if (!err.empty())
         {
