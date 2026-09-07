@@ -5,25 +5,35 @@
 
 #pragma once
 
-#include <filesystem>
+#include <string>
 #include <vector>
+#include <filesystem>
 
 #include "core_utils.hpp"
+#include "math_utils.hpp"
 
 #include "core/kg_registry.hpp"
 
+#include "resources/kg_texture.hpp"
+
 namespace KalaGraphics::Import
 {
+    using KalaHeaders::KalaMath::vec2;
+
     using KalaGraphics::Core::KalaGraphicsRegistry;
 
-    using std::filesystem::path;
-    using std::vector;
+    using KalaGraphics::Resources::TexturePixelFormat;
+
     using std::string;
+    using std::vector;
+    using std::filesystem::path;
     using std::default_delete;
 
-    struct TextureData
+    struct ImportTextureData
     {
-
+        vector<u8> pixelData{};
+        vec2 size{};
+        TexturePixelFormat pixelFormat = TexturePixelFormat::FORMAT_BASIC_R8G8B8A8;
     };
 
     class LIB_API ImportTexture
@@ -42,24 +52,15 @@ namespace KalaGraphics::Import
         KNODISCARD
 		const path& GetTexturePath() const;
         KNODISCARD
-		const TextureData& GetTextureData() const;
+		const ImportTextureData& GetTextureData() const;
 
         void Destroy();
     private:
         ~ImportTexture();
 
-        KNODISCARD
-		static string Init_PNG(
-            vector<u8>&& binaryData,
-            TextureData& outTextureData);
-        KNODISCARD
-		static string Init_KTEX(
-            vector<u8>&& binaryData,
-            TextureData& outTextureData);
-
         u32 ID{};
 
         path texturePath{};
-        TextureData textureData{};
+        ImportTextureData textureData{};
     };
 }

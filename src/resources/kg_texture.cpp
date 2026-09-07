@@ -50,32 +50,11 @@ static VkFormat ToVkFormat(TexturePixelFormat pf)
         return VkFormat::VK_FORMAT_R8_UNORM;
     case TexturePixelFormat::FORMAT_BASIC_R8G8:
         return VkFormat::VK_FORMAT_R8G8_UNORM;
-    case TexturePixelFormat::FORMAT_BASIC_R8G8B8:
-        return VkFormat::VK_FORMAT_R8G8B8_UNORM;
     case TexturePixelFormat::FORMAT_BASIC_R8G8B8A8:
         return VkFormat::VK_FORMAT_R8G8B8A8_UNORM;
 
-    case TexturePixelFormat::FORMAT_SRGB_R8G8B8:
-        return VkFormat::VK_FORMAT_R8G8B8_SRGB;
     case TexturePixelFormat::FORMAT_SRGB_R8G8B8A8:
         return VkFormat::VK_FORMAT_R8G8B8A8_SRGB;
-
-    case TexturePixelFormat::FORMAT_HDR_R16_FLOAT:
-        return VkFormat::VK_FORMAT_R16_SFLOAT;
-    case TexturePixelFormat::FORMAT_HDR_R16G16_FLOAT:
-        return VkFormat::VK_FORMAT_R16G16_SFLOAT;
-    case TexturePixelFormat::FORMAT_HDR_R16G16B16_FLOAT:
-        return VkFormat::VK_FORMAT_R16G16B16_SFLOAT;
-    case TexturePixelFormat::FORMAT_HDR_R16G16B16A16_FLOAT:
-        return VkFormat::VK_FORMAT_R16G16B16A16_SFLOAT;
-    case TexturePixelFormat::FORMAT_HDR_R32_FLOAT:
-        return VkFormat::VK_FORMAT_R32_SFLOAT;
-    case TexturePixelFormat::FORMAT_HDR_R32G32_FLOAT:
-        return VkFormat::VK_FORMAT_R32G32_SFLOAT;
-    case TexturePixelFormat::FORMAT_HDR_R32G32B32_FLOAT:
-        return VkFormat::VK_FORMAT_R32G32B32_SFLOAT;
-    case TexturePixelFormat::FORMAT_HDR_R32G32B32A32_FLOAT:
-        return VkFormat::VK_FORMAT_R32G32B32A32_SFLOAT;
     };
 }
 
@@ -384,43 +363,12 @@ namespace KalaGraphics::Resources
         case TexturePixelFormat::FORMAT_BASIC_R8G8:
             texFormat = "r8g8";
             break;
-        case TexturePixelFormat::FORMAT_BASIC_R8G8B8:
-            texFormat = "r8g8b8";
-            break;
         case TexturePixelFormat::FORMAT_BASIC_R8G8B8A8:
             texFormat = "r8g8b8a8";
             break;
 
-        case TexturePixelFormat::FORMAT_SRGB_R8G8B8:
-            texFormat = "srgb_r8g8b8";
-            break;
         case TexturePixelFormat::FORMAT_SRGB_R8G8B8A8:
             texFormat = "srgb_r8g8b8a8";
-            break;
-
-        case TexturePixelFormat::FORMAT_HDR_R16_FLOAT:
-            texFormat = "hdr_r16";
-            break;
-        case TexturePixelFormat::FORMAT_HDR_R16G16_FLOAT:
-            texFormat = "hdr_r16g16";
-            break;
-        case TexturePixelFormat::FORMAT_HDR_R16G16B16_FLOAT:
-            texFormat = "hdr_r16g6b16";
-            break;
-        case TexturePixelFormat::FORMAT_HDR_R16G16B16A16_FLOAT:
-            texFormat = "hdr_r16g16b16a16";
-            break;
-        case TexturePixelFormat::FORMAT_HDR_R32_FLOAT:
-            texFormat = "hdr_r32";
-            break;
-        case TexturePixelFormat::FORMAT_HDR_R32G32_FLOAT:
-            texFormat = "hdr_r32g32";
-            break;
-        case TexturePixelFormat::FORMAT_HDR_R32G32B32_FLOAT:
-            texFormat = "hdr_r32g32b32";
-            break;
-        case TexturePixelFormat::FORMAT_HDR_R32G32B32A32_FLOAT:
-            texFormat = "hdr_r32g32b32a32";
             break;
         }
 
@@ -1123,6 +1071,8 @@ namespace KalaGraphics::Resources
                     LogType::LOG_ERROR,
                     2);
 
+                isDirty = false;
+                
                 return;
             }
 

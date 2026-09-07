@@ -5,8 +5,9 @@
 
 #pragma once
 
-#include <filesystem>
+#include <string>
 #include <vector>
+#include <filesystem>
 
 #include "core_utils.hpp"
 #include "math_utils.hpp"
@@ -34,9 +35,9 @@ namespace KalaGraphics::Import
 
     using KalaHeaders::KalaMath::vec2;
 
-    using std::filesystem::path;
-    using std::vector;
     using std::string;
+    using std::vector;
+    using std::filesystem::path;
     using std::default_delete;
 
     struct GlyphData

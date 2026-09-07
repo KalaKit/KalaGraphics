@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <string>
+#include <vector>
 #include <filesystem>
 
 #include "core_utils.hpp"
@@ -15,14 +17,14 @@ namespace KalaGraphics::Import
 {
     using KalaGraphics::Core::KalaGraphicsRegistry;
 
-    using std::filesystem::path;
-    using std::vector;
     using std::string;
+    using std::vector;
+    using std::filesystem::path;
     using std::default_delete;
 
-    struct ShaderData
+    struct ImportShaderData
     {
-
+        //TODO: add spirv-reflect gathered data here
     };
 
     class LIB_API ImportShader
@@ -32,10 +34,12 @@ namespace KalaGraphics::Import
         KNODISCARD
 		static KalaGraphicsRegistry<ImportShader>& GetRegistry();
 
-        //Compile a raw GLSL 4.6 Vulkan shader into spirv with glslc
+        //Compile a raw GLSL 4.6 Vulkan shader into spirv with glslc,
+        //set overwrite to true if you want to overwrite existing out path
         static void Compile(
             path&& inPath,
-            path&& outPath);
+            path&& outPath,
+            bool overwrite = false);
 
         KNODISCARD
 		static ImportShader* Initialize(path&& shaderPath);
@@ -43,22 +47,18 @@ namespace KalaGraphics::Import
         KNODISCARD
 		u32 GetID() const;
 
+        KNODISCARD
+		const path& GetShaderPath() const;
+        KNODISCARD
+		const ImportShaderData& GetShaderData() const;
+
         void Destroy();
     private:
         ~ImportShader();
 
-        KNODISCARD
-		static string Init_SPV(
-            vector<u8>&& binaryData,
-            ShaderData& outShaderData);
-        KNODISCARD
-		static string Init_KSHA(
-            vector<u8>&& binaryData,
-            ShaderData& outShaderData);
-
         u32 ID{};
 
         path shaderPath{};
-        ShaderData shaderData{};
+        ImportShaderData shaderData{};
     };
 }

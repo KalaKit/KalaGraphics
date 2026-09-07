@@ -5,8 +5,9 @@
 
 #pragma once
 
-#include <filesystem>
+#include <string>
 #include <vector>
+#include <filesystem>
 
 #include "core_utils.hpp"
 #include "math_utils.hpp"
@@ -24,9 +25,9 @@ namespace KalaGraphics::Import
 
     using KalaGraphics::Resources::Vertex;
 
-    using std::filesystem::path;
-    using std::vector;
     using std::string;
+    using std::vector;
+    using std::filesystem::path;
     using std::default_delete;
 
     struct ImportMeshData
@@ -80,16 +81,6 @@ namespace KalaGraphics::Import
         void Destroy();
     private:
         ~ImportMesh();
-
-        KNODISCARD
-		static string Init_GLTF_GLB(
-            const path& meshPath,
-            vector<u8>&& binaryData,
-            vector<ImportNodeData>& outNodeData);
-        KNODISCARD
-		static string Init_KMOD(
-            vector<u8>&& binaryData,
-            vector<ImportNodeData>& outNodeData);
 
         u32 ID{};
 

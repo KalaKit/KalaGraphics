@@ -79,22 +79,13 @@ namespace KalaGraphics::Resources
 
     enum class TexturePixelFormat : u8
     {
-        FORMAT_BASIC_R8               = 0,  //1 channel,  8-bit UNORM
-        FORMAT_BASIC_R8G8             = 1,  //2 channels, 8-bit UNORM
-        FORMAT_BASIC_R8G8B8           = 2,  //3 channels, 8-bit UNORM
-        FORMAT_BASIC_R8G8B8A8         = 3,  //4 channels, 8-bit UNORM
+        FORMAT_BASIC_R8               = 0, //1 channel,  8-bit UNORM
+        FORMAT_BASIC_R8G8             = 1, //2 channels, 8-bit UNORM
+        FORMAT_BASIC_R8G8B8A8         = 3, //4 channels, 8-bit UNORM
 
-        FORMAT_SRGB_R8G8B8            = 4,  //3 channels, 8-bit sRGB-encoded
-        FORMAT_SRGB_R8G8B8A8          = 5,  //4 channels, 8-bit sRGB-encoded
+        FORMAT_SRGB_R8G8B8A8          = 4  //4 channels, 8-bit sRGB-encoded
 
-        FORMAT_HDR_R16_FLOAT          = 6,  //1 channel,  16-bit float
-        FORMAT_HDR_R16G16_FLOAT       = 7,  //2 channels, 16-bit float
-        FORMAT_HDR_R16G16B16_FLOAT    = 8,  //3 channels, 16-bit float
-        FORMAT_HDR_R16G16B16A16_FLOAT = 9,  //4 channels, 16-bit float
-        FORMAT_HDR_R32_FLOAT          = 10, //1 channel,  32-bit float
-        FORMAT_HDR_R32G32_FLOAT       = 11, //2 channels, 32-bit float
-        FORMAT_HDR_R32G32B32_FLOAT    = 12, //3 channels, 32-bit float
-        FORMAT_HDR_R32G32B32A32_FLOAT = 13  //4 channels, 32-bit float
+        //TODO: consider if HDR is worth adding or not
     };
 
     enum class TextureType : u8

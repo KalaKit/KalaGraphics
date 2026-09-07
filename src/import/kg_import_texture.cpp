@@ -5,6 +5,8 @@
 
 #include <memory>
 
+#include "lodepng.h"
+
 #include "log_utils.hpp"
 #include "file_utils.hpp"
 
@@ -16,15 +18,25 @@ using KalaHeaders::KalaLog::LogType;
 
 using KalaHeaders::KalaFile::ReadBinaryDataFromFile;
 
-using KalaGraphics::Core::KalaGraphicsCore;
+using KalaHeaders::KalaMath::vec2;
 
+using KalaGraphics::Core::KalaGraphicsCore;
+using KalaGraphics::Import::ImportTextureData;
+using KalaGraphics::Resources::TexturePixelFormat;
+
+using std::string;
 using std::string_view;
 using std::to_string;
+using std::vector;
 using std::unique_ptr;
 using std::make_unique;
+using std::filesystem::path;
     
 static constexpr string_view EXT_PNG = ".png";
-static constexpr string_view EXT_KTEX = ".ktex";
+
+static string Init_PNG(
+    vector<u8>&& pixelData,
+    ImportTextureData& outData);
 
 namespace KalaGraphics::Import
 {
@@ -57,8 +69,7 @@ namespace KalaGraphics::Import
         }
 
         string ext = texturePath.extension().string();
-        if (ext != EXT_PNG
-            && ext != EXT_KTEX)
+        if (ext != EXT_PNG)
         {
             Log::Print(
                 "Failed to import texture '" + texturePath.string() + "' because its extension is not supported!",
@@ -69,10 +80,10 @@ namespace KalaGraphics::Import
             return nullptr;
         }
 
-        vector<u8> outData{};
+        vector<u8> imageData{};
         string errMsg = ReadBinaryDataFromFile(
             texturePath,
-            outData);
+            imageData);
 
         if (!errMsg.empty())
         {
@@ -85,17 +96,11 @@ namespace KalaGraphics::Import
             return nullptr;
         }
 
-        TextureData textureData{};
+        ImportTextureData textureData{};
         if (ext == EXT_PNG)
         {
             errMsg = Init_PNG(
-                std::move(outData),
-                textureData);
-        }
-        else
-        {
-            errMsg = Init_KTEX(
-                std::move(outData),
+                std::move(imageData),
                 textureData);
         }
 
@@ -139,21 +144,7 @@ namespace KalaGraphics::Import
     u32 ImportTexture::GetID() const { return ID; }
 
     const path& ImportTexture::GetTexturePath() const { return texturePath; }
-    const TextureData& ImportTexture::GetTextureData() const { return textureData; }
-
-    string ImportTexture::Init_PNG(
-        vector<u8>&& binaryData,
-        TextureData& outTextureData)
-    {
-        return "init png";
-    }
-
-    string ImportTexture::Init_KTEX(
-        vector<u8>&& binaryData,
-        TextureData& outTextureData)
-    {
-        return "init ktex";
-    }
+    const ImportTextureData& ImportTexture::GetTextureData() const { return textureData; }
 
     void ImportTexture::Destroy()
     {
@@ -173,4 +164,92 @@ namespace KalaGraphics::Import
             "KG_IMPORT_TEXTURE",
             LogType::LOG_INFO);
     }
+}
+
+string Init_PNG(
+    vector<u8>&& imageData,
+    ImportTextureData& outData)
+{
+    u32 width{}, height{};
+
+    lodepng::State state{};
+
+    //force bit depth to 8
+    state.info_raw.bitdepth = 8;
+
+    unsigned error = lodepng_inspect(
+        &width,
+        &height,
+        &state,
+        imageData.data(),
+        imageData.size());
+    
+    if (error) return "Failed to inspect PNG! Reason: " + string(lodepng_error_text(error));
+
+    LodePNGColorType colorType = state.info_png.color.colortype;
+    bool isSRGB = state.info_png.srgb_defined != 0;
+
+    switch (colorType)
+    {
+        default:
+        case LCT_GREY:
+        {
+            state.info_raw.colortype = LCT_GREY;
+            outData.pixelFormat = TexturePixelFormat::FORMAT_BASIC_R8;
+
+            break;
+        }
+        case LCT_GREY_ALPHA:
+        {
+            state.info_raw.colortype = LCT_GREY_ALPHA;
+            outData.pixelFormat = TexturePixelFormat::FORMAT_BASIC_R8G8;
+
+            break;
+        }
+        case LCT_RGB:
+        {
+            state.info_raw.colortype = LCT_RGBA;
+            outData.pixelFormat = isSRGB
+                ? TexturePixelFormat::FORMAT_SRGB_R8G8B8A8
+                : TexturePixelFormat::FORMAT_BASIC_R8G8B8A8;
+
+            break;
+        }
+        case LCT_RGBA:
+        {
+            state.info_raw.colortype = LCT_RGBA;
+            outData.pixelFormat = isSRGB
+                ? TexturePixelFormat::FORMAT_SRGB_R8G8B8A8
+                : TexturePixelFormat::FORMAT_BASIC_R8G8B8A8;
+
+            break;
+        }
+        case LCT_PALETTE:
+        {
+            state.info_raw.colortype = LCT_RGBA;
+
+            outData.pixelFormat = isSRGB
+                ? TexturePixelFormat::FORMAT_SRGB_R8G8B8A8
+                : TexturePixelFormat::FORMAT_BASIC_R8G8B8A8;
+
+            break;
+        }
+    }
+
+    error = lodepng::decode(
+        outData.pixelData,
+        width,
+        height,
+        state,
+        imageData);
+
+    if (error) return "Failed to decode PNG! Reason: " + string(lodepng_error_text(error));
+
+    outData.size = 
+    {
+        scast<f32>(width),
+        scast<f32>(height)
+    };
+
+    return "";
 }

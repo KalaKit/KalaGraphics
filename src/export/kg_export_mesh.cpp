@@ -10,9 +10,14 @@
 #include "resources/kg_mesh.hpp"
 
 using KalaHeaders::KalaMath::vec4;
+using KalaHeaders::KalaMath::Transform3D;
+using KalaHeaders::KalaMath::PosTarget;
+using KalaHeaders::KalaMath::RotTarget;
+using KalaHeaders::KalaMath::SizeTarget;
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
+using KalaHeaders::KalaExportGLB::Transform;
 using KalaHeaders::KalaExportGLB::ExportMeshData;
 using KalaHeaders::KalaExportGLB::ExportMaterialData;
 using KalaHeaders::KalaExportGLB::ExportNodeData;
@@ -123,17 +128,32 @@ string GetNodeData(
         string err = Mesh::GetRegistry().GetContent(mID, m);
         if (!err.empty())
         {
-            Log::Print(
-                "Mesh '" + to_string(mID) + "' was invalid! Reason: " + err,
-                "KG_EXPORT_MESH",
-                LogType::LOG_ERROR,
-                2);
-
-            return "";
+            return "Mesh '" + to_string(mID) + "' was invalid! Reason: " + err;
         }
+
+        if (m->Is2D()) return "Mesh '" + to_string(mID) + "' was 2D!";
 
         //temporarily flip face direction before exporting
         m->FlipFaceDirection();
+
+        Transform transform{};
+
+        const Transform3D& transform3D = scast<Transform3D&>(m->GetTransform());
+
+        transform.position[0] = transform3D.getpos(PosTarget::POS_WORLD).x;
+        transform.position[1] = transform3D.getpos(PosTarget::POS_WORLD).y;
+        transform.position[2] = transform3D.getpos(PosTarget::POS_WORLD).z;
+
+        //glb expects XYZW, math_utils quat is WXYZ
+
+        transform.rotation[0] = transform3D.getrotquat(RotTarget::ROT_WORLD).x;
+        transform.rotation[1] = transform3D.getrotquat(RotTarget::ROT_WORLD).y;
+        transform.rotation[2] = transform3D.getrotquat(RotTarget::ROT_WORLD).z;
+        transform.rotation[3] = transform3D.getrotquat(RotTarget::ROT_WORLD).w;
+
+        transform.size[0] = transform3D.getsize(SizeTarget::SIZE_WORLD).x;
+        transform.size[1] = transform3D.getsize(SizeTarget::SIZE_WORLD).y;
+        transform.size[2] = transform3D.getsize(SizeTarget::SIZE_WORLD).z;
 
         const vector<Vertex>& meshVertices = m->GetVertices();
         const vector<u32>& meshIndices = m->GetIndices();
@@ -181,7 +201,8 @@ string GetNodeData(
         matData.baseColor[3] = meshColor.w;
 
         exportNodeData.push_back(
-        { 
+        {
+            .transform = std::move(transform),
             .meshData = std::move(meshData),
             .matData = std::move(matData)
         });

@@ -17,9 +17,12 @@ using KalaHeaders::KalaLog::LogType;
 using KalaHeaders::KalaFile::ReadBinaryDataFromFile;
 
 using KalaGraphics::Core::KalaGraphicsCore;
+using KalaGraphics::Import::ImportShaderData;
 
+using std::string;
 using std::string_view;
 using std::to_string;
+using std::vector;
 using std::unique_ptr;
 using std::make_unique;
 using std::filesystem::exists;
@@ -27,9 +30,12 @@ using std::filesystem::is_regular_file;
 
 static constexpr string_view EXT_VERT = ".vert";
 static constexpr string_view EXT_FRAG = ".frag";
-
+static constexpr string_view EXT_GEOM = ".geom";
 static constexpr string_view EXT_SPV = ".spv";
-static constexpr string_view EXT_KSHA = ".ksha";
+
+static string Init_SPV(
+    vector<u8>&& binaryData,
+    ImportShaderData& outShaderData);
 
 namespace KalaGraphics::Import
 {
@@ -39,7 +45,8 @@ namespace KalaGraphics::Import
 
     void ImportShader::Compile(
         path&& inPath,
-        path&& outPath)
+        path&& outPath,
+        bool overwrite)
     {
         if (inPath.empty())
         {
@@ -83,7 +90,8 @@ namespace KalaGraphics::Import
 
             return;
         }
-        if (exists(outPath))
+        if (!overwrite
+            && exists(outPath))
         {
             Log::Print(
                 "Failed to compile shader '" + inPath.string() + "' because out path '" + outPath.string() + "' already exists!",
@@ -107,10 +115,28 @@ namespace KalaGraphics::Import
 
         string ext = inPath.extension().string();
         if (ext != EXT_VERT
-            && ext != EXT_FRAG)
+            && ext != EXT_FRAG
+            && ext != EXT_GEOM)
         {
             Log::Print(
                 "Failed to compile shader '" + inPath.string() + "' because its extension is not supported!",
+                "KG_IMPORT_SHADER",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+#if defined(KWIN_ANY)
+        int glslcResult = system("glslc --version > NUL 2>&1");
+#else
+        int glslcResult = system("glslc --version > /dev/null 2>&1");
+#endif
+
+        if (glslcResult != 0)
+        {
+            Log::Print(
+                "Failed to compile shader '" + inPath.string() + "' because glslc was not found or could not be executed!",
                 "KG_IMPORT_SHADER",
                 LogType::LOG_ERROR,
                 2);
@@ -192,8 +218,7 @@ namespace KalaGraphics::Import
         }
 
         string ext = shaderPath.extension().string();
-        if (ext != EXT_SPV
-            && ext != EXT_KSHA)
+        if (ext != EXT_SPV)
         {
             Log::Print(
                 "Failed to import shader '" + shaderPath.string() + "' because its extension is not supported!",
@@ -220,16 +245,10 @@ namespace KalaGraphics::Import
             return nullptr;
         }
 
-        ShaderData shaderData{};
+        ImportShaderData shaderData{};
         if (ext == EXT_SPV)
         {
             errMsg = Init_SPV(
-                std::move(outData),
-                shaderData);
-        }
-        else
-        {
-            errMsg = Init_KSHA(
                 std::move(outData),
                 shaderData);
         }
@@ -273,19 +292,6 @@ namespace KalaGraphics::Import
 
     u32 ImportShader::GetID() const { return ID; }
 
-    string ImportShader::Init_SPV(
-        vector<u8>&& binaryData,
-        ShaderData& outShaderData)
-    {
-        return "init spv";
-    }
-    string ImportShader::Init_KSHA(
-        vector<u8>&& binaryData,
-        ShaderData& outShaderData)
-    {
-        return "init ksha";
-    }
-
     void ImportShader::Destroy()
     {
         string err = registry.DestroyContent(ID);
@@ -304,4 +310,11 @@ namespace KalaGraphics::Import
             "KG_IMPORT_SHADER",
             LogType::LOG_INFO);
     }
+}
+
+string Init_SPV(
+    vector<u8>&& binaryData,
+    ImportShaderData& outShaderData)
+{
+    return "";
 }
