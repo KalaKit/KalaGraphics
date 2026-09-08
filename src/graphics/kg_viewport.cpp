@@ -188,8 +188,7 @@ namespace KalaGraphics::Graphics
 
     Viewport* Viewport::Initialize(
         u32 contextID,
-        ViewportType type,
-        u32 targetViewport)
+        ViewportType type)
     {
         GraphicsContext* gctx{};
         string err = GraphicsContext::GetRegistry().GetContent(contextID, gctx);
@@ -213,7 +212,6 @@ namespace KalaGraphics::Graphics
         vpPtr->ID = newID;
 
         vpPtr->viewportType = type;
-        vpPtr->targetViewportID = targetViewport;
 
         vpPtr->contextID = contextID;
 
@@ -497,8 +495,6 @@ namespace KalaGraphics::Graphics
     u32 Viewport::GetID() const { return ID; }
     u32 Viewport::GetContextID() const { return contextID; }
 
-    u32 Viewport::GetTargetViewportID() const { return targetViewportID; }
-
     u32 Viewport::GetPrimary3DCameraID() const { return primary3DCameraID; }
     u32 Viewport::GetPrimary2DCameraID() const { return primary2DCameraID; }
 
@@ -557,8 +553,6 @@ namespace KalaGraphics::Graphics
     }
 
     bool Viewport::IsRootViewport() const { return isRootViewport; }
-
-    bool Viewport::IsOffscreenViewport() const { return isOffscreenViewport; }
 
     bool Viewport::IsDynamicResizeEnabled() const { return isDynamicResizeEnabled; }
     void Viewport::SetDynamicResizeState(bool newValue)
@@ -779,17 +773,6 @@ namespace KalaGraphics::Graphics
 
             return;
         }
-        if (isOffscreenViewport)
-        {
-            Log::Print(
-                "Failed to set viewport '" + to_string(ID) 
-                + "' dynamic size because it is an offscreen viewport!", 
-                "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
 
         if (newValue.x < 0
             || newValue.y < 0)
@@ -856,17 +839,6 @@ namespace KalaGraphics::Graphics
 
             return;
         }
-        if (isOffscreenViewport)
-        {
-            Log::Print(
-                "Failed to set viewport '" + to_string(ID) 
-                + "' offset because it is an offscreen viewport!", 
-                "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
 
         if (newValue.x < 0.0f
             || newValue.y < 0.0f)
@@ -912,17 +884,6 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to set viewport '" + to_string(ID) 
                 + "' scissor size because it is a root viewport!", 
-                "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-        if (isOffscreenViewport)
-        {
-            Log::Print(
-                "Failed to set viewport '" + to_string(ID) 
-                + "' scissor size because it is an offscreen viewport!", 
                 "KG_VIEWPORT",
                 LogType::LOG_ERROR,
                 2);
@@ -985,17 +946,6 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to set viewport '" + to_string(ID) 
                 + "' scissor offset because it is a root viewport!", 
-                "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-        if (isOffscreenViewport)
-        {
-            Log::Print(
-                "Failed to set viewport '" + to_string(ID) 
-                + "' scissor offset because it is an offscreen viewport!", 
                 "KG_VIEWPORT",
                 LogType::LOG_ERROR,
                 2);
@@ -2011,19 +1961,6 @@ namespace KalaGraphics::Graphics
 
     void Viewport::_Destroy()
     {
-        if (isOffscreenViewport)
-        {
-            Viewport* target{};
-            string err = registry.GetContent(targetViewportID, target);
-            if (!err.empty())
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics viewport error",
-                    "Failed to destroy viewport '" + to_string(ID) 
-                    + "' because its target viewport was invalid! Reason: " + err);
-            }
-        }
-
         HitTest* hitTest{};
         string err = HitTest::GetRegistry().GetContent(hitTestID, hitTest);
         if (err.empty()) hitTest->viewportID = 0;

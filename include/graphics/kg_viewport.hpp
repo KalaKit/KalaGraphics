@@ -159,12 +159,11 @@ namespace KalaGraphics::Graphics
 		static vec2 GetStaticValue(ViewportStaticSize vpSize);
 
         //Create a blank viewport with optional viewport type toggle,
-        //defaults to dynamic 100x100 viewport, must assign shaders when initializing them
+        //defaults to dynamic viewport with fill type
         KNODISCARD
 		static Viewport* Initialize(
             u32 contextID,
-            ViewportType type = {},
-            u32 targetViewport = {});
+            ViewportType type = {});
 
         KNODISCARD
 		u32 GetID() const;
@@ -200,12 +199,6 @@ namespace KalaGraphics::Graphics
         //for its graphics context, it cannot be destroyed
         KNODISCARD
 		bool IsRootViewport() const;
-
-        //If false then viewport is regular viewport and renders on screen,
-        //offscreen viewport will draw off screen and requires a render texture
-        //on an existing viewport so it can draw its result onto that
-        KNODISCARD
-		bool IsOffscreenViewport() const;
 
         //If true then this viewport scales dynamically
         //relative to the size of the graphics context size,
@@ -316,8 +309,6 @@ namespace KalaGraphics::Graphics
         u32 ID{};
         u32 contextID{};
         u32 hitTestID{};
-        
-        u32 targetViewportID{};
 
         u32 primary3DCameraID{};
         u32 primary2DCameraID{};
@@ -347,7 +338,6 @@ namespace KalaGraphics::Graphics
         bool isVisible = true;
 
         bool isRootViewport{};
-        bool isOffscreenViewport{};
 
         bool isDynamicResizeEnabled = true;
 

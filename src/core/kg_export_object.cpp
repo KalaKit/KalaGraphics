@@ -3,11 +3,13 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
+#include "export_png.hpp"
 #include "export_glb.hpp"
 #include "log_utils.hpp"
 
-#include "export/kg_export_mesh.hpp"
+#include "core/kg_export_object.hpp"
 #include "graphics/kg_mesh.hpp"
+#include "graphics/kg_texture.hpp"
 
 using KalaHeaders::KalaMath::vec4;
 using KalaHeaders::KalaMath::Transform3D;
@@ -17,14 +19,20 @@ using KalaHeaders::KalaMath::SizeTarget;
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
+
+using KalaHeaders::KalaExportPNG::ExportPNGTextureData;
+using KalaHeaders::KalaExportPNG::ExportPNG;
+
 using KalaHeaders::KalaExportGLB::Transform;
 using KalaHeaders::KalaExportGLB::ExportMeshData;
 using KalaHeaders::KalaExportGLB::ExportMaterialData;
 using KalaHeaders::KalaExportGLB::ExportNodeData;
+using KalaHeaders::KalaExportGLB::ExportMeshes;
 
-using KalaGraphics::Graphics::Mesh;
 using KalaGraphics::Graphics::Vertex;
 using KalaGraphics::Graphics::AlphaMode;
+using KalaGraphics::Graphics::Mesh;
+using KalaGraphics::Graphics::Texture;
 
 using std::string;
 using std::to_string;
@@ -34,11 +42,64 @@ static string GetNodeData(
     const vector<u32>& meshIDs,
     vector<ExportNodeData>& outData);
 
-namespace KalaGraphics::Export
+namespace KalaGraphics::Core
 {
-    void ExportMesh::ExportMeshes(
+    void Export::ExportTexture(
+        u32 textureID,
+        const path& exportPath,
+        bool useCompression,
+        bool overwrite)
+    {
+        Texture* texture{};
+        string err = Texture::GetRegistry().GetContent(textureID, texture);
+        if (!err.empty())
+        {
+            Log::Print(
+                "Failed to export texture '" + to_string(textureID) 
+                + "' to '" + exportPath.string() + "'! Reason: " + err,
+                "KG_EXPORT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        ExportPNGTextureData exportTextureData
+        {
+            .pixelData = texture->GetPixelData(),
+            .size = { texture->GetSize().x, texture->GetSize().y },
+            .format = scast<KalaHeaders::KalaExportPNG::TexturePixelFormat>(
+                scast<u32>(texture->GetPixelFormat())),
+            .useCompression = useCompression
+        };
+
+        err = ExportPNG(
+            std::move(exportTextureData),
+            exportPath,
+            overwrite);
+
+        if (!err.empty())
+        {
+            Log::Print(
+                "Failed to export texture '" + to_string(textureID) 
+                + "' to '" + exportPath.string() + "'! Reason: " + err,
+                "KG_EXPORT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        Log::Print(
+            "Finished exporting texture '" + to_string(textureID) + "' to '" + exportPath.string() + "'!",
+            "KG_EXPORT",
+            LogType::LOG_SUCCESS);
+    }
+
+    void Export::ExportMeshes(
         const vector<u32>& meshIDs,
-        const path& exportPath)
+        const path& exportPath,
+        bool overwrite)
     {
         vector<ExportNodeData> exportNodeData{};
 
@@ -50,7 +111,7 @@ namespace KalaGraphics::Export
         {
             Log::Print(
                 "Failed to export meshes to '" + exportPath.string() + "'! Reason: " + err,
-                "KG_EXPORT_MESH",
+                "KG_EXPORT",
                 LogType::LOG_ERROR,
                 2);
 
@@ -59,13 +120,14 @@ namespace KalaGraphics::Export
 
         err = KalaHeaders::KalaExportGLB::ExportMeshes(
             std::move(exportNodeData),
-            exportPath);
+            exportPath,
+            overwrite);
 
         if (!err.empty())
         {
             Log::Print(
                 "Failed to export meshes to '" + exportPath.string() + "'! Reason: " + err,
-                "KG_EXPORT_MESH",
+                "KG_EXPORT",
                 LogType::LOG_ERROR,
                 2);
 
@@ -74,11 +136,11 @@ namespace KalaGraphics::Export
 
         Log::Print(
             "Finished exporting meshes to '" + exportPath.string() + "'!",
-            "KG_EXPORT_MESH",
+            "KG_EXPORT",
             LogType::LOG_SUCCESS);
     }
 
-    string ExportMesh::GetJsonData(const vector<u32> &meshIDs)
+    string Export::GetMeshJsonData(const vector<u32> &meshIDs)
     {
         vector<ExportNodeData> exportNodeData{};
 
@@ -90,7 +152,7 @@ namespace KalaGraphics::Export
         {
             Log::Print(
                 "Failed to get json data from meshes! Reason: " + err,
-                "KG_EXPORT_MESH",
+                "KG_EXPORT",
                 LogType::LOG_ERROR,
                 2);
 
@@ -107,7 +169,7 @@ namespace KalaGraphics::Export
         {
             Log::Print(
                 "Failed to get json data from meshes! Reason: " + err,
-                "KG_EXPORT_MESH",
+                "KG_EXPORT",
                 LogType::LOG_ERROR,
                 2);
 

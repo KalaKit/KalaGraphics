@@ -11,21 +11,29 @@
 
 #include "core_utils.hpp"
 
-namespace KalaGraphics::Export
+namespace KalaGraphics::Core
 {
     using std::filesystem::path;
     using std::vector;
     using std::string;
 
-    class LIB_API ExportMesh
+    class LIB_API Export
     {
     public:
+        //Exports selected texture to target path
+        static void ExportTexture(
+            u32 textureID,
+            const path& exportPath,
+            bool useCompression = true,
+            bool overwrite = false);
+
         //Exports one or more meshes to a new .glb file
         static void ExportMeshes(
             const vector<u32>& meshIDs,
-            const path& exportPath);
+            const path& exportPath,
+            bool overwrite = false);
 
         //Returns the json data from meshes without exporting a glb file
-        static string GetJsonData(const vector<u32>& meshIDs);
+        static string GetMeshJsonData(const vector<u32>& meshIDs);
     };
 }
