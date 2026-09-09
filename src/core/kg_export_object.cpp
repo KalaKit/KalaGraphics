@@ -8,8 +8,10 @@
 #include "log_utils.hpp"
 
 #include "core/kg_export_object.hpp"
+#include "core/kg_core.hpp"
 #include "graphics/kg_mesh.hpp"
 #include "graphics/kg_texture.hpp"
+#include "graphics/kg_shader.hpp"
 
 using KalaHeaders::KalaMath::vec4;
 using KalaHeaders::KalaMath::Transform3D;
@@ -27,12 +29,14 @@ using KalaHeaders::KalaExportGLB::Transform;
 using KalaHeaders::KalaExportGLB::ExportMeshData;
 using KalaHeaders::KalaExportGLB::ExportMaterialData;
 using KalaHeaders::KalaExportGLB::ExportNodeData;
-using KalaHeaders::KalaExportGLB::ExportMeshes;
+using KalaHeaders::KalaExportGLB::GetJsonDataFromNodeData;
 
 using KalaGraphics::Graphics::Vertex;
 using KalaGraphics::Graphics::AlphaMode;
 using KalaGraphics::Graphics::Mesh;
 using KalaGraphics::Graphics::Texture;
+using KalaGraphics::Graphics::Shader;
+using KalaGraphics::Core::KalaGraphicsCore;
 
 using std::string;
 using std::to_string;
@@ -160,7 +164,7 @@ namespace KalaGraphics::Core
         }
 
         string result{};
-        err = KalaHeaders::KalaExportGLB::GetJsonDataFromNodeData(
+        err = GetJsonDataFromNodeData(
             std::move(exportNodeData),
             result,
             true);
@@ -280,6 +284,60 @@ string GetNodeData(
         }
 
         matData.alphaCutoff = m->GetAlphaCutoff();
+
+        if (m->GetTextureID() != 0)
+        {
+            Texture* t{};
+            string err = Texture::GetRegistry().GetContent(m->GetTextureID(), t);
+            if (!err.empty())
+            {
+                return "Texture '" + to_string(m->GetTextureID()) + "' was invalid! Reason: " + err;
+            }
+            err = KalaHeaders::KalaExportPNG::GetPNGData(
+                {
+                    .pixelData = t->GetPixelData(),
+                    .size = { t->GetSize().x, t->GetSize().y },
+                    .format = scast<KalaHeaders::KalaExportPNG::TexturePixelFormat>(scast<u32>(t->GetPixelFormat()))
+                },
+                matData.textureData.pngImageData);
+
+                
+            if (!err.empty())
+            {
+                Log::Print(
+                    "Failed to apply texture to exported mesh, applying fallback texture. Reason: " + err,
+                    "KG_EXPORT",
+                    LogType::LOG_WARNING);
+
+                Shader* shader = Shader::GetRegistry().GetAllContent().front();
+
+                Texture* fallbackTex{};
+                err = Texture::GetRegistry().GetContent(shader->GetFallbackTextureID(), fallbackTex);
+                if (!err.empty())
+                {
+                    KalaGraphicsCore::ForceClose(
+                        "Export mesh error",
+                        "Failed to export mesh because shader '" + to_string(shader->GetID()) 
+                        + "' fallback texture was invalid! Reason: " + err);
+                }
+
+                err = KalaHeaders::KalaExportPNG::GetPNGData(
+                {
+                    .pixelData = fallbackTex->GetPixelData(),
+                    .size = { fallbackTex->GetSize().x, fallbackTex->GetSize().y },
+                    .format = scast<KalaHeaders::KalaExportPNG::TexturePixelFormat>(scast<u32>(fallbackTex->GetPixelFormat()))
+                },
+                matData.textureData.pngImageData);
+
+                if (!err.empty())
+                {
+                    KalaGraphicsCore::ForceClose(
+                        "Export mesh error",
+                        "Failed to export mesh because fallback texture '" + to_string(fallbackTex->GetID()) 
+                        + "' PNG data couldn't be returned! Reason: " + err);
+                }
+            }
+        }
 
         exportNodeData.push_back(
         {
