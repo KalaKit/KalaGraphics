@@ -1141,7 +1141,7 @@ namespace KalaGraphics::Graphics
         for (Mesh* m : meshes)
         {
             //skip opaque 3D meshes
-            if (m->alphaMode != AlphaMode::A_OPAQUE) continue;
+            if (m->alphaMode == AlphaMode::A_OPAQUE) continue;
 
             vec3 currentPos = scast<Transform3D&>(m->GetTransform()).getpos(PosTarget::POS_WORLD);
 
