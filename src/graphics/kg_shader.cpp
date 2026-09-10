@@ -21,6 +21,7 @@
 #include "graphics/kg_context.hpp"
 #include "graphics/kg_viewport.hpp"
 #include "core/kg_core.hpp"
+#include "widgets_primitive/kg_widget_text.hpp"
 
 using KalaHeaders::KalaCore::ToVar;
 using KalaHeaders::KalaCore::FromVar;
@@ -36,6 +37,7 @@ using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Graphics::Vertex;
 using KalaGraphics::Graphics::Vertex2D;
 using KalaGraphics::Graphics::TextureFilterMode;
+using KalaGraphics::PrimitiveWidgets::Text;
 
 using std::unique_ptr;
 using std::make_unique;
@@ -1067,9 +1069,11 @@ namespace KalaGraphics::Graphics
 
     u32 Shader::GetID() const { return ID; }
     u32 Shader::GetViewportID() const { return viewportID; }
-    const vector<u32>& Shader::GetMeshIDs() const { return meshIDs; }
-    const vector<u32>& Shader::GetTextureIDs() const { return textureIDs; }
     const vector<u32>& Shader::GetCameraIDs() const { return cameraIDs; }
+    const vector<u32>& Shader::GetTextureIDs() const { return textureIDs; }
+    const vector<u32>& Shader::GetMeshIDs() const { return meshIDs; }
+
+    const vector<u32>& Shader::GetTextWidgetIDs() const { return textWidgetIDs; }
 
     u32 Shader::GetFallbackTextureID() const { return fallbackTextureID; }
     u32 Shader::GetRootTextureID() const { return rootTextureID; }
@@ -1172,6 +1176,22 @@ namespace KalaGraphics::Graphics
 
             if (vp->lastBoundShader3DID == ID) vp->lastBoundShader3DID = 0;
             if (vp->lastBoundShader2DID == ID) vp->lastBoundShader2DID = 0;
+        }
+
+        vector<u32> textWidgetIDsCopy = textWidgetIDs;
+        for (u32 text : textWidgetIDsCopy)
+        {
+            Text* t{};
+            string err = Text::GetRegistry().GetContent(text, t);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics shader error",
+                    "Failed to destroy shader '" + to_string(ID) + "' because its text widget '" 
+                    + to_string(text) + "' because it was invalid!");
+
+                t->Destroy();
+            }
         }
 
         for (u32 cID : cameraIDs)

@@ -1034,12 +1034,24 @@ namespace KalaGraphics::Graphics
     }
 
     u32 Mesh::GetID() const { return ID; }
-    u32 Mesh::GetCameraID() const { return cameraID; }
-    u32 Mesh::GetMaterialID() const { return materialID; }
+
+
 
     u32 Mesh::GetShaderID() const { return shaderID; }
     void Mesh::SetShaderID(u32 newValue)
     {
+        if (textWidgetID != 0)
+        {
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) 
+                + "' shader ID because it is used in text widget '" + to_string(textWidgetID) + "'!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
         if (newValue == 0)
         {
             Log::Print(
@@ -1190,6 +1202,10 @@ namespace KalaGraphics::Graphics
             "KG_MESH",
             LogType::LOG_SUCCESS);
     }
+
+    u32 Mesh::GetCameraID() const { return cameraID; }
+    u32 Mesh::GetMaterialID() const { return materialID; }
+    u32 Mesh::GetTextWidgetID() const { return textWidgetID; }
 
     bool Mesh::IsHovered() const { return hitTestID != 0; }
 
@@ -2354,6 +2370,18 @@ namespace KalaGraphics::Graphics
 
     void Mesh::Destroy()
     {
+        if (textWidgetID != 0)
+        {
+            Log::Print(
+                "Failed to destroy mesh '" + to_string(ID) 
+                + "' because it is used in text widget '" + to_string(textWidgetID) + "'!",
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
         Camera* camera{};
         string err = Camera::GetRegistry().GetContent(cameraID, camera);
         if (err.empty()) camera->meshID = 0;

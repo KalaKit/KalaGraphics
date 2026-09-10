@@ -754,6 +754,17 @@ namespace KalaGraphics::Graphics
                 + "' data because its mesh '" + to_string(meshID) + "' shader was invalid! Reason: " + err);
         }
 
+        /*
+        Log::Print(
+            "@@@@@\n"
+            "material: " + to_string(ID) + "\n"
+            "mesh: " + to_string(meshID) + "\n"
+            "shader: " + to_string(shader->ID) + "\n"
+            "is 2D: " + (m->is2D ? "true" : "false") + "\n"
+            "2D material type: " + to_string(scast<u32>(material2DType)) + "\n"
+            "3D material type: " + to_string(scast<u32>(material3DType)));
+        */
+
         vkCmdPushConstants(
             buffer,
             shader->pipelineLayout,
@@ -773,18 +784,15 @@ namespace KalaGraphics::Graphics
                 sizeof(alphaModeValue),
                 &alphaModeValue);
 
-            if (GetAlphaMode() == AlphaMode::A_MASK)
-            {
-                f32 alphaCutoff = GetAlphaCutoff();
+            f32 alphaCutoff = GetAlphaCutoff();
 
-                vkCmdPushConstants(
-                    buffer,
-                    shader->pipelineLayout,
-                    VK_SHADER_STAGE_VERTEX_BIT,
-                    sizeof(GetBaseColor()) + sizeof(alphaModeValue),
-                    sizeof(alphaCutoff),
-                    &alphaCutoff);
-            }
+            vkCmdPushConstants(
+                buffer,
+                shader->pipelineLayout,
+                VK_SHADER_STAGE_VERTEX_BIT,
+                sizeof(GetBaseColor()) + sizeof(alphaModeValue),
+                sizeof(alphaCutoff),
+                &alphaCutoff);
         }
 
         Texture* texture{};

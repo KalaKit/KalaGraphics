@@ -243,6 +243,30 @@ namespace KalaGraphics::Graphics
     u32 Texture::GetShaderID() const { return shaderID; }
     void Texture::SetShaderID(u32 newValue)
     {
+        if (textWidgetID != 0)
+        {
+            Log::Print(
+                "Failed to set texture '" + to_string(ID) 
+                + "' shader ID because it is used in text widget '" + to_string(textWidgetID) + "'!",
+                "KG_TEXTURE",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (newValue == 0)
+        {
+            Log::Print(
+                "Failed to set texture '" + to_string(ID) 
+                + "' shader ID because it was empty!",
+                "KG_TEXTURE",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
         if (shaderID == newValue)
         {
             Log::Print(
@@ -300,6 +324,8 @@ namespace KalaGraphics::Graphics
     }
 
     const vector<pair<u32, array<bool, 11>>>& Texture::GetMaterialIDs() const { return materialIDs; }
+
+    u32 Texture::GetTextWidgetID() const { return textWidgetID; }
 
     const vector<u8>& Texture::GetPixelData() const { return pixelData; }
     void Texture::SetPixelData(vector<u8>&& newPixelData)
@@ -1593,9 +1619,21 @@ namespace KalaGraphics::Graphics
         if (isRootTexture)
         {
             Log::Print(
-                "Failed to delete texture '" + to_string(ID) 
+                "Failed to destroy texture '" + to_string(ID) 
                 + "' because it is a root texture and it is required "
                 "for normal operation of KalaGraphics!",
+                "KG_TEXTURE",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (textWidgetID != 0)
+        {
+            Log::Print(
+                "Failed to destroy texture '" + to_string(ID) 
+                + "' because it is used in text widget '" + to_string(textWidgetID) + "'!",
                 "KG_TEXTURE",
                 LogType::LOG_ERROR,
                 2);

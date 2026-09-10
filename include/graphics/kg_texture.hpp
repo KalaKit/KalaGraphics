@@ -34,6 +34,11 @@ using VkImageView = VkImageView_T*;
 struct VkCommandBuffer_T;
 using VkCommandBuffer = VkCommandBuffer_T*;
 
+namespace KalaGraphics::PrimitiveWidgets
+{
+    class Text;
+}
+
 namespace KalaGraphics::Graphics
 {
     using KalaHeaders::KalaMath::vec2;
@@ -138,6 +143,7 @@ namespace KalaGraphics::Graphics
     friend class Shader;
     friend class Mesh;
     friend class Material;
+    friend class KalaGraphics::PrimitiveWidgets::Text;
     friend struct default_delete<Texture>;
     public:
         KNODISCARD
@@ -159,6 +165,9 @@ namespace KalaGraphics::Graphics
         //Returns all materials and in which slot in each material is this texture held in
         KNODISCARD
 		const vector<pair<u32, array<bool, 11>>>& GetMaterialIDs() const;
+
+        KNODISCARD
+        u32 GetTextWidgetID() const;
 
         KNODISCARD
 		const vector<u8>& GetPixelData() const;
@@ -224,6 +233,8 @@ namespace KalaGraphics::Graphics
 
         //materials that contain this texture
         vector<pair<u32, array<bool, 11>>> materialIDs{};
+
+        u32 textWidgetID{};
 
         bool isRootTexture{};
 

@@ -26,6 +26,11 @@ using VkPipelineLayout = VkPipelineLayout_T*;
 struct VkPipeline_T;
 using VkPipeline = VkPipeline_T*;
 
+namespace KalaGraphics::PrimitiveWidgets
+{
+    class Text;
+}
+
 namespace KalaGraphics::Graphics
 {
     using KalaHeaders::KalaMath::mat4;
@@ -62,6 +67,7 @@ namespace KalaGraphics::Graphics
     friend class Camera;
     friend class Texture;
     friend class Mesh;
+    friend class KalaGraphics::PrimitiveWidgets::Text;
     friend default_delete<Shader>;
     public:
         KNODISCARD
@@ -82,11 +88,14 @@ namespace KalaGraphics::Graphics
         KNODISCARD 
 		u32 GetViewportID() const;
         KNODISCARD
-		const vector<u32>& GetMeshIDs() const;
+		const vector<u32>& GetCameraIDs() const;
         KNODISCARD
 		const vector<u32>& GetTextureIDs() const;
         KNODISCARD
-		const vector<u32>& GetCameraIDs() const;
+		const vector<u32>& GetMeshIDs() const;
+
+        KNODISCARD
+        const vector<u32>& GetTextWidgetIDs() const;
 
         //The ID of the fallback pink and black tile texture
         u32 GetFallbackTextureID() const;
@@ -116,6 +125,8 @@ namespace KalaGraphics::Graphics
         vector<u32> textureIDs{};
         vector<u32> cameraIDs{};
         vector<u32> meshIDs{};
+
+        vector<u32> textWidgetIDs{};
 
         u32 fallbackTextureID{};
         u32 rootTextureID{};

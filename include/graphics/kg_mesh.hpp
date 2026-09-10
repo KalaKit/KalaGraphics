@@ -30,6 +30,11 @@ using VmaAllocation = VmaAllocation_T*;
 struct VkDescriptorSet_T;
 using VkDescriptorSet = VkDescriptorSet_T*;
 
+namespace KalaGraphics::PrimitiveWidgets
+{
+    class Text;
+}
+
 namespace KalaGraphics::Graphics
 {
     using KalaGraphics::Core::KalaGraphicsCore;
@@ -217,6 +222,7 @@ namespace KalaGraphics::Graphics
     friend class Camera;
     friend class Texture;
     friend class Material;
+    friend class KalaGraphics::PrimitiveWidgets::Text;
     friend struct default_delete<Mesh>;
     public:
         KNODISCARD
@@ -241,16 +247,20 @@ namespace KalaGraphics::Graphics
 
         KNODISCARD
 		u32 GetID() const;
-        KNODISCARD
-		u32 GetCameraID() const;
-        KNODISCARD
-		u32 GetMaterialID() const;
 
         KNODISCARD
         u32 GetShaderID() const;
         //Swap mesh shader at runtime, not allowed to switch to a
         //3D shader if mesh is 2D and vice versa
         void SetShaderID(u32 newID);
+
+        KNODISCARD
+		u32 GetCameraID() const;
+        KNODISCARD
+		u32 GetMaterialID() const;
+
+        KNODISCARD
+        u32 GetTextWidgetID() const;
 
         //Returns true if this 2D or 3D mesh is
         //currently being detected by the Hit Test logic
@@ -360,6 +370,8 @@ namespace KalaGraphics::Graphics
         u32 shaderID{};
         u32 cameraID{};
         u32 materialID{};
+
+        u32 textWidgetID{};
 
         u16 drawOrderIndex{};
 
