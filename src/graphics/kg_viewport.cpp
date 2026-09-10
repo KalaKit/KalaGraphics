@@ -52,12 +52,13 @@ using std::filesystem::recursive_directory_iterator;
 using std::unique_ptr;
 using std::make_unique;
 
-static constexpr string_view ROOT_SHADER_VERT_UNLIT   = "unlit_vert.spv";
-static constexpr string_view ROOT_SHADER_VERT_UI_RECT = "ui_rect_vert.spv";
+static constexpr string_view ROOT_SHADER_VERT_UNLIT = "unlit_vert.spv";
+static constexpr string_view ROOT_SHADER_VERT_RECT = "ui_rect_vert.spv";
+static constexpr string_view ROOT_SHADER_VERT_FONT = "ui_font_vert.spv";
 
-static constexpr string_view ROOT_SHADER_FRAG_UNLIT   = "unlit_frag.spv";
-static constexpr string_view ROOT_SHADER_FRAG_UI_RECT = "ui_rect_frag.spv";
-static constexpr string_view ROOT_SHADER_FRAG_UI_FONT = "ui_font_frag.spv";
+static constexpr string_view ROOT_SHADER_FRAG_UNLIT = "unlit_frag.spv";
+static constexpr string_view ROOT_SHADER_FRAG_RECT = "ui_rect_frag.spv";
+static constexpr string_view ROOT_SHADER_FRAG_FONT = "ui_font_frag.spv";
 
 //
 // 4:3
@@ -256,25 +257,25 @@ namespace KalaGraphics::Graphics
                     .vertShader = 
                     {
                         .shaderType = RootShaderType::S_VERT_RECT,
-                        .shaderPath = ROOT_SHADER_VERT_UI_RECT
+                        .shaderPath = ROOT_SHADER_VERT_RECT
                     },
                     .fragShader =
                     {
                         .shaderType = RootShaderType::S_FRAG_RECT,
-                        .shaderPath = ROOT_SHADER_FRAG_UI_RECT
+                        .shaderPath = ROOT_SHADER_FRAG_RECT
                     }
                 },
             {
                     .shaderTarget = RootShaderTarget::T_FONT,
                     .vertShader = 
                     {
-                        .shaderType = RootShaderType::S_VERT_RECT,
-                        .shaderPath = ROOT_SHADER_VERT_UI_RECT
+                        .shaderType = RootShaderType::S_VERT_FONT,
+                        .shaderPath = ROOT_SHADER_VERT_FONT
                     },
                     .fragShader =
                     {
                         .shaderType = RootShaderType::S_FRAG_FONT,
-                        .shaderPath = ROOT_SHADER_FRAG_UI_FONT
+                        .shaderPath = ROOT_SHADER_FRAG_FONT
                     }
                 }
         }};
@@ -450,7 +451,7 @@ namespace KalaGraphics::Graphics
             else if (rs.shaderTarget == RootShaderTarget::T_FONT)
             {
                 rs.shaderID = init_shader(
-                    RootShaderType::S_VERT_RECT, 
+                    RootShaderType::S_VERT_FONT, 
                     RootShaderType::S_FRAG_FONT,
                     true);
             }

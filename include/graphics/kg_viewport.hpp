@@ -110,17 +110,18 @@ namespace KalaGraphics::Graphics
     {
         T_UNLIT = 0,  //unlit_vert.spv + unlit_frag.spv
         T_RECT  = 1,  //ui_rect_vert.spv + ui_rect_frag.spv
-        T_FONT  = 2   //ui_rect_vert.spv + ui_font_frag.spv
+        T_FONT  = 2   //ui_font_vert.spv + ui_font_frag.spv
     };
     
     enum class RootShaderType : u8
     {
         S_VERT_UNLIT = 0, //unlit_vert.spv
         S_VERT_RECT  = 1, //ui_rect_vert.spv
+        S_VERT_FONT  = 2, //ui_font_vert.spv
 
-        S_FRAG_UNLIT = 2, //unlit_frag.spv
-        S_FRAG_RECT  = 3, //ui_rect_frag.spv
-        S_FRAG_FONT  = 4  //ui_font_frag.spv
+        S_FRAG_UNLIT = 3, //unlit_frag.spv
+        S_FRAG_RECT  = 4, //ui_rect_frag.spv
+        S_FRAG_FONT  = 5  //ui_font_frag.spv
     };
 
     struct RootShaderTypeData

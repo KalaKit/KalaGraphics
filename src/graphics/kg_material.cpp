@@ -762,26 +762,29 @@ namespace KalaGraphics::Graphics
             sizeof(GetBaseColor()),
             &GetBaseColor());
 
-        u32 alphaModeValue = scast<u32>(GetAlphaMode());
-        vkCmdPushConstants(
-            buffer,
-            shader->pipelineLayout,
-            VK_SHADER_STAGE_VERTEX_BIT,
-            sizeof(GetBaseColor()),
-            sizeof(alphaModeValue),
-            &alphaModeValue);
-
-        if (GetAlphaMode() == AlphaMode::A_MASK)
+        if (material2DType != MaterialType2D::M_FONT)
         {
-            f32 alphaCutoff = GetAlphaCutoff();
-
+            u32 alphaModeValue = scast<u32>(GetAlphaMode());
             vkCmdPushConstants(
                 buffer,
                 shader->pipelineLayout,
                 VK_SHADER_STAGE_VERTEX_BIT,
-                sizeof(GetBaseColor()) + sizeof(alphaModeValue),
-                sizeof(alphaCutoff),
-                &alphaCutoff);
+                sizeof(GetBaseColor()),
+                sizeof(alphaModeValue),
+                &alphaModeValue);
+
+            if (GetAlphaMode() == AlphaMode::A_MASK)
+            {
+                f32 alphaCutoff = GetAlphaCutoff();
+
+                vkCmdPushConstants(
+                    buffer,
+                    shader->pipelineLayout,
+                    VK_SHADER_STAGE_VERTEX_BIT,
+                    sizeof(GetBaseColor()) + sizeof(alphaModeValue),
+                    sizeof(alphaCutoff),
+                    &alphaCutoff);
+            }
         }
 
         Texture* texture{};
