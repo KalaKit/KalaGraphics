@@ -25,6 +25,7 @@ using KalaHeaders::KalaMath::vec3;
 using KalaHeaders::KalaMath::vec2;
 
 using KalaHeaders::KalaKeyStandards::GetUTFByValue;
+using KalaHeaders::KalaKeyStandards::GetValueByUTF;
 
 using KalaGraphics::Core::KalaGraphicsCore;
 
@@ -41,11 +42,70 @@ using KalaGraphics::Graphics::Material;
 using KalaGraphics::Graphics::Mesh;
 
 using std::string;
+using std::string_view;
 using std::to_string;
 using std::unique_ptr;
 using std::make_unique;
 using std::min;
 using std::max;
+using std::clamp;
+using std::vector;
+
+static vector<u32> StringToUTF(string&& input)
+{
+    vector<u32> convertedText{};
+
+    for (size_t i = 0; i < input.size();)
+    {
+        const u8 firstByte = scast<u8>(input[i]);
+
+        size_t byteCount{};
+
+        if ((firstByte & 0x80) == 0)
+        {
+            byteCount = 1;
+        }
+        else if ((firstByte & 0xE0) == 0xC0)
+        {
+            byteCount = 2;
+        }
+        else if ((firstByte & 0xF0) == 0xE0)
+        {
+            byteCount = 3;
+        }
+        else if ((firstByte & 0xF8) == 0xF0)
+        {
+            byteCount = 4;
+        }
+        else
+        {
+            //invalid UTF-8 byte
+            convertedText.push_back(0x003F);
+            i++;
+            continue;
+        }
+
+        //incomplete UTF-8 sequence
+        if (i + byteCount > input.size())
+        {
+            convertedText.push_back(0x003F);
+            break;
+        }
+
+        string_view value
+        {
+            input.data() + i,
+            byteCount
+        };
+
+        convertedText.push_back(
+            GetUTFByValue(value));
+
+        i += byteCount;
+    }
+
+    return convertedText;
+}
 
 namespace KalaGraphics::PrimitiveWidgets
 {
@@ -236,14 +296,459 @@ namespace KalaGraphics::PrimitiveWidgets
     u32 Text::GetTextureID() const { return textureID; }
     u32 Text::GetMeshID() const { return meshID; }
 
-    const string& Text::GetText() const { return text; }
+    ClipType Text::GetClipType() const { return clipType; }
+    void Text::SetClipType(ClipType newValue)
+    {
+        if (newValue == clipType)
+        {
+            Log::Print(
+                "Failed to set text widget '" + to_string(ID) + "' clip type because it is already the same!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        clipType = newValue;
+
+        isTextDirty = true;
+
+        Log::Print(
+            "Set text widget clip type to '" + string(clipType == ClipType::C_OVERFLOW ? "overflow" : "clipped") + "'!",
+            "KG_TEXT",
+            LogType::LOG_SUCCESS);
+    }
+
+    FieldType Text::GetFieldType() const { return fieldType; }
+    void Text::SetFieldType(FieldType newValue)
+    {
+        if (fieldType == newValue)
+        {
+            Log::Print(
+                "Failed to set text widget '" + to_string(ID) + "' field type because it is already the same!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        fieldType = newValue;
+
+        string fieldTypeStr{};
+
+        switch (fieldType)
+        {
+        default:
+        case FieldType::F_ANY:
+            fieldTypeStr = "any";
+            break;
+        case FieldType::F_TEXT_ONLY:
+            fieldTypeStr = "text only";
+            break;
+        case FieldType::F_NUMBER_ONLY:
+            fieldTypeStr = "number only";
+
+            SetNumberMin(-DBL_MAX);
+            SetNumberMax(DBL_MAX);
+            break;
+        case FieldType::F_INTEGER_ONLY:
+            fieldTypeStr = "integer only";
+
+            SetNumberMin(INT64_MIN);
+            SetNumberMax(INT64_MAX);
+            break;
+        case FieldType::F_FLOAT_ONLY:
+            fieldTypeStr = "float only";
+
+            SetNumberMin(-FLT_MAX);
+            SetNumberMax(FLT_MAX);
+            break;
+        case FieldType::F_FLOAT_AND_DOUBLE_ONLY:
+            fieldTypeStr = "float and double only";
+
+            SetNumberMin(-DBL_MAX);
+            SetNumberMax(DBL_MAX);
+            break;
+        case FieldType::F_PASSWORD:
+            fieldTypeStr = "password";
+            break;
+        }
+
+        isTextDirty = true;
+
+        Log::Print(
+            "Set text widget field type to '" + fieldTypeStr + "'!",
+            "KG_TEXT",
+            LogType::LOG_SUCCESS);
+    }
+
+    f32 Text::GetTextSize() const { return textSize; }
+    void Text::SetTextSize(f32 newValue)
+    {
+        if (newValue == textSize)
+        {
+            Log::Print(
+                "Failed to set text widget '" + to_string(ID) + "' size because it is already the same!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        textSize = clamp(newValue, MIN_TEXT_SIZE, MAX_TEXT_SIZE);
+
+        isTextDirty = true;
+
+        Log::Print(
+            "Set text widget '" + to_string(ID) + "' text size to '" + to_string(textSize) + "'!",
+            "KG_TEXT",
+            LogType::LOG_SUCCESS);
+    }
+
+    u16 Text::GetLineWidth() const { return lineWidth; }
+    void Text::SetLineWidth(u16 newValue)
+    {
+        if (newValue == lineWidth)
+        {
+            Log::Print(
+                "Failed to set text widget '" + to_string(ID) + "' line width because it is already the same!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        lineWidth = clamp(newValue, MIN_LINE_WIDTH, MAX_LINE_WIDTH);
+
+        isTextDirty = true;
+
+        Log::Print(
+            "Set text widget '" + to_string(ID) + "' line width to '" + to_string(lineWidth) + "'!",
+            "KG_TEXT",
+            LogType::LOG_SUCCESS);
+    }
+
+    u16 Text::GetLineHeight() const { return lineHeight; }
+    void Text::SetLineHeight(u16 newValue)
+    {
+        if (newValue == lineHeight)
+        {
+            Log::Print(
+                "Failed to set text widget '" + to_string(ID) + "' line height because it is already the same!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        lineHeight = clamp(newValue, scast<u16>(1), MAX_LINE_HEIGHT);
+
+        isTextDirty = true;
+
+        Log::Print(
+            "Set text widget '" + to_string(ID) + "' line height to '" + to_string(lineHeight) + "'!",
+            "KG_TEXT",
+            LogType::LOG_SUCCESS);
+    }
+
+    u16 Text::GetMaxLines() const { return maxLines; }
+    void Text::SetMaxLines(u16 newValue)
+    {
+        if (newValue == maxLines)
+        {
+            Log::Print(
+                "Failed to set text widget '" + to_string(ID) + "' max lines because it is already the same!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        maxLines = clamp(newValue, scast<u16>(1), MAX_LINES);
+
+        isTextDirty = true;
+
+        Log::Print(
+            "Set text widget '" + to_string(ID) + "' max lines to '" + to_string(maxLines) + "'!",
+            "KG_TEXT",
+            LogType::LOG_SUCCESS);
+    }
+
+    u16 Text::GetMaxCharacters() const { return maxCharacters; }
+    void Text::SetMaxCharacters(u16 newValue)
+    {
+        newValue = clamp(newValue, scast<u16>(1), MAX_CHARACTERS);
+
+        bool needsTruncation = text.size() > newValue;
+        string removedStr{};
+
+        if (needsTruncation)
+        {
+            u16 toBeRemoved = scast<u16>(text.size() - newValue);
+            RemoveText(toBeRemoved);
+
+            removedStr = 
+                " Removed '" + to_string(toBeRemoved) 
+                + "' characters because new size is smaller than old total amount of characters.";
+        }
+
+        maxCharacters = newValue;
+
+        Log::Print(
+            "Set text widget max character count to '" + to_string(maxCharacters) + "'!" + removedStr,
+            "KG_TEXT",
+            LogType::LOG_SUCCESS);
+    }
+
+    f64 Text::GetNumberMin() const { return numberMin; }
+    void Text::SetNumberMin(f64 newValue)
+    {
+        newValue = clamp(newValue, -DBL_MAX, numberMax);
+
+        numberMin = newValue;
+
+        switch (fieldType)
+        {
+        default: break;
+        case FieldType::F_INTEGER_ONLY:
+            numberMin = clamp(scast<i64>(numberMin), scast<i64>(INT64_MIN), scast<i64>(numberMax));
+            break;
+        case FieldType::F_FLOAT_ONLY:
+            numberMin = clamp(scast<f32>(numberMin), -FLT_MAX, scast<f32>(numberMax));
+            break;
+        }
+
+        Log::Print(
+            "Set new text widget '" + to_string(ID) + "' min value to '" + to_string(numberMin) + "'!",
+            "KG_TEXT",
+            LogType::LOG_SUCCESS);
+    }
+
+    f64 Text::GetNumberMax() const { return numberMax; }
+    void Text::SetNumberMax(f64 newValue)
+    {
+        newValue = clamp(newValue, numberMin, DBL_MAX);
+
+        numberMax = newValue;
+
+        switch (fieldType)
+        {
+        default: break;
+        case FieldType::F_INTEGER_ONLY:
+            numberMax = clamp(scast<i64>(numberMax), scast<i64>(numberMin), scast<i64>(INT64_MAX));
+            break;
+        case FieldType::F_FLOAT_ONLY:
+            numberMax = clamp(scast<f32>(numberMax), scast<f32>(numberMin), FLT_MAX);
+            break;
+        }
+
+        Log::Print(
+            "Set new text widget '" + to_string(ID) + "' max value to '" + to_string(numberMax) + "'!",
+            "KG_TEXT",
+            LogType::LOG_SUCCESS);
+    }
+
+    string Text::GetText() const
+    {
+        string result{};
+
+        for (u32 utf : text)
+        {
+            result += GetValueByUTF(utf);
+        }
+
+        return result;
+    }
+    void Text::AddText(
+        string&& newValue,
+        bool back)
+    {
+        vector<u32> convertedText = StringToUTF(std::move(newValue));
+
+        if (convertedText.size() + text.size() > maxCharacters)
+        {
+            Log::Print(
+                "Failed to add characters to text widget '" + to_string(ID) 
+                + "' because added character count exceeds max character count!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        string target = back ? "back" : "front";
+
+        if (back)
+        {
+            //append to back
+            text.insert(
+                text.end(),
+                convertedText.begin(),
+                convertedText.end());
+        }
+        else
+        {
+            //prepend to front
+            text.insert(
+                text.begin(),
+                convertedText.begin(),
+                convertedText.end());
+        }
+
+        isTextDirty = true;
+
+        Log::Print(
+            "Added new characters to " + target + " of text widget '" + to_string(ID) + "'!",
+            "KG_TEXT",
+            LogType::LOG_SUCCESS);
+    }
+    void Text::RemoveText(
+        u32 count,
+        bool back)
+    {
+        if (count == 0)
+        {
+            Log::Print(
+                "Failed to remove characters from text widget '" + to_string(ID) 
+                + "' because removal count was 0!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (count > text.size())
+        {
+            Log::Print(
+                "Failed to remove characters from text widget '" + to_string(ID) 
+                + "' because removal count was bigger than total character count!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (back) text.erase(text.end() - count, text.end());
+        else      text.erase(text.begin(), text.begin() + count);
+
+        isTextDirty = true;
+
+        string target = back ? "back" : "front";
+
+        Log::Print(
+            "Removed '" + to_string(count) + "' characters from text widget '" + to_string(ID) + "' text " + target + "!",
+            "KG_TEXT",
+            LogType::LOG_SUCCESS);
+    }
     void Text::SetText(string&& newValue)
+    {   
+        vector<u32> convertedText = StringToUTF(std::move(newValue));
+
+        if (convertedText == text)
+        {
+            Log::Print(
+                "Failed to update text widget '" + to_string(ID) 
+                + "' characters because they are already the same!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (convertedText.size() > maxCharacters)
+        {
+            Log::Print(
+                "Failed to update text widget '" + to_string(ID) 
+                + "' characters because its character count exceeds max character count!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        text = std::move(convertedText);
+
+        isTextDirty = true;
+
+        Log::Print(
+            "Overwrote text widget '" + to_string(ID) + "' characters!",
+            "KG_TEXT",
+            LogType::LOG_SUCCESS);
+    }
+
+    const vector<u32>& Text::GetUTF() const { return text; }
+    void Text::AddUTF(
+        vector<u32>&& newValue,
+        bool back)
+    {
+        if (newValue.size() + text.size() > maxCharacters)
+        {
+            Log::Print(
+                "Failed to add characters to text widget '" + to_string(ID) 
+                + "' because added character count exceeds max character count!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        string target = back ? "back" : "front";
+
+        if (back)
+        {
+            //append to back
+            text.insert(
+                text.end(),
+                newValue.begin(),
+                newValue.end());
+        }
+        else
+        {
+            //prepend to front
+            text.insert(
+                text.begin(),
+                newValue.begin(),
+                newValue.end());
+        }
+
+        isTextDirty = true;
+
+        Log::Print(
+            "Added new characters to " + target + " of text widget '" + to_string(ID) + "'!",
+            "KG_TEXT",
+            LogType::LOG_SUCCESS);
+    }
+    void Text::SetUTF(vector<u32>&& newValue)
     {
         if (newValue == text)
         {
             Log::Print(
                 "Failed to update text widget '" + to_string(ID) 
-                + "' text because it is already the same!",
+                + "' characters because they are already the same!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (newValue.size() > maxCharacters)
+        {
+            Log::Print(
+                "Failed to update text widget '" + to_string(ID) 
+                + "' characters because its character count exceeds max character count!",
                 "KG_TEXT",
                 LogType::LOG_ERROR,
                 2);
@@ -255,7 +760,10 @@ namespace KalaGraphics::PrimitiveWidgets
 
         isTextDirty = true;
 
-        Log::Print("@@@@@ set text widget '" + to_string(ID) + "' text to '" + text + "'");
+        Log::Print(
+            "Overwrote text widget '" + to_string(ID) + "' characters!",
+            "KG_TEXT",
+            LogType::LOG_SUCCESS);
     }
 
     void Text::Update()
@@ -320,10 +828,8 @@ namespace KalaGraphics::PrimitiveWidgets
             i32 maxX{};
 
             //calculate width
-            for (char c : text)
+            for (u32 utf : text)
             {
-                u32 utf = GetUTFByValue(string{c});
-
                 GlyphData& glyphData = font->GetGlyphData(
                     font->GetFontData(),
                     utf);
@@ -349,9 +855,8 @@ namespace KalaGraphics::PrimitiveWidgets
             penX = 0;
 
             //copy glyphs into final texture
-            for (char c : text)
+            for (u32 utf : text)
             {
-                u32 utf = GetUTFByValue(string{c});
                 vector<u8> glyphPixelData = font->GetGlyphPixelData(utf);
 
                 GlyphData& glyphData = font->GetGlyphData(
