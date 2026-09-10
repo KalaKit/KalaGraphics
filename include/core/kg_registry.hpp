@@ -22,6 +22,7 @@ namespace KalaGraphics::Graphics
 	class HitTest;
 	class Viewport;
 	class Shader;
+	class Material;
 	class Camera;
 	class Texture;
 	class Mesh;
@@ -68,6 +69,7 @@ namespace KalaGraphics::Core
 	friend class KalaGraphics::Graphics::HitTest;
 	friend class KalaGraphics::Graphics::Viewport;
 	friend class KalaGraphics::Graphics::Shader;
+	friend class KalaGraphics::Graphics::Material;
 	friend class KalaGraphics::Graphics::Camera;
 	friend class KalaGraphics::Graphics::Texture;
 	friend class KalaGraphics::Graphics::Mesh;

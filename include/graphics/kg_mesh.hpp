@@ -64,24 +64,6 @@ namespace KalaGraphics::Graphics
     static constexpr u8 MIN_SPHERE_DETAIL_LEVEL = 1;
     static constexpr u8 MAX_SPHERE_DETAIL_LEVEL = 8;
 
-    enum class AlphaMode : u8
-    {
-        //default opaque mesh
-        A_OPAQUE = 0,
-        //makes alpha-based values transparent if transparency is enabled 
-        A_BLEND = 1,
-        //fragments below alpha cutoff are discarded, otherwise rendered fully opaque
-        A_MASK = 2
-    };
-
-    enum class FaceDirection : u8
-    {
-        //faces and normals point outwards
-        F_OUT = 0,
-        //faces and normals point inwards
-        F_IN = 1
-    };
-
     enum class NormalType : u8
     {
         //one normal per face, often requiring duplicated vertices
@@ -96,7 +78,6 @@ namespace KalaGraphics::Graphics
         //used for top and bottom edges
         u8 edgeCount = 3;
 
-        FaceDirection faceDir{};
         NormalType normalType{};
     };
 
@@ -106,7 +87,6 @@ namespace KalaGraphics::Graphics
         //used for bottom edges
         u8 edgeCount = 3;
 
-        FaceDirection faceDir{};
         NormalType normalType{};
     };
 
@@ -115,7 +95,6 @@ namespace KalaGraphics::Graphics
         //clamped from 1 to 8
         u8 detailLevel = 1;
 
-        FaceDirection faceDir{};
         NormalType normalType = NormalType::N_SMOOTH;
     };
 
@@ -237,6 +216,7 @@ namespace KalaGraphics::Graphics
     friend class Shader;
     friend class Camera;
     friend class Texture;
+    friend class Material;
     friend struct default_delete<Mesh>;
     public:
         KNODISCARD
@@ -245,13 +225,9 @@ namespace KalaGraphics::Graphics
         //Create a new mesh, mesh type is derived from shader,
         //2D mesh creates its own canonical data during initialization, 
         //3D mesh stays empty and must be updated via SetMeshData, 
-        //all meshes require a shader even if that shader is also blank,
-        //assigns root texture if texture ID is unassigned,
-        //assigns fallback texture if texture ID is invalid
+        //all meshes require a shader even if that shader is also blank
         KNODISCARD
-		static Mesh* Initialize(
-            u32 shaderID,
-            u32 textureID = 0);
+		static Mesh* Initialize(u32 shaderID);
 
         //Generate a 3D cube or 3D cylinder
         KNODISCARD
@@ -267,16 +243,14 @@ namespace KalaGraphics::Graphics
 		u32 GetID() const;
         KNODISCARD
 		u32 GetCameraID() const;
+        KNODISCARD
+		u32 GetMaterialID() const;
 
         KNODISCARD
         u32 GetShaderID() const;
         //Swap mesh shader at runtime, not allowed to switch to a
         //3D shader if mesh is 2D and vice versa
         void SetShaderID(u32 newID);
-
-        KNODISCARD
-		u32 GetTextureID() const;
-        void SetTextureID(u32 newID);
 
         //Returns true if this 2D or 3D mesh is
         //currently being detected by the Hit Test logic
@@ -308,22 +282,6 @@ namespace KalaGraphics::Graphics
         //Automatically always updates this mesh transform position relative to viewport anchor,
         //not used for 3D meshes
         void SetViewportAnchorPosition(AnchorPosition pos);
-
-        KNODISCARD
-        const vec4& GetColor() const;
-        void SetColor(vec4&& newValue);
-
-        KNODISCARD
-        AlphaMode GetAlphaMode() const;
-        //If set to A_BLEND or A_MASK then this mesh is filtered separately from opaque models
-        //and allows to use .w in color and textures
-        void SetAlphaMode(AlphaMode newValue);
-
-        KNODISCARD
-        f32 GetAlphaCutoff() const;
-        //Set the new alpha cutoff value for mask transparency mode,
-        //cannot be used if alpha type is not A_MASK, clamped from 0.0f to 1.0f
-        void SetAlphaCutoff(f32 newValue);
 
         KNODISCARD
 		const vector<Vertex>& GetVertices() const;
@@ -398,10 +356,10 @@ namespace KalaGraphics::Graphics
         void Update(VkCommandBuffer buffer);
 
         u32 ID{};
-        u32 shaderID{};
         u32 hitTestID{};
+        u32 shaderID{};
         u32 cameraID{};
-        u32 textureID{};
+        u32 materialID{};
 
         u16 drawOrderIndex{};
 
@@ -422,13 +380,6 @@ namespace KalaGraphics::Graphics
 
         AnchorPosition localAnchor{};
         AnchorPosition viewportAnchor{};
-
-        //RGBA color - default is white
-        vec4 color = 1;
-
-        //shader stores as u32
-        AlphaMode alphaMode{};
-        f32 alphaCutoff = 0.5f;
 
         //vertex data
 

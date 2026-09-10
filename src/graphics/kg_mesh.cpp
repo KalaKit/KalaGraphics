@@ -19,8 +19,9 @@ KG_VK_MEM_ALLOC_IGNORE_POP
 #include "graphics/kg_viewport.hpp"
 #include "graphics/kg_hit_test.hpp"
 #include "graphics/kg_shader.hpp"
-#include "graphics/kg_texture.hpp"
 #include "graphics/kg_camera.hpp"
+#include "graphics/kg_material.hpp"
+#include "graphics/kg_texture.hpp"
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
@@ -38,7 +39,6 @@ using std::to_string;
 using std::unique_ptr;
 using std::make_unique;
 using std::swap;
-using std::clamp;
 
 namespace KalaGraphics::Graphics
 {
@@ -138,11 +138,6 @@ namespace KalaGraphics::Graphics
                     scast<f32>(sin(middleAngle))
                 };
 
-                if (cubeData.faceDir == FaceDirection::F_IN)
-                {
-                    normal = -normal;
-                }
-
                 const u32 index = scast<u32>(data.vertices.size());
 
                 data.vertices.push_back(
@@ -172,34 +167,17 @@ namespace KalaGraphics::Graphics
                     .uv = { 0.0f, 1.0f }
                 });
 
-                if (cubeData.faceDir == FaceDirection::F_OUT)
-                {
-                    data.indices.insert(
-                        data.indices.end(),
-                        {
-                            index,
-                            index + 1,
-                            index + 2,
+                data.indices.insert(
+                    data.indices.end(),
+                    {
+                        index,
+                        index + 1,
+                        index + 2,
 
-                            index,
-                            index + 2,
-                            index + 3
-                        });
-                }
-                else
-                {
-                    data.indices.insert(
-                        data.indices.end(),
-                        {
-                            index,
-                            index + 2,
-                            index + 1,
-
-                            index,
-                            index + 3,
-                            index + 2
-                        });
-                }
+                        index,
+                        index + 2,
+                        index + 3
+                    });
             }
         }
         //smooth sides share normals around the circumference.
@@ -216,11 +194,6 @@ namespace KalaGraphics::Graphics
                     0.0f,
                     scast<f32>(sin(angle))
                 };
-                
-                if (cubeData.faceDir == FaceDirection::F_IN)
-                {
-                    normal = -normal;
-                }
 
                 const vec3 bottomPos =
                 {
@@ -259,34 +232,17 @@ namespace KalaGraphics::Graphics
             {
                 const u32 index = i * 2;
 
-                if (cubeData.faceDir == FaceDirection::F_OUT)
-                {
-                    data.indices.insert(
-                        data.indices.end(), 
-                        {
-                            index,
-                            index + 2,
-                            index + 3,
+                data.indices.insert(
+                    data.indices.end(), 
+                    {
+                        index,
+                        index + 2,
+                        index + 3,
 
-                            index,
-                            index + 3,
-                            index + 1
-                        });
-                }
-                else
-                {
-                    data.indices.insert(
-                        data.indices.end(), 
-                        {
-                            index,
-                            index + 3,
-                            index + 2,
-
-                            index,
-                            index + 1,
-                            index + 3
-                        });
-                }
+                        index,
+                        index + 3,
+                        index + 1
+                    });
             }
         }
 
@@ -298,10 +254,6 @@ namespace KalaGraphics::Graphics
         const u32 topCenter = scast<u32>(data.vertices.size());
 
         vec3 topNormal = { 0.0f, 1.0f, 0.0f };
-        if (cubeData.faceDir == FaceDirection::F_IN)
-        {
-            topNormal = -topNormal;
-        }
 
         data.vertices.push_back(
         {
@@ -344,26 +296,13 @@ namespace KalaGraphics::Graphics
                 + 1 
                 + ((i + 1) % cubeData.edgeCount);
 
-            if (cubeData.faceDir == FaceDirection::F_OUT)
-            {
-                data.indices.insert(
-                    data.indices.end(), 
-                    {
-                        topCenter,
-                        current,
-                        next
-                    });
-            }
-            else
-            {
-                data.indices.insert(
-                    data.indices.end(), 
-                    {
-                        topCenter,
-                        next,
-                        current
-                    });
-            }
+            data.indices.insert(
+                data.indices.end(), 
+                {
+                    topCenter,
+                    current,
+                    next
+                });
         }
 
         //
@@ -374,10 +313,6 @@ namespace KalaGraphics::Graphics
         const u32 bottomCenter = scast<u32>(data.vertices.size());
 
         vec3 bottomNormal = { 0.0f, -1.0f, 0.0f };
-        if (cubeData.faceDir == FaceDirection::F_IN)
-        {
-            bottomNormal = -bottomNormal;
-        }
 
         data.vertices.push_back(
         {
@@ -420,26 +355,13 @@ namespace KalaGraphics::Graphics
                 + 1 
                 + ((i + 1) % cubeData.edgeCount);
 
-            if (cubeData.faceDir == FaceDirection::F_OUT)
-            {
-                data.indices.insert(
-                    data.indices.end(), 
-                    {
-                        bottomCenter,
-                        next,
-                        current
-                    });
-            }
-            else
-            {
-                data.indices.insert(
-                    data.indices.end(), 
-                    {
-                        bottomCenter,
-                        current,
-                        next
-                    });
-            }
+            data.indices.insert(
+                data.indices.end(), 
+                {
+                    bottomCenter,
+                    next,
+                    current
+                });
         }
 
         return data;
@@ -541,11 +463,6 @@ namespace KalaGraphics::Graphics
                     scast<f32>(normalZ / normalLength)
                 };
 
-                if (pyramidData.faceDir == FaceDirection::F_IN)
-                {
-                    normal = -normal;
-                }
-
                 const u32 index = scast<u32>(data.vertices.size());
 
                 data.vertices.push_back(
@@ -568,26 +485,13 @@ namespace KalaGraphics::Graphics
                     .uv = { 0.5f, 1.0f }
                 });
 
-                if (pyramidData.faceDir == FaceDirection::F_OUT)
-                {
-                    data.indices.insert(
-                        data.indices.end(), 
-                        {
-                            index,
-                            index + 1,
-                            index + 2
-                        });
-                }
-                else
-                {
-                    data.indices.insert(
-                        data.indices.end(), 
-                        {
-                            index,
-                            index + 2,
-                            index + 1
-                        });
-                }
+                data.indices.insert(
+                    data.indices.end(), 
+                    {
+                        index,
+                        index + 1,
+                        index + 2
+                    });
             }
         }
         //smooth sides share normals around the circumference.
@@ -613,11 +517,6 @@ namespace KalaGraphics::Graphics
                     scast<f32>(normalY / normalLength),
                     scast<f32>(normalZ / normalLength)
                 };
-
-                if (pyramidData.faceDir == FaceDirection::F_IN)
-                {
-                    normal = -normal;
-                }
 
                 const vec3 bottomPos = 
                 {
@@ -658,26 +557,13 @@ namespace KalaGraphics::Graphics
             {
                 const u32 index = i * 2;
 
-                if (pyramidData.faceDir == FaceDirection::F_OUT)
-                {
-                    data.indices.insert(
-                        data.indices.end(), 
-                        {
-                            index,
-                            index + 2,
-                            index + 1
-                        });
-                }
-                else
-                {
-                    data.indices.insert(
-                        data.indices.end(), 
-                        {
-                            index,
-                            index + 1,
-                            index + 2
-                        });
-                }
+                data.indices.insert(
+                    data.indices.end(), 
+                    {
+                        index,
+                        index + 2,
+                        index + 1
+                    });
             }
         }
 
@@ -688,11 +574,6 @@ namespace KalaGraphics::Graphics
         const u32 bottomCenter = scast<u32>(data.vertices.size());
 
         vec3 bottomNormal = { 0.0f, -1.0f, 0.0f };
-
-        if (pyramidData.faceDir == FaceDirection::F_IN)
-        {
-            bottomNormal = -bottomNormal;
-        }
 
         data.vertices.push_back(
         {
@@ -735,26 +616,13 @@ namespace KalaGraphics::Graphics
                 + 1
                 + ((i + 1) % pyramidData.edgeCount);
 
-            if (pyramidData.faceDir == FaceDirection::F_OUT)
-            {
-                data.indices.insert(
-                    data.indices.end(), 
-                    {
-                        bottomCenter,
-                        next,
-                        current
-                    });
-            }
-            else
-            {
-                data.indices.insert(
-                    data.indices.end(), 
-                    {
-                        bottomCenter,
-                        current,
-                        next
-                    });
-            }
+            data.indices.insert(
+                data.indices.end(), 
+                {
+                    bottomCenter,
+                    next,
+                    current
+                });
         }
 
         return data;
@@ -853,11 +721,6 @@ namespace KalaGraphics::Graphics
                         scast<f32>(normal.z / normalLength)
                     };
 
-                    if (sphereData.faceDir == FaceDirection::F_IN)
-                    {
-                        normal = -normal;
-                    }
-
                     const u32 index = scast<u32>(data.vertices.size());
 
                     data.vertices.push_back(
@@ -881,26 +744,13 @@ namespace KalaGraphics::Graphics
                         .uv = uv2 
                     });
 
-                    if (sphereData.faceDir == FaceDirection::F_OUT)
-                    {
-                        data.indices.insert(
-                            data.indices.end(), 
-                            {
-                                index,
-                                index + 1,
-                                index + 2
-                            });
-                    }
-                    else
-                    {
-                        data.indices.insert(
-                            data.indices.end(), 
-                            {
-                                index,
-                                index + 2,
-                                index + 1
-                            });
-                    }
+                    data.indices.insert(
+                        data.indices.end(), 
+                        {
+                            index,
+                            index + 1,
+                            index + 2
+                        });
                 };
 
             for (u32 latitude = 0; latitude < latitudeCount; ++latitude)
@@ -979,11 +829,6 @@ namespace KalaGraphics::Graphics
                         scast<f32>(z / radius)
                     };
 
-                    if (sphereData.faceDir == FaceDirection::F_IN)
-                    {
-                        normal = -normal;
-                    }
-
                     const f32 u = scast<f32>(scast<f64>(longitude) / longitudeCount);
 
                     data.vertices.push_back(
@@ -1009,51 +854,25 @@ namespace KalaGraphics::Graphics
                     //top pole only needs one triangle
                     if (latitude != 0)
                     {
-                        if (sphereData.faceDir == FaceDirection::F_OUT)
-                        {
-                            data.indices.insert(
-                                data.indices.end(), 
-                                {
-                                    topLeft,
-                                    bottomLeft,
-                                    topRight
-                                });
-                        }
-                        else
-                        {
-                            data.indices.insert(
-                                data.indices.end(), 
-                                {
-                                    topLeft,
-                                    topRight,
-                                    bottomLeft
-                                });
-                        }
+                        data.indices.insert(
+                            data.indices.end(), 
+                            {
+                                topLeft,
+                                bottomLeft,
+                                topRight
+                            });
                     }
 
                     //bottom pole only needs one triangle
                     if (latitude != latitudeCount - 1)
                     {
-                        if (sphereData.faceDir == FaceDirection::F_OUT)
-                        {
-                            data.indices.insert(
-                                data.indices.end(), 
-                                {
-                                    topRight,
-                                    bottomLeft,
-                                    bottomRight
-                                });
-                        }
-                        else
-                        {
-                            data.indices.insert(
-                                data.indices.end(), 
-                                {
-                                    topRight,
-                                    bottomRight,
-                                    bottomLeft
-                                });
-                        }
+                        data.indices.insert(
+                            data.indices.end(), 
+                            {
+                                topRight,
+                                bottomLeft,
+                                bottomRight
+                            });
                     }
                 }
             }
@@ -1062,9 +881,7 @@ namespace KalaGraphics::Graphics
         return data;
     }
 
-    Mesh* Mesh::Initialize(
-        u32 shaderID,
-        u32 textureID)
+    Mesh* Mesh::Initialize(u32 shaderID)
     {
         VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
         if (logicalDevice == VK_NULL_HANDLE)
@@ -1113,49 +930,6 @@ namespace KalaGraphics::Graphics
             return nullptr;
         }
 
-        Texture* texture{};
-        if (textureID == 0)
-        {
-            Log::Print(
-                "Mesh texture was unassigned! Assigning root texture '" + to_string(shader->rootTextureID) + "'.",
-                "KG_MESH",
-                LogType::LOG_WARNING);
-
-            textureID = shader->rootTextureID;
-
-            err = Texture::GetRegistry().GetContent(textureID, texture);
-            if (!err.empty())
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics mesh error",
-                    "Failed to create mesh because the shader '" + to_string(shaderID) 
-                    + "' root texture '" + to_string(textureID) + "' was invalid!");
-            }
-        }
-        else
-        {
-            err = Texture::GetRegistry().GetContent(textureID, texture);
-            if (!err.empty())
-            {
-                Log::Print(
-                    "Mesh texture was invalid! Assigning fallback texture '" + to_string(shader->fallbackTextureID) + "'.",
-                    "KG_MESH",
-                    LogType::LOG_ERROR,
-                    2);
-
-                textureID = shader->fallbackTextureID;
-
-                err = Texture::GetRegistry().GetContent(textureID, texture);
-                if (!err.empty())
-                {
-                    KalaGraphicsCore::ForceClose(
-                        "KalaGraphics mesh error",
-                        "Failed to create mesh because the shader '" + to_string(shaderID) 
-                        + "' fallback texture '" + to_string(textureID) + "' was invalid!");
-                }
-            }
-        }
-
         unique_ptr<Mesh> newMesh = make_unique<Mesh>();
         Mesh* meshPtr = newMesh.get();
 
@@ -1164,10 +938,6 @@ namespace KalaGraphics::Graphics
 
         meshPtr->ID = newID;
         meshPtr->shaderID = shaderID;
-        meshPtr->textureID = textureID;
-
-        //texture references this mesh
-        texture->meshIDs.push_back(newID);
 
         //shader references this mesh
         shader->meshIDs.push_back(newID);
@@ -1221,6 +991,39 @@ namespace KalaGraphics::Graphics
 				"Failed to initialize mesh! Reason: " + err);
         }
 
+        Material* mat = Material::Initialize(meshPtr->ID);
+        //rect
+        mat->rectData.baseColorTextureID = shader->rootTextureID;
+        //font
+        mat->fontData.baseColorTextureID = shader->rootTextureID;
+        //unlit
+        mat->unlitData.baseColorTextureID = shader->rootTextureID;
+        //blinn-phong
+        mat->blinnPhongData.baseColorTextureID = shader->rootTextureID;
+        mat->blinnPhongData.specularTextureID  = shader->rootTextureID;
+        mat->blinnPhongData.normalTextureID    = shader->rootTextureID;
+        //pbr
+        mat->pbrData.baseColorTextureID         = shader->rootTextureID;
+        mat->pbrData.metallicRoughnessTextureID = shader->rootTextureID;
+        mat->pbrData.normalTextureID            = shader->rootTextureID;
+        mat->pbrData.occlusionTextureID         = shader->rootTextureID;
+        mat->pbrData.emissiveTextureID          = shader->rootTextureID;
+
+        Texture* rootTex{};
+        err = Texture::GetRegistry().GetContent(shader->rootTextureID, rootTex);
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics mesh error",
+				"Failed to initialize mesh because shader '" 
+                + to_string(shader->ID) + "' root texture was invalid! Reason: " + err);
+        }
+
+        pair<u32, array<bool, 11>> matPair{};
+        matPair.first = mat->ID;
+        matPair.second.fill(true);
+        rootTex->materialIDs.push_back(matPair);
+
         Log::Print(
 			"Created new mesh '" + to_string(newID) 
             + "' for shader '" + to_string(shaderID) + "'!",
@@ -1232,6 +1035,7 @@ namespace KalaGraphics::Graphics
 
     u32 Mesh::GetID() const { return ID; }
     u32 Mesh::GetCameraID() const { return cameraID; }
+    u32 Mesh::GetMaterialID() const { return materialID; }
 
     u32 Mesh::GetShaderID() const { return shaderID; }
     void Mesh::SetShaderID(u32 newValue)
@@ -1260,9 +1064,23 @@ namespace KalaGraphics::Graphics
 
             return;
         }
+        
+        Material* mat{};
+        string err = Material::GetRegistry().GetContent(materialID, mat);
+        if (!err.empty())
+        {
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) 
+                + "' shader ID because its material was invalid! Reason: " + err,
+                "KG_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
 
         Shader* oldShader{};
-        string err = Shader::GetRegistry().GetContent(shaderID, oldShader);
+        err = Shader::GetRegistry().GetContent(shaderID, oldShader);
         if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(
@@ -1298,6 +1116,16 @@ namespace KalaGraphics::Graphics
             return;
         }
 
+        Texture* rootTex{};
+        err = Texture::GetRegistry().GetContent(shader->rootTextureID, rootTex);
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics mesh error",
+				"Failed to update mesh '" + to_string(ID) + "' shader ID because new shader '" 
+                + to_string(shader->ID) + "' root texture was invalid! Reason: " + err);
+        }
+
         shaderID = newValue;
 
         erase(
@@ -1305,66 +1133,60 @@ namespace KalaGraphics::Graphics
             ID);
         shader->meshIDs.push_back(ID);
 
+        vector<u32*> textureIDs
+        {
+            //rect
+            &mat->rectData.baseColorTextureID,
+            //font
+            &mat->fontData.baseColorTextureID,
+            //unlit
+            &mat->unlitData.baseColorTextureID,
+            //blinn-phong
+            &mat->blinnPhongData.baseColorTextureID,
+            &mat->blinnPhongData.specularTextureID,
+            &mat->blinnPhongData.normalTextureID,
+            //pbr
+            &mat->pbrData.baseColorTextureID,
+            &mat->pbrData.metallicRoughnessTextureID,
+            &mat->pbrData.normalTextureID,
+            &mat->pbrData.occlusionTextureID,
+            &mat->pbrData.emissiveTextureID
+        };
+
+        for (size_t i = 0; i < textureIDs.size(); i++)
+        {
+            u32* tex = textureIDs[i];
+
+            Texture* oldTex{};
+            string err = Texture::GetRegistry().GetContent(*tex, oldTex);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics mesh error",
+                    "Failed to set shader ID for mesh '" 
+                    + to_string(ID) + "' because its material old texture was invalid! Reason: " + err);
+            }
+
+            for (auto it = oldTex->materialIDs.begin(); it != oldTex->materialIDs.end(); ++it)
+            {
+                if (it->first == ID)
+                {
+                    oldTex->materialIDs.erase(it);
+                    break;
+                }
+            }
+        }
+
+        for (u32* tex : textureIDs) *tex = shader->rootTextureID;
+
+        pair<u32, array<bool, 11>> matPair{};
+        matPair.first = mat->ID;
+        matPair.second.fill(true);
+        rootTex->materialIDs.push_back(matPair);
+
         Log::Print(
             "Set mesh '" + to_string(ID) 
             + "' shader ID to '" + to_string(shaderID) + "'!",
-            "KG_MESH",
-            LogType::LOG_SUCCESS);
-    }
-
-    u32 Mesh::GetTextureID() const { return textureID; }
-    void Mesh::SetTextureID(u32 newValue)
-    {
-        if (textureID == newValue)
-        {
-            Log::Print(
-                "Failed to set mesh '" + to_string(ID) 
-                + "' texture ID to '" + to_string(newValue) 
-                + "' because it already is that value!",
-                "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        Texture* oldTexture{};
-        string err = Texture::GetRegistry().GetContent(textureID, oldTexture);
-        if (!err.empty())
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics mesh error",
-                "Failed to set texture ID for mesh '" 
-                + to_string(ID) + "' because of invalid old texture! Reason: " + err);
-        }
-
-        Texture* texture{};
-        err = Texture::GetRegistry().GetContent(newValue, texture);
-        if (!texture)
-        {
-            Log::Print(
-                "Failed to set mesh '" + to_string(ID) 
-                + "' texture ID because it was invalid! Reason: " + err,
-                "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        textureID = newValue;
-
-        if (oldTexture)
-        {
-            erase(
-                oldTexture->meshIDs,
-                ID);
-        }
-        texture->meshIDs.push_back(ID);
-
-        Log::Print(
-            "Set mesh '" + to_string(ID) 
-            + "' texture ID to '" + to_string(textureID) + "'!",
             "KG_MESH",
             LogType::LOG_SUCCESS);
     }
@@ -1579,122 +1401,6 @@ namespace KalaGraphics::Graphics
 
         Log::Print(
             "Set mesh '" + to_string(ID) + "' viewport anchor position to '" + val + "'!",
-            "KG_MESH",
-            LogType::LOG_SUCCESS);
-    }
-
-    const vec4& Mesh::GetColor() const { return color; }
-    void Mesh::SetColor(vec4&& newValue)
-    {
-        color = kclamp(newValue, 0, 1);
-
-        string colorStr = 
-            to_string(color.x) + ", "
-            + to_string(color.y) + ", "
-            + to_string(color.z) + ", "
-            + to_string(color.w);
-
-        if (!isnear(color.w, 1.0f)
-            && alphaMode != AlphaMode::A_OPAQUE)
-        {
-            Log::Print(
-                "Mesh '" + to_string(ID) + "' color alpha "
-                "was set below 1.0 but transparency is not enabled.",
-                "KG_MESH",
-                LogType::LOG_WARNING);
-        }
-
-        Log::Print(
-            "Set mesh '" + to_string(ID) + "' color to '" + colorStr + "'!",
-            "KG_MESH",
-            LogType::LOG_SUCCESS);
-    }
-
-    AlphaMode Mesh::GetAlphaMode() const { return alphaMode; }
-    void Mesh::SetAlphaMode(AlphaMode newValue)
-    {
-        if (newValue == alphaMode)
-        {
-            Log::Print(
-                "Failed to set mesh '" + to_string(ID) + "' "
-                "alpha mode because it already is the same!",
-                "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        if (shaderID != 0)
-        {
-            Shader* shader{};
-            string err = Shader::GetRegistry().GetContent(shaderID, shader);
-            if (!err.empty())
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics mesh error",
-                    "Failed to set mesh '" + to_string(ID) + "' alpha mode "
-                    "because its shader was invalid! Reason: " + err);
-            }
-
-            Viewport* vp{};
-            err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
-            if (!err.empty())
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics mesh error",
-                    "Failed to set mesh '" + to_string(ID) + "' alpha mode "
-                    "because its shader '" + to_string(shaderID) + "' viewport was invalid! Reason: " + err);
-            }
-
-            if (!is2D) vp->is3DMeshSortDirty = true;
-            else       vp->is2DMeshSortDirty = true;
-        }
-
-        alphaMode = newValue;
-        string alphaModeString = alphaMode == AlphaMode::A_OPAQUE 
-            ? "opaque" 
-            : (alphaMode == AlphaMode::A_BLEND 
-                ? "blend" 
-                : "mask");
-
-        Log::Print(
-            "Set mesh '" + to_string(ID) + "' alpha mode to '" + alphaModeString + "'!",
-            "KG_MESH",
-            LogType::LOG_SUCCESS);
-    }
-
-    f32 Mesh::GetAlphaCutoff() const { return alphaCutoff; }
-    void Mesh::SetAlphaCutoff(f32 newValue)
-    {
-        if (newValue == alphaCutoff)
-        {
-            Log::Print(
-                "Failed to set mesh '" + to_string(ID) + "' "
-                "alpha cutoff because it already is the same!",
-                "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        if (alphaMode != AlphaMode::A_MASK)
-        {
-            Log::Print(
-                "Failed to set mesh '" + to_string(ID) + "' "
-                "alpha cutoff because alpha mode is not mask!",
-                "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        alphaCutoff = clamp(newValue, 0.0f, 1.0f);
-
-        Log::Print(
-            "Set mesh '" + to_string(ID) + "' alpha cutoff to '" + to_string(alphaCutoff) + "'!",
             "KG_MESH",
             LogType::LOG_SUCCESS);
     }
@@ -2471,6 +2177,16 @@ namespace KalaGraphics::Graphics
                 "Failed to update mesh '" + to_string(ID) 
                 + "' data because its shader was invalid! Reason: " + err);
         }
+        
+        Material* m{};
+        err = Material::GetRegistry().GetContent(materialID, m);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to update mesh '" + to_string(ID) 
+                + "' data because its material was invalid! Reason: " + err);
+        }
 
         if (shader->is2D != is2D)
         {
@@ -2578,50 +2294,7 @@ namespace KalaGraphics::Graphics
             0,
             nullptr);
 
-        vkCmdPushConstants(
-            buffer,
-            shader->pipelineLayout,
-            VK_SHADER_STAGE_VERTEX_BIT,
-            0,
-            sizeof(color),
-            &color);
-
-        u32 alphaModeValue = scast<u32>(alphaMode);
-        vkCmdPushConstants(
-            buffer,
-            shader->pipelineLayout,
-            VK_SHADER_STAGE_VERTEX_BIT,
-            sizeof(color),
-            sizeof(alphaModeValue),
-            &alphaModeValue);
-
-        vkCmdPushConstants(
-            buffer,
-            shader->pipelineLayout,
-            VK_SHADER_STAGE_VERTEX_BIT,
-            sizeof(color) + sizeof(alphaModeValue),
-            sizeof(alphaCutoff),
-            &alphaCutoff);
-
-        Texture* texture{};
-        err = Texture::GetRegistry().GetContent(textureID, texture);
-        if (!err.empty())
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics mesh error",
-                "Failed to render mesh '" + to_string(ID) 
-                + "' because its texture was invalid! Reason: " + err);
-        }
-
-        vkCmdBindDescriptorSets(
-            buffer,
-            VK_PIPELINE_BIND_POINT_GRAPHICS,
-            shader->pipelineLayout,
-            2, // <<<< SET 2 BINDING 0 - TEXTURE SAMPLER SLOT
-            1,
-            &texture->vkDescriptorSet,
-            0,
-            nullptr);
+        m->Update(buffer);
 
         /*
         Log::Print(
@@ -2685,16 +2358,9 @@ namespace KalaGraphics::Graphics
         string err = Camera::GetRegistry().GetContent(cameraID, camera);
         if (err.empty()) camera->meshID = 0;
 
-        //only remove this mesh from texture meshes list of the texture is still valid
-
-        Texture* texture{};
-        err = Texture::GetRegistry().GetContent(textureID, texture);
-        if (!err.empty())
-        {
-            erase(
-                texture->meshIDs,
-                ID);
-        }
+        Material* mat{};
+        err = Material::GetRegistry().GetContent(materialID, mat);
+        mat->Destroy();
 
         //only remove this mesh from shader meshes list if the shader is still valid
 

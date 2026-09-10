@@ -15,6 +15,7 @@
 #include "core/kg_registry.hpp"
 
 #include "graphics/kg_mesh.hpp"
+#include "graphics/kg_material.hpp"
 #include "graphics/kg_texture.hpp"
 #include "import/kg_import_texture.hpp"
 

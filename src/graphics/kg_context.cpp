@@ -2793,12 +2793,12 @@ namespace KalaGraphics::Graphics
                 "because all graphics contexts were destroyed.",
 				"KG_CONTEXT",
 				LogType::LOG_INFO);
-                
-            Viewport::GetRegistry().DestroyAllContent();
+               
             Shader::GetRegistry().DestroyAllContent();
             Texture::GetRegistry().DestroyAllContent();
             Camera::GetRegistry().DestroyAllContent();
             Mesh::GetRegistry().DestroyAllContent();
+            Material::GetRegistry().DestroyAllContent();
 
             ImportShader::GetRegistry().DestroyAllContent();
             ImportTexture::GetRegistry().DestroyAllContent();

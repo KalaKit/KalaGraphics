@@ -42,6 +42,7 @@ namespace KalaGraphics::Graphics
 
     using std::vector;
     using std::array;
+    using std::pair;
     using std::default_delete;
 
     enum class TexturePixelFormat : u8
@@ -136,6 +137,7 @@ namespace KalaGraphics::Graphics
     friend class Viewport;
     friend class Shader;
     friend class Mesh;
+    friend class Material;
     friend struct default_delete<Texture>;
     public:
         KNODISCARD
@@ -154,8 +156,9 @@ namespace KalaGraphics::Graphics
 		u32 GetShaderID() const;
         void SetShaderID(u32 newID);
 
+        //Returns all materials and in which slot in each material is this texture held in
         KNODISCARD
-		const vector<u32>& GetMeshIDs() const;
+		const vector<pair<u32, array<bool, 11>>>& GetMaterialIDs() const;
 
         KNODISCARD
 		const vector<u8>& GetPixelData() const;
@@ -214,11 +217,13 @@ namespace KalaGraphics::Graphics
         void UploadPixelData(VkCommandBuffer vkCommandBuffer);
         void GenerateMipMaps(VkCommandBuffer vkCommandBuffer);
 
+        void ClearAllMaterialTextures();
+
         u32 ID{};
         u32 shaderID{};
 
-        //meshes that contain this texture
-        vector<u32> meshIDs{};
+        //materials that contain this texture
+        vector<pair<u32, array<bool, 11>>> materialIDs{};
 
         bool isRootTexture{};
 

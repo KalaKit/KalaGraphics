@@ -58,6 +58,7 @@ namespace KalaGraphics::Graphics
     friend class GraphicsContext;
     friend class HitTest;
     friend class Viewport;
+    friend class Material;
     friend class Camera;
     friend class Texture;
     friend class Mesh;

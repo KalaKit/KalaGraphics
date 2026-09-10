@@ -3,12 +3,11 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#include "graphics/kg_hit_test.hpp"
-
 #include <memory>
 
 #include "log_utils.hpp"
 
+#include "graphics/kg_hit_test.hpp"
 #include "graphics/kg_context.hpp"
 #include "graphics/kg_viewport.hpp"
 #include "graphics/kg_shader.hpp"

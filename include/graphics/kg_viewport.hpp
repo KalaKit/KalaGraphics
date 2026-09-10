@@ -145,6 +145,7 @@ namespace KalaGraphics::Graphics
     friend class GraphicsContext;
     friend class Shader;
     friend class HitTest;
+    friend class Material;
     friend class Camera;
     friend class Texture;
     friend class Mesh;

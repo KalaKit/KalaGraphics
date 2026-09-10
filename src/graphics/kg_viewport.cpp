@@ -18,6 +18,7 @@
 #include "graphics/kg_mesh.hpp"
 #include "graphics/kg_camera.hpp"
 #include "graphics/kg_texture.hpp"
+#include "graphics/kg_material.hpp"
 
 using KalaHeaders::KalaCore::EnumHash;
 using KalaHeaders::KalaCore::EnumToString;
@@ -37,7 +38,8 @@ using KalaGraphics::Graphics::RootShaderType;
 using KalaGraphics::Graphics::RootShaderTarget;
 using KalaGraphics::Graphics::AlphaMode;
 using KalaGraphics::Graphics::CameraType;
-using KalaGraphics::Graphics::Texture;
+using KalaGraphics::Graphics::MaterialType2D;
+using KalaGraphics::Graphics::MaterialType3D;
 
 using std::string_view;
 using std::to_string;
@@ -1140,8 +1142,18 @@ namespace KalaGraphics::Graphics
         bool foundMovedMesh{};
         for (Mesh* m : meshes)
         {
+            Material* mat{};
+            string err = Material::GetRegistry().GetContent(m->materialID, mat);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics viewport error", 
+                    "Failed to sort mesh '" + to_string(m->ID) 
+                    + "' in shader '" + to_string(m->shaderID) + "' because its material was invalid! Reason: " + err);
+            }
+
             //skip opaque 3D meshes
-            if (m->alphaMode == AlphaMode::A_OPAQUE) continue;
+            if (mat->GetAlphaMode() == AlphaMode::A_OPAQUE) continue;
 
             vec3 currentPos = scast<Transform3D&>(m->GetTransform()).getpos(PosTarget::POS_WORLD);
 
@@ -1165,8 +1177,18 @@ namespace KalaGraphics::Graphics
 
         for (Mesh* m : meshes)
         {
-            if (m->alphaMode == AlphaMode::A_OPAQUE) opaqueMeshes.push_back(m);
-            else                                     transparentMeshes.push_back(m);
+            Material* mat{};
+            string err = Material::GetRegistry().GetContent(m->materialID, mat);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics viewport error", 
+                    "Failed to sort mesh '" + to_string(m->ID) 
+                    + "' in shader '" + to_string(m->shaderID) + "' because its material was invalid! Reason: " + err);
+            }
+
+            if (mat->GetAlphaMode() == AlphaMode::A_OPAQUE) opaqueMeshes.push_back(m);
+            else                                            transparentMeshes.push_back(m);
         }
 
         if (transparentMeshes.size() > 1)
@@ -1245,8 +1267,22 @@ namespace KalaGraphics::Graphics
                 //ignore invisible meshes
                 if (!m->isVisible) continue;
 
-                if (m->alphaMode == AlphaMode::A_OPAQUE) opaqueMeshes.push_back(m);
-                else                                     transparentMeshes.push_back(m);
+                Material* mat{};
+                err = Material::GetRegistry().GetContent(m->materialID, mat);
+                if (!err.empty())
+                {
+                    KalaGraphicsCore::ForceClose(
+                        "KalaGraphics viewport error", 
+                        "Failed to sort mesh '" + to_string(m->ID) 
+                        + "' in shader '" + to_string(m->shaderID) + "' because its material was invalid! Reason: " + err);
+                }
+
+                if (mat->GetMaterial2DType() == MaterialType2D::M_FONT
+                    || mat->GetAlphaMode() == AlphaMode::A_OPAQUE)
+                {
+                    opaqueMeshes.push_back(m);
+                }
+                else transparentMeshes.push_back(m);
             }
         }
 
@@ -1604,7 +1640,7 @@ namespace KalaGraphics::Graphics
                         }
 
                         //don't waste time updating a texture which has no users
-                        if (t->meshIDs.empty()) continue;
+                        if (t->materialIDs.empty()) continue;
 
                         t->UpdateTextureData();
                     }

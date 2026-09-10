@@ -15,10 +15,10 @@ KG_VK_MEM_ALLOC_IGNORE_POP
 #include "log_utils.hpp"
 
 #include "graphics/kg_texture.hpp"
-#include "graphics/kg_mesh.hpp"
 #include "graphics/kg_shader.hpp"
 #include "graphics/kg_context.hpp"
 #include "graphics/kg_viewport.hpp"
+#include "graphics/kg_material.hpp"
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
@@ -290,28 +290,7 @@ namespace KalaGraphics::Graphics
         }
         shader->textureIDs.push_back(ID);
 
-        //detach all meshes
-        for (u32 mID : meshIDs)
-        {
-            Mesh* m{};
-            string err = Mesh::GetRegistry().GetContent(mID, m);
-            if (!err.empty())
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics texture error",
-                    "Failed to set texture '" + to_string(ID) 
-                    + "' shader ID because the texture's mesh was invalid! Reason: " + err);
-            }
-
-            m->textureID = 0;
-
-            Log::Print(
-                "Mesh '" + to_string(mID) + "' texture '" + to_string(ID) 
-                + "' was detached because the texture's shader was changed.",
-                "KG_TEXTURE",
-                LogType::LOG_WARNING);
-        }
-        meshIDs.clear();
+        ClearAllMaterialTextures();
 
         Log::Print(
             "Set texture '" + to_string(ID) 
@@ -320,7 +299,7 @@ namespace KalaGraphics::Graphics
             LogType::LOG_SUCCESS);
     }
 
-    const vector<u32>& Texture::GetMeshIDs() const { return meshIDs; }
+    const vector<pair<u32, array<bool, 11>>>& Texture::GetMaterialIDs() const { return materialIDs; }
 
     const vector<u8>& Texture::GetPixelData() const { return pixelData; }
     void Texture::SetPixelData(vector<u8>&& newPixelData)
@@ -1533,6 +1512,82 @@ namespace KalaGraphics::Graphics
         }
     }
 
+    void Texture::ClearAllMaterialTextures()
+    {
+        Shader* frontShader = Shader::GetRegistry().GetAllContent().front();
+
+        auto clear_slot = [&frontShader](u32& targetSlot) -> void
+            {
+                targetSlot = frontShader->rootTextureID;
+            };
+
+        for (pair<u32, array<bool, 11>> mat : materialIDs)
+        {
+            Material* m{};
+            string err = Material::GetRegistry().GetContent(mat.first, m);
+            if (err.empty())
+            {
+                for (size_t texSlot = 0; texSlot < mat.second.size(); texSlot++)
+                {
+                    if (!mat.second[texSlot]) continue;
+
+                    switch (texSlot)
+                    {
+                    //rect material
+                    
+                    default:
+                    case 0:
+                        clear_slot(m->rectData.baseColorTextureID);
+                        continue;
+
+                    //font material
+
+                    case 1:
+                        clear_slot(m->fontData.baseColorTextureID);
+                        continue;
+
+                    //unlit material
+
+                    case 2:
+                        clear_slot(m->unlitData.baseColorTextureID);
+                        continue;
+
+                    //blinn-phong material
+
+                    case 3:
+                        clear_slot(m->blinnPhongData.baseColorTextureID);
+                        continue;
+                    case 4:
+                        clear_slot(m->blinnPhongData.specularTextureID);
+                        continue;
+                    case 5:
+                        clear_slot(m->blinnPhongData.normalTextureID);
+                        continue;
+
+                    //pbr material
+
+                    case 6:
+                        clear_slot(m->pbrData.baseColorTextureID);
+                        continue;
+                    case 7:
+                        clear_slot(m->pbrData.metallicRoughnessTextureID);
+                        continue;
+                    case 8:
+                        clear_slot(m->pbrData.normalTextureID);
+                        continue;
+                    case 9:
+                        clear_slot(m->pbrData.occlusionTextureID);
+                        continue;
+                    case 10:
+                        clear_slot(m->pbrData.emissiveTextureID);
+                        continue;
+                    }
+                }
+            }
+        }
+        materialIDs.clear();
+    }
+
     void Texture::Destroy()
     {
         if (isRootTexture)
@@ -1548,13 +1603,7 @@ namespace KalaGraphics::Graphics
             return;
         }
 
-        for (u32 mID : meshIDs)
-        {
-            Mesh* m{};
-            string err = Mesh::GetRegistry().GetContent(mID, m);
-            if (err.empty()) m->textureID = 0;
-        }
-        meshIDs.clear();
+        ClearAllMaterialTextures();
 
         //only remove this texture from shader meshes list if the texture is still valid
 
