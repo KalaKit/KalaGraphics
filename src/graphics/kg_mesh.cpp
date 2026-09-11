@@ -40,11 +40,16 @@ using std::unique_ptr;
 using std::make_unique;
 using std::swap;
 
+static bool isVerboseLoggingEnabled{};
+
 namespace KalaGraphics::Graphics
 {
     static KalaGraphicsRegistry<Mesh> registry{};
 
     KalaGraphicsRegistry<Mesh>& Mesh::GetRegistry() { return registry; }
+
+    bool Mesh::IsVerboseLoggingEnabled() { return isVerboseLoggingEnabled; }
+    void Mesh::SetVerboseLoggingState(bool state) { isVerboseLoggingEnabled = state; }
 
     MeshData Mesh::GenerateMeshData(Mesh_Cube cubeData)
     {

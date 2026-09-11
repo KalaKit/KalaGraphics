@@ -5,11 +5,12 @@
 
 #pragma once
 
-#include <vector>
 #include <string>
+#include <vector>
 #include <cfloat>
 
 #include "core_utils.hpp"
+#include "math_utils.hpp"
 
 #include "core/kg_registry.hpp"
 
@@ -20,13 +21,16 @@ namespace KalaGraphics::Graphics
 
 namespace KalaGraphics::PrimitiveWidgets
 {
+    using KalaHeaders::KalaMath::vec2;
+
     using KalaGraphics::Core::KalaGraphicsRegistry;
 
-    using std::vector;
     using std::string;
+    using std::vector;
+    using std::pair;
     using std::default_delete;
 
-    enum class ClipType : u8
+    enum class TextClipType : u8
     {
         //when a glyph/text exceeds line width,
         //allow it to continue beyond the line width and max lines
@@ -37,7 +41,7 @@ namespace KalaGraphics::PrimitiveWidgets
         C_CLIPPED = 1
     };
 
-    enum class FieldType : u8
+    enum class TextFieldType : u8
     {
         //supports all characters, including emojis
         F_ANY                    = 0,
@@ -55,13 +59,55 @@ namespace KalaGraphics::PrimitiveWidgets
         F_PASSWORD               = 6
     };
 
+    enum class TextAlignmentType : u8
+    {
+        A_TOP_LEFT    = 0,
+        A_CENTER_LEFT = 1,
+        A_BOTTOM_LEFT = 2,
+
+        A_TOP_CENTER    = 3,
+        A_CENTER        = 4,
+        A_BOTTOM_CENTER = 5,
+
+        A_TOP_RIGHT    = 6,
+        A_CENTER_RIGHT = 7,
+        A_BOTTOM_RIGHT = 8
+    };
+
+    struct GlyphRasterData
+    {
+        u32 utf;
+
+        vec2 penPos{};
+        vec2 glyphPos{};
+        vec2 glyphSize{};
+    };
+
+    struct CursorData
+    {
+        //the start of a glyph, if set to size of glyphRasterData
+        //then this means end of last glyph
+        i32 characterSlot = -1;
+
+        //center of cursor
+        vec2 pos{};
+    };
+
+    struct HighlightData
+    {
+        //first selected highlighted glyph
+        i32 highlightStart = -1;
+        //last selected highlighted glyph
+        i32 highlightEnd = -1;
+    };
+
     static constexpr u16 MAX_CHARACTERS = 1024;
     static constexpr u16 MAX_LINES = 1024;
     static constexpr u16 MAX_LINE_WIDTH = 8192;
     static constexpr u16 MIN_LINE_WIDTH = 32;
     static constexpr u16 MAX_LINE_HEIGHT = 128;
-    static constexpr f32 MAX_TEXT_SIZE = 100.0f;
-    static constexpr f32 MIN_TEXT_SIZE = 0.01f;
+    static constexpr f32 MAX_TEXT_SIZE = 10.0f;
+    static constexpr f32 MIN_TEXT_SIZE = 0.1f;
 
     class LIB_API Text
     {
@@ -70,6 +116,10 @@ namespace KalaGraphics::PrimitiveWidgets
     public:
         KNODISCARD
 		static KalaGraphicsRegistry<Text>& GetRegistry();
+
+        KNODISCARD
+		static bool IsVerboseLoggingEnabled();
+        static void SetVerboseLoggingState(bool state);
 
         KNODISCARD
         static Text* Initialize(
@@ -90,18 +140,50 @@ namespace KalaGraphics::PrimitiveWidgets
         KNODISCARD
         u32 GetMeshID() const;
 
+        //Returns true if this text widget can be selected and edited via cursor position
         KNODISCARD
-        ClipType GetClipType() const;
-        void SetClipType(ClipType newValue);
+        bool CanEdit() const;
+        void SetEditState(bool newValue);
 
         KNODISCARD
-        FieldType GetFieldType() const;
-        void SetFieldType(FieldType newValue);
+        TextClipType GetClipType() const;
+        void SetClipType(TextClipType newValue);
 
         KNODISCARD
-        f32 GetTextSize() const;
-        //Set new text size multiplier
-        void SetTextSize(f32 newValue);
+        TextFieldType GetFieldType() const;
+        void SetFieldType(TextFieldType newValue);
+
+        KNODISCARD
+        TextAlignmentType GetAlignmentType() const;
+        void SetAlignmentType(TextAlignmentType newValue);
+
+        //Which character is the cursor relative to right now?
+        //If pos is -1 then cursor is disabled,
+        //otherwise pos represents the start of a glyph, 
+        //if cursor pos is size of characters then cursor pos is at the end of the last glyph
+        KNODISCARD
+        i32 GetCursorPos() const;
+        //Move the cursor to a selected utf in this text widget,
+        //if another text widget already has a cursor then it is removed and added here,
+        //finds first utf with given value, if first is already selected then it jumps to next one and so on,
+        //change second higher than -1 to lock to the Nth character of the utf you chose 
+        void SetCursorPosByUTF(
+            i32 targetUTF,
+            i32 targetUTFSlot = -1);
+        //Manually set cursor pos to a known character slot,
+        //if another text widget already has a cursor then it is removed and added here,
+        void SetCursorPosBySlot(i32 targetSlot);
+
+        //Get start and end character to determine which glyphs are currently highlighted
+        KNODISCARD
+        pair<i32, i32> GetHighlightRange() const;
+        //Choose which characters to manually highlight
+        void SetHighlightRange(pair<i32, i32> newValue);
+
+        KNODISCARD
+        f32 GetTextSizeMultiplier() const;
+        //Set new text size multiplier, clamped from 0.1 to 10.0
+        void SetTextSizeMultiplier(f32 newValue);
 
         KNODISCARD
         u16 GetLineWidth() const;
@@ -120,7 +202,7 @@ namespace KalaGraphics::PrimitiveWidgets
         //Get max allowed characters of this text
         KNODISCARD
         u16 GetMaxCharacters() const;
-        //Set max allowed characters of this text, clamped from 1 to MAX_TEXT_LENGTH
+        //Set max allowed characters of this text, clamped from 1 to MAX_CHARACTERS
         void SetMaxCharacters(u16 newValue);
 
         //Get the smallest allowed value of this numerical field,
@@ -140,23 +222,29 @@ namespace KalaGraphics::PrimitiveWidgets
         //Get the full stored value as string
         KNODISCARD
         string GetText() const;
-        //Directly append or prepend string to this text widget
+        //Directly append or prepend string to this text widget,
+        //change startChar to decide which character to add from
         void AddText(
             string&& newValue,
+            u32 startChar = 0,
             bool back = true);
-        //Remove amount of characters from front or back
+        //Remove amount of characters from front or back,
+        //change startChar to decide which character to remove from
         void RemoveText(
             u32 count,
+            u32 startChar = 0,
             bool back = true);
         //Overwrite existing string with new value
         void SetText(string&& newValue);
 
-        //Get the full stored value as UTF vector
+        //Returns all characters and their data
         KNODISCARD
-        const vector<u32>& GetUTF() const;
-        //Directly append or prepend UTF to this text widget
+        const vector<GlyphRasterData>& GetUTF() const;
+        //Directly append or prepend UTF to this text widget,
+        //change startChar to decide which character to add from
         void AddUTF(
             vector<u32>&& newValue,
+            u32 startChar = 0,
             bool back = true);
         //Overwrite existing UTF with new value
         void SetUTF(vector<u32>&& newValue);
@@ -173,13 +261,17 @@ namespace KalaGraphics::PrimitiveWidgets
         u32 textureID{};
         u32 meshID{};
 
+        bool canEdit{};
         bool isTextDirty = true;
 
-        ClipType clipType{};
+        TextClipType clipType{};
+        TextFieldType fieldType{};
+        TextAlignmentType alignmentType = TextAlignmentType::A_CENTER;
 
-        FieldType fieldType{};
+        CursorData cursorData{}; //where to render the cursor
+        HighlightData highlightData{}; //which characters are selected
 
-        f32 textSize = 1.0f;
+        f32 textSizeMultiplier = 1.0f;
 
         u16 lineWidth = 256;
         u16 lineHeight = 32;
@@ -190,6 +282,6 @@ namespace KalaGraphics::PrimitiveWidgets
         f64 numberMin = -DBL_MAX;
         f64 numberMax = DBL_MAX;
 
-        vector<u32> text{};
+        vector<GlyphRasterData> glyphRasterData{};
     };
 }

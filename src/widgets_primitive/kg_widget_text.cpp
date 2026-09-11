@@ -51,6 +51,8 @@ using std::max;
 using std::clamp;
 using std::vector;
 
+static bool isVerboseLoggingEnabled{};
+
 static vector<u32> StringToUTF(string&& input)
 {
     vector<u32> convertedText{};
@@ -112,6 +114,9 @@ namespace KalaGraphics::PrimitiveWidgets
     static KalaGraphicsRegistry<Text> registry{};
 
     KalaGraphicsRegistry<Text>& Text::GetRegistry() { return registry; }
+
+    bool Text::IsVerboseLoggingEnabled() { return isVerboseLoggingEnabled; }
+    void Text::SetVerboseLoggingState(bool state) { isVerboseLoggingEnabled = state; }
 
     Text* Text::Initialize(
         u32 fontID,
@@ -296,8 +301,25 @@ namespace KalaGraphics::PrimitiveWidgets
     u32 Text::GetTextureID() const { return textureID; }
     u32 Text::GetMeshID() const { return meshID; }
 
-    ClipType Text::GetClipType() const { return clipType; }
-    void Text::SetClipType(ClipType newValue)
+    bool Text::CanEdit() const { return canEdit; }
+    void Text::SetEditState(bool newValue)
+    {
+        canEdit = newValue;
+
+        if (!canEdit)
+        {
+            cursorData = {};
+            highlightData = {};
+        }
+
+        Log::Print(
+            "Set text widget '" + to_string(ID) + "' edit state to '" + (canEdit ? "true" : "false") + "'!",
+            "KG_TEXT",
+            LogType::LOG_SUCCESS);
+    }
+
+    TextClipType Text::GetClipType() const { return clipType; }
+    void Text::SetClipType(TextClipType newValue)
     {
         if (newValue == clipType)
         {
@@ -315,18 +337,20 @@ namespace KalaGraphics::PrimitiveWidgets
         isTextDirty = true;
 
         Log::Print(
-            "Set text widget clip type to '" + string(clipType == ClipType::C_OVERFLOW ? "overflow" : "clipped") + "'!",
+            "Set text widget '" + to_string(ID) + "' clip type to '" 
+            + string(clipType == TextClipType::C_OVERFLOW ? "overflow" : "clipped") + "'!",
             "KG_TEXT",
             LogType::LOG_SUCCESS);
     }
 
-    FieldType Text::GetFieldType() const { return fieldType; }
-    void Text::SetFieldType(FieldType newValue)
+    TextFieldType Text::GetFieldType() const { return fieldType; }
+    void Text::SetFieldType(TextFieldType newValue)
     {
         if (fieldType == newValue)
         {
             Log::Print(
-                "Failed to set text widget '" + to_string(ID) + "' field type because it is already the same!",
+                "Failed to set text widget '" + to_string(ID) 
+                + "' field type because it is already the same!",
                 "KG_TEXT",
                 LogType::LOG_ERROR,
                 2);
@@ -341,37 +365,37 @@ namespace KalaGraphics::PrimitiveWidgets
         switch (fieldType)
         {
         default:
-        case FieldType::F_ANY:
+        case TextFieldType::F_ANY:
             fieldTypeStr = "any";
             break;
-        case FieldType::F_TEXT_ONLY:
+        case TextFieldType::F_TEXT_ONLY:
             fieldTypeStr = "text only";
             break;
-        case FieldType::F_NUMBER_ONLY:
+        case TextFieldType::F_NUMBER_ONLY:
             fieldTypeStr = "number only";
 
             SetNumberMin(-DBL_MAX);
             SetNumberMax(DBL_MAX);
             break;
-        case FieldType::F_INTEGER_ONLY:
+        case TextFieldType::F_INTEGER_ONLY:
             fieldTypeStr = "integer only";
 
             SetNumberMin(INT64_MIN);
             SetNumberMax(INT64_MAX);
             break;
-        case FieldType::F_FLOAT_ONLY:
+        case TextFieldType::F_FLOAT_ONLY:
             fieldTypeStr = "float only";
 
             SetNumberMin(-FLT_MAX);
             SetNumberMax(FLT_MAX);
             break;
-        case FieldType::F_FLOAT_AND_DOUBLE_ONLY:
+        case TextFieldType::F_FLOAT_AND_DOUBLE_ONLY:
             fieldTypeStr = "float and double only";
 
             SetNumberMin(-DBL_MAX);
             SetNumberMax(DBL_MAX);
             break;
-        case FieldType::F_PASSWORD:
+        case TextFieldType::F_PASSWORD:
             fieldTypeStr = "password";
             break;
         }
@@ -379,15 +403,343 @@ namespace KalaGraphics::PrimitiveWidgets
         isTextDirty = true;
 
         Log::Print(
-            "Set text widget field type to '" + fieldTypeStr + "'!",
+            "Set text widget '" + to_string(ID) + "' field type to '" + fieldTypeStr + "'!",
             "KG_TEXT",
             LogType::LOG_SUCCESS);
     }
 
-    f32 Text::GetTextSize() const { return textSize; }
-    void Text::SetTextSize(f32 newValue)
+    TextAlignmentType Text::GetAlignmentType() const { return alignmentType; }
+    void Text::SetAlignmentType(TextAlignmentType newValue)
     {
-        if (newValue == textSize)
+        if (alignmentType == newValue)
+        {
+            Log::Print(
+                "Failed to set text widget '" + to_string(ID) 
+                + "' alignment type because it is already the same!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        alignmentType = newValue;
+
+        string alignmentTypeStr{};
+
+        switch (alignmentType)
+        {
+        default:
+        case TextAlignmentType::A_TOP_LEFT:
+            alignmentTypeStr = "top left";
+            break;
+        case TextAlignmentType::A_CENTER_LEFT:
+            alignmentTypeStr = "center left";
+            break;
+        case TextAlignmentType::A_BOTTOM_LEFT:
+            alignmentTypeStr = "bottom left";
+            break;
+
+        case TextAlignmentType::A_TOP_CENTER:
+            alignmentTypeStr = "top center";
+            break;
+        case TextAlignmentType::A_CENTER:
+            alignmentTypeStr = "center";
+            break;
+        case TextAlignmentType::A_BOTTOM_CENTER:
+            alignmentTypeStr = "bottom center";
+            break;
+
+        case TextAlignmentType::A_TOP_RIGHT:
+            alignmentTypeStr = "top right";
+            break;
+        case TextAlignmentType::A_CENTER_RIGHT:
+            alignmentTypeStr = "center right";
+            break;
+        case TextAlignmentType::A_BOTTOM_RIGHT:
+            alignmentTypeStr = "bottom right";
+            break;
+        }
+
+        isTextDirty = true;
+
+        Log::Print(
+            "Set text widget '" + to_string(ID) + "' alignment type to '" + alignmentTypeStr + "'!",
+            "KG_TEXT",
+            LogType::LOG_SUCCESS);
+    }
+
+    i32 Text::GetCursorPos() const { return cursorData.characterSlot; }
+    void Text::SetCursorPosByUTF(
+        i32 targetUTF,
+        i32 targetUTFSlot)
+    {
+        if (targetUTF == -1
+            && targetUTFSlot == -1)
+        {
+            cursorData = {};
+
+            Log::Print(
+                "Cleared text widget '" + to_string(ID) + "' cursor pos!",
+                "KG_TEXT",
+                LogType::LOG_SUCCESS);
+
+            return;
+        }
+
+        if (targetUTF < 0)
+        {
+            Log::Print(
+                "Failed to set text widget '" + to_string(ID) 
+                + "' cursor pos by UTF because its target utf must be 0 or higher!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+        if (targetUTFSlot < -1)
+        {
+            Log::Print(
+                "Failed to set text widget '" + to_string(ID) 
+                + "' cursor pos by UTF because its target utf slot must be -1 or higher!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        bool foundGlyph{};
+        for (const GlyphRasterData& glyph : glyphRasterData)
+        {
+            if (glyph.utf == scast<u32>(targetUTF))
+            {
+                foundGlyph = true;
+                break;
+            }
+        }
+
+        if (!foundGlyph)
+        {
+            Log::Print(
+                "Failed to set text widget '" + to_string(ID) 
+                + "' cursor pos by UTF because the text widget does not contain UTF '" + to_string(targetUTF) + "'!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        i32 targetSlot = -1;
+
+        //pick next Nth one by utf
+        if (targetUTFSlot == -1)
+        {
+            i32 firstValue = -1;
+
+            bool foundOld{};
+
+            for (size_t i = 0; i < glyphRasterData.size(); i++)
+            {
+                const GlyphRasterData& glyph = glyphRasterData[i];
+
+                if (glyph.utf == scast<u32>(targetUTF))
+                {
+                    //store first found one
+                    if (firstValue == -1) firstValue = scast<i32>(i);
+
+                    //found current one, won't pick it
+                    if (!foundOld
+                        && scast<i32>(i) == cursorData.characterSlot)
+                    {
+                        foundOld = true;
+                        continue;
+                    }
+                    //found next one in current loop, picking that
+                    else
+                    {
+                        targetSlot = i;
+                        break;
+                    }
+                }
+            }
+
+            //this loop ended before we could assign next
+            //from old found one so pick the first found one
+            if (targetSlot == -1) targetSlot = firstValue;
+        }
+        //pick selected character by utf slot
+        else
+        {
+            u32 utfSlot{};
+            for (size_t i = 0; i < glyphRasterData.size(); i++)
+            {
+                const GlyphRasterData& glyph = glyphRasterData[i];
+
+                if (glyph.utf == scast<u32>(targetUTF))
+                {
+                    if (utfSlot == scast<u32>(targetUTFSlot))
+                    {
+                        targetSlot = scast<i32>(i);
+                        break;
+                    }
+
+                    utfSlot++;
+                }
+            }
+        }
+
+        if (targetSlot == -1)
+        {
+            Log::Print(
+                "Failed to set text widget '" + to_string(ID) 
+                + "' cursor pos by UTF because utf '" + to_string(targetUTF) 
+                + "' was not found at utf slot '" + to_string(targetUTFSlot) + "'!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        cursorData = { .characterSlot = targetSlot };
+
+        Log::Print(
+            "Set text widget '" + to_string(ID) + "' cursor pos by UTF to UTF '" 
+            + to_string(targetUTF) 
+            + "' at char slot '" + to_string(targetUTFSlot) + "'!",
+            "KG_TEXT",
+            LogType::LOG_SUCCESS);
+    }
+    void Text::SetCursorPosBySlot(i32 targetSlot)
+    {
+        if (targetSlot == -1)
+        {
+            cursorData = {};
+
+            Log::Print(
+                "Cleared text widget '" + to_string(ID) + "' cursor pos!",
+                "KG_TEXT",
+                LogType::LOG_SUCCESS);
+
+            return;
+        }
+
+        if (targetSlot < -1)
+        {
+            Log::Print(
+                "Failed to set text widget '" + to_string(ID) 
+                + "' cursor pos by slot because its target slot must be -1 or higher!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (scast<u32>(targetSlot) > glyphRasterData.size())
+        {
+            Log::Print(
+                "Failed to set text widget '" + to_string(ID)
+                + "' cursor pos by slot because slot '" + to_string(targetSlot) 
+                + "' exceeds total character count '" + to_string(glyphRasterData.size()) + "'!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+        
+        cursorData.characterSlot = targetSlot;
+
+        Log::Print(
+            "Set text widget '" + to_string(ID) 
+            + "' cursor pos by slot to slot '" + to_string(cursorData.characterSlot) + "'!",
+            "KG_TEXT",
+            LogType::LOG_SUCCESS);
+    }
+
+    pair<i32, i32> Text::GetHighlightRange() const 
+    { 
+        return 
+        { 
+            highlightData.highlightStart, 
+            highlightData.highlightEnd 
+        };
+    }
+    void Text::SetHighlightRange(pair<i32, i32> newValue)
+    {
+        if (newValue.first == -1
+            && newValue.second == -1)
+        {
+            highlightData = {};
+
+            Log::Print(
+                "Cleared text widget '" + to_string(ID) + "' highlighted text!",
+                "KG_TEXT",
+                LogType::LOG_SUCCESS);
+
+            return;
+        }
+
+        if (newValue.first < 0
+            || newValue.second < 0)
+        {
+            Log::Print(
+                "Failed to set text widget '" + to_string(ID) 
+                + "' highlighted area because first or second was below 0!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (newValue.first >= newValue.second)
+        {
+            Log::Print(
+                "Failed to set text widget '" + to_string(ID) 
+                + "' highlighted area because first cannot be equal or bigger than second!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (scast<u32>(newValue.second) > glyphRasterData.size())
+        {
+            Log::Print(
+                "Failed to set text widget '" + to_string(ID) 
+                + "' highlighted area because second '" + to_string(newValue.second) 
+                + "' exceeds total character count '" + to_string(glyphRasterData.size()) + "'!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        highlightData = 
+        {
+            .highlightStart = newValue.first,
+            .highlightEnd = newValue.second
+        };
+
+        Log::Print(
+            "Set text widget '" + to_string(ID) + "' highlighted area start to '" 
+            + to_string(highlightData.highlightStart) + "' and end to "
+            + to_string(highlightData.highlightEnd) + "'!",
+            "KG_TEXT",
+            LogType::LOG_SUCCESS);
+    }
+
+    f32 Text::GetTextSizeMultiplier() const { return textSizeMultiplier; }
+    void Text::SetTextSizeMultiplier(f32 newValue)
+    {
+        if (newValue == textSizeMultiplier)
         {
             Log::Print(
                 "Failed to set text widget '" + to_string(ID) + "' size because it is already the same!",
@@ -398,12 +750,12 @@ namespace KalaGraphics::PrimitiveWidgets
             return;
         }
 
-        textSize = clamp(newValue, MIN_TEXT_SIZE, MAX_TEXT_SIZE);
+        textSizeMultiplier = clamp(newValue, MIN_TEXT_SIZE, MAX_TEXT_SIZE);
 
         isTextDirty = true;
 
         Log::Print(
-            "Set text widget '" + to_string(ID) + "' text size to '" + to_string(textSize) + "'!",
+            "Set text widget '" + to_string(ID) + "' text size multiplier to '" + to_string(textSizeMultiplier) + "'!",
             "KG_TEXT",
             LogType::LOG_SUCCESS);
     }
@@ -485,12 +837,12 @@ namespace KalaGraphics::PrimitiveWidgets
     {
         newValue = clamp(newValue, scast<u16>(1), MAX_CHARACTERS);
 
-        bool needsTruncation = text.size() > newValue;
+        bool needsTruncation = glyphRasterData.size() > newValue;
         string removedStr{};
 
         if (needsTruncation)
         {
-            u16 toBeRemoved = scast<u16>(text.size() - newValue);
+            u16 toBeRemoved = scast<u16>(glyphRasterData.size() - newValue);
             RemoveText(toBeRemoved);
 
             removedStr = 
@@ -501,7 +853,7 @@ namespace KalaGraphics::PrimitiveWidgets
         maxCharacters = newValue;
 
         Log::Print(
-            "Set text widget max character count to '" + to_string(maxCharacters) + "'!" + removedStr,
+            "Set text widget '" + to_string(ID) + "' max character count to '" + to_string(maxCharacters) + "'!" + removedStr,
             "KG_TEXT",
             LogType::LOG_SUCCESS);
     }
@@ -516,10 +868,10 @@ namespace KalaGraphics::PrimitiveWidgets
         switch (fieldType)
         {
         default: break;
-        case FieldType::F_INTEGER_ONLY:
+        case TextFieldType::F_INTEGER_ONLY:
             numberMin = clamp(scast<i64>(numberMin), scast<i64>(INT64_MIN), scast<i64>(numberMax));
             break;
-        case FieldType::F_FLOAT_ONLY:
+        case TextFieldType::F_FLOAT_ONLY:
             numberMin = clamp(scast<f32>(numberMin), -FLT_MAX, scast<f32>(numberMax));
             break;
         }
@@ -540,10 +892,10 @@ namespace KalaGraphics::PrimitiveWidgets
         switch (fieldType)
         {
         default: break;
-        case FieldType::F_INTEGER_ONLY:
+        case TextFieldType::F_INTEGER_ONLY:
             numberMax = clamp(scast<i64>(numberMax), scast<i64>(numberMin), scast<i64>(INT64_MAX));
             break;
-        case FieldType::F_FLOAT_ONLY:
+        case TextFieldType::F_FLOAT_ONLY:
             numberMax = clamp(scast<f32>(numberMax), scast<f32>(numberMin), FLT_MAX);
             break;
         }
@@ -558,59 +910,23 @@ namespace KalaGraphics::PrimitiveWidgets
     {
         string result{};
 
-        for (u32 utf : text)
+        for (const GlyphRasterData& glyph : glyphRasterData)
         {
-            result += GetValueByUTF(utf);
+            result += GetValueByUTF(glyph.utf);
         }
 
         return result;
     }
     void Text::AddText(
         string&& newValue,
+        u32 startChar,
         bool back)
     {
-        vector<u32> convertedText = StringToUTF(std::move(newValue));
-
-        if (convertedText.size() + text.size() > maxCharacters)
-        {
-            Log::Print(
-                "Failed to add characters to text widget '" + to_string(ID) 
-                + "' because added character count exceeds max character count!",
-                "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        string target = back ? "back" : "front";
-
-        if (back)
-        {
-            //append to back
-            text.insert(
-                text.end(),
-                convertedText.begin(),
-                convertedText.end());
-        }
-        else
-        {
-            //prepend to front
-            text.insert(
-                text.begin(),
-                convertedText.begin(),
-                convertedText.end());
-        }
-
-        isTextDirty = true;
-
-        Log::Print(
-            "Added new characters to " + target + " of text widget '" + to_string(ID) + "'!",
-            "KG_TEXT",
-            LogType::LOG_SUCCESS);
+        AddUTF(StringToUTF(std::move(newValue)), startChar, back);
     }
     void Text::RemoveText(
         u32 count,
+        u32 startChar,
         bool back)
     {
         if (count == 0)
@@ -625,11 +941,25 @@ namespace KalaGraphics::PrimitiveWidgets
             return;
         }
 
-        if (count > text.size())
+        if (startChar > glyphRasterData.size())
+        {
+            Log::Print(
+                "Failed to remove characters from text widget '" + to_string(ID)
+                + "' because start character '" + to_string(startChar) 
+                + "' exceeds total character count '" + to_string(glyphRasterData.size()) + "'!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (count > glyphRasterData.size() - startChar)
         {
             Log::Print(
                 "Failed to remove characters from text widget '" + to_string(ID) 
-                + "' because removal count was bigger than total character count!",
+                + "' because removal count from start character '" + to_string(count) 
+                + "' exceeds total character count '" + to_string(glyphRasterData.size() - startChar) + "'!",
                 "KG_TEXT",
                 LogType::LOG_ERROR,
                 2);
@@ -637,66 +967,61 @@ namespace KalaGraphics::PrimitiveWidgets
             return;
         }
 
-        if (back) text.erase(text.end() - count, text.end());
-        else      text.erase(text.begin(), text.begin() + count);
+        if (back)
+        {
+            glyphRasterData.erase(
+                glyphRasterData.end() - startChar - count, 
+                glyphRasterData.end() - startChar);
+        }
+        else
+        {
+            glyphRasterData.erase(
+                glyphRasterData.begin() + startChar, 
+                glyphRasterData.begin() + startChar + count);
+        }
 
         isTextDirty = true;
 
         string target = back ? "back" : "front";
 
-        Log::Print(
-            "Removed '" + to_string(count) + "' characters from text widget '" + to_string(ID) + "' text " + target + "!",
-            "KG_TEXT",
-            LogType::LOG_SUCCESS);
+        if (isVerboseLoggingEnabled)
+        {
+            Log::Print(
+                "Removed '" + to_string(count) + "' characters from text widget '" + to_string(ID) + "' text " + target + "!",
+                "KG_TEXT",
+                LogType::LOG_VERBOSE);
+        }
     }
     void Text::SetText(string&& newValue)
     {   
-        vector<u32> convertedText = StringToUTF(std::move(newValue));
-
-        if (convertedText == text)
-        {
-            Log::Print(
-                "Failed to update text widget '" + to_string(ID) 
-                + "' characters because they are already the same!",
-                "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        if (convertedText.size() > maxCharacters)
-        {
-            Log::Print(
-                "Failed to update text widget '" + to_string(ID) 
-                + "' characters because its character count exceeds max character count!",
-                "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        text = std::move(convertedText);
-
-        isTextDirty = true;
-
-        Log::Print(
-            "Overwrote text widget '" + to_string(ID) + "' characters!",
-            "KG_TEXT",
-            LogType::LOG_SUCCESS);
+        SetUTF(StringToUTF(std::move(newValue)));
     }
 
-    const vector<u32>& Text::GetUTF() const { return text; }
+    const vector<GlyphRasterData>& Text::GetUTF() const { return glyphRasterData; }
     void Text::AddUTF(
         vector<u32>&& newValue,
+        u32 startChar,
         bool back)
     {
-        if (newValue.size() + text.size() > maxCharacters)
+        if (newValue.size() + glyphRasterData.size() > maxCharacters)
         {
             Log::Print(
                 "Failed to add characters to text widget '" + to_string(ID) 
-                + "' because added character count exceeds max character count!",
+                + "' because added character count '" + to_string(newValue.size() + glyphRasterData.size()) 
+                + "' exceeds max character count '" + to_string(maxCharacters) + "'!",
+                "KG_TEXT",
+                LogType::LOG_ERROR,
+                2);
+
+            return;
+        }
+
+        if (startChar > glyphRasterData.size())
+        {
+            Log::Print(
+                "Failed to add characters to text widget '" + to_string(ID) 
+                + "' because start character '" + to_string(startChar) 
+                + "' exceeds total character count '" + to_string(glyphRasterData.size()) + "'!",
                 "KG_TEXT",
                 LogType::LOG_ERROR,
                 2);
@@ -705,34 +1030,51 @@ namespace KalaGraphics::PrimitiveWidgets
         }
 
         string target = back ? "back" : "front";
+
+        vector<GlyphRasterData> newData{};
+        newData.reserve(newValue.size());
+        for (const u32 utf : newValue)
+        {
+            newData.push_back({ .utf = utf });
+        }
 
         if (back)
         {
             //append to back
-            text.insert(
-                text.end(),
-                newValue.begin(),
-                newValue.end());
+            glyphRasterData.insert(
+                glyphRasterData.end() - startChar,
+                newData.begin(),
+                newData.end());
         }
         else
         {
             //prepend to front
-            text.insert(
-                text.begin(),
-                newValue.begin(),
-                newValue.end());
+            glyphRasterData.insert(
+                glyphRasterData.begin() + startChar,
+                newData.begin(),
+                newData.end());
         }
 
         isTextDirty = true;
 
-        Log::Print(
-            "Added new characters to " + target + " of text widget '" + to_string(ID) + "'!",
-            "KG_TEXT",
-            LogType::LOG_SUCCESS);
+        if (isVerboseLoggingEnabled)
+        {
+            Log::Print(
+                "Added new characters to text widget '" + to_string(ID) + "' " + target + "!",
+                "KG_TEXT",
+                LogType::LOG_VERBOSE);
+        }
     }
     void Text::SetUTF(vector<u32>&& newValue)
     {
-        if (newValue == text)
+        vector<u32> existingUTFs{};
+        existingUTFs.reserve(glyphRasterData.size());
+        for (const GlyphRasterData& data : glyphRasterData)
+        {
+            existingUTFs.push_back(data.utf);
+        }
+
+        if (newValue == existingUTFs)
         {
             Log::Print(
                 "Failed to update text widget '" + to_string(ID) 
@@ -748,7 +1090,8 @@ namespace KalaGraphics::PrimitiveWidgets
         {
             Log::Print(
                 "Failed to update text widget '" + to_string(ID) 
-                + "' characters because its character count exceeds max character count!",
+                + "' characters because its character count '" + to_string(newValue.size()) 
+                + "' exceeds max character count '" + to_string(maxCharacters) + "'!",
                 "KG_TEXT",
                 LogType::LOG_ERROR,
                 2);
@@ -756,14 +1099,24 @@ namespace KalaGraphics::PrimitiveWidgets
             return;
         }
 
-        text = std::move(newValue);
+        vector<GlyphRasterData> newData{};
+        newData.reserve(newValue.size());
+        for (const u32 utf : newValue)
+        {
+            newData.push_back({ .utf = utf });
+        }
+
+        glyphRasterData = std::move(newData);
 
         isTextDirty = true;
 
-        Log::Print(
-            "Overwrote text widget '" + to_string(ID) + "' characters!",
-            "KG_TEXT",
-            LogType::LOG_SUCCESS);
+        if (isVerboseLoggingEnabled)
+        {
+            Log::Print(
+                "Overwrote text widget '" + to_string(ID) + "' characters!",
+                "KG_TEXT",
+                LogType::LOG_VERBOSE);
+        }
     }
 
     void Text::Update()
@@ -800,7 +1153,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 + to_string(meshID) + "' was invalid! Reason: " + err);
         }
 
-        if (text.empty())
+        if (glyphRasterData.empty())
         {
             Shader* first = Shader::GetRegistry().GetAllContent().front();
             Texture* rootTex{};
@@ -823,53 +1176,58 @@ namespace KalaGraphics::PrimitiveWidgets
             const i32 ascender = font->GetFontData().ascender;
             const i32 descender = font->GetFontData().descender;
 
-            i32 penX{};
+            vec2 penPos{};
             i32 minX{};
             i32 maxX{};
 
             //calculate width
-            for (u32 utf : text)
+            for (GlyphRasterData& glyph : glyphRasterData)
             {
                 GlyphData& glyphData = font->GetGlyphData(
                     font->GetFontData(),
-                    utf);
+                    glyph.utf);
 
                 i32 glyphWidth = scast<i32>(fabsf(glyphData.size.x));
 
-                i32 glyphLeft = penX + scast<i32>(glyphData.bearing.x);
+                i32 glyphLeft = penPos.x + scast<i32>(glyphData.bearing.x);
                 i32 glyphRight = glyphLeft + glyphWidth;
 
                 minX = min(minX, glyphLeft);
                 maxX = max(maxX, glyphRight);
 
-                penX += glyphData.advance;
+                glyph.penPos =
+                { 
+                    penPos.x,
+                    0.0f
+                };
+                glyph.glyphPos = 
+                {
+                    scast<f32>(glyphLeft),
+                    scast<f32>(glyphData.bearing.y + glyphData.size.y - descender)
+                };
+
+                glyph.glyphSize = glyphData.size;
+
+                penPos.x += glyphData.advance;
             }
 
-            maxX = max(maxX, penX);
+            maxX = max(maxX, scast<i32>(penPos.x));
 
             const u32 finalWidth = scast<u32>(maxX - minX);
             const u32 finalHeight = scast<u32>(ascender - descender);
 
             vector<u8> finalPixels(finalWidth * finalHeight, 0);
 
-            penX = 0;
-
             //copy glyphs into final texture
-            for (u32 utf : text)
+            for (const GlyphRasterData& glyph : glyphRasterData)
             {
-                vector<u8> glyphPixelData = font->GetGlyphPixelData(utf);
+                vector<u8> glyphPixelData = font->GetGlyphPixelData(glyph.utf);
 
-                GlyphData& glyphData = font->GetGlyphData(
-                    font->GetFontData(),
-                    utf);
+                u32 glyphWidth  = scast<u32>(fabsf(glyph.glyphSize.x));
+                u32 glyphHeight = scast<u32>(fabsf(glyph.glyphSize.y));
 
-                u32 glyphWidth  = scast<u32>(fabsf(glyphData.size.x));
-                u32 glyphHeight = scast<u32>(fabsf(glyphData.size.y));
-
-                i32 glyphBottom = scast<i32>(glyphData.bearing.y + glyphData.size.y);
-
-                i32 glyphX = penX + scast<i32>(glyphData.bearing.x) - minX;
-                i32 glyphY = glyphBottom - descender;
+                i32 glyphX = scast<i32>(glyph.glyphPos.x) - minX;
+                i32 glyphY = scast<i32>(glyph.glyphPos.y);
 
                 for (u32 y = 0; y < glyphHeight; y++)
                 {
@@ -895,8 +1253,6 @@ namespace KalaGraphics::PrimitiveWidgets
                             = glyphPixelData[y * glyphWidth + x];
                     }
                 }
-
-                penX += glyphData.advance;
             }
 
             vec2 finalSize

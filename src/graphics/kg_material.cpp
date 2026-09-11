@@ -33,11 +33,16 @@ using std::string;
 using std::to_string;
 using std::clamp;
 
+static bool isVerboseLoggingEnabled{};
+
 namespace KalaGraphics::Graphics
 {
     static KalaGraphicsRegistry<Material> registry{};
 
     KalaGraphicsRegistry<Material>& Material::GetRegistry() { return registry; }
+
+    bool Material::IsVerboseLoggingEnabled() { return isVerboseLoggingEnabled; }
+    void Material::SetVerboseLoggingState(bool state) { isVerboseLoggingEnabled = state; }
 
     Material* Material::Initialize(u32 meshID)
     {

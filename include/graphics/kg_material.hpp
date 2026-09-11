@@ -135,6 +135,10 @@ namespace KalaGraphics::Graphics
         KNODISCARD
 		static KalaGraphicsRegistry<Material>& GetRegistry();
 
+        KNODISCARD
+		static bool IsVerboseLoggingEnabled();
+        static void SetVerboseLoggingState(bool state);
+
         u32 GetID() const;
         u32 GetMeshID() const;
 

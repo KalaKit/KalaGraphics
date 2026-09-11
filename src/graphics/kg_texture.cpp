@@ -35,6 +35,8 @@ using std::to_string;
 using std::unique_ptr;
 using std::make_unique;
 
+static bool isVerboseLoggingEnabled{};
+
 static bool retreivedProps{};
 static VkPhysicalDeviceProperties props{};
 
@@ -151,6 +153,9 @@ namespace KalaGraphics::Graphics
     static KalaGraphicsRegistry<Texture> registry{};
 
     KalaGraphicsRegistry<Texture>& Texture::GetRegistry() { return registry; }
+
+    bool Texture::IsVerboseLoggingEnabled() { return isVerboseLoggingEnabled; }
+    void Texture::SetVerboseLoggingState(bool state) { isVerboseLoggingEnabled = state; }
 
     Texture* Texture::Initialize(
         u32 shaderID,
@@ -693,11 +698,14 @@ namespace KalaGraphics::Graphics
 
         isDirty = true;
 
-        Log::Print(
-            "Set texture '" + to_string(ID) 
-            + "' size to '" + to_string(size.x) + ", " + to_string(size.y) + "'.",
-            "KG_TEXTURE",
-            LogType::LOG_SUCCESS);
+        if (isVerboseLoggingEnabled)
+        {
+            Log::Print(
+                "Set texture '" + to_string(ID) 
+                + "' size to '" + to_string(size.x) + ", " + to_string(size.y) + "'.",
+                "KG_TEXTURE",
+                LogType::LOG_VERBOSE);
+        }
     }
 
     u32 Texture::GetDepth() const { return depth; }

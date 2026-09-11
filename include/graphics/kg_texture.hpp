@@ -149,6 +149,10 @@ namespace KalaGraphics::Graphics
         KNODISCARD
 		static KalaGraphicsRegistry<Texture>& GetRegistry();
 
+        KNODISCARD
+		static bool IsVerboseLoggingEnabled();
+        static void SetVerboseLoggingState(bool state);
+
         //Either initialize a blank white 1x1 texture, or pass data via textureData
         KNODISCARD
 		static Texture* Initialize(

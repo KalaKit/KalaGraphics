@@ -228,6 +228,10 @@ namespace KalaGraphics::Graphics
         KNODISCARD
 		static KalaGraphicsRegistry<Mesh>& GetRegistry();
 
+        KNODISCARD
+		static bool IsVerboseLoggingEnabled();
+        static void SetVerboseLoggingState(bool state);
+
         //Create a new mesh, mesh type is derived from shader,
         //2D mesh creates its own canonical data during initialization, 
         //3D mesh stays empty and must be updated via SetMeshData, 
