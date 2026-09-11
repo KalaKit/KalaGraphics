@@ -33,6 +33,7 @@ using KalaHeaders::KalaMath::isnear;
 using std::unique_ptr;
 using std::make_unique;
 using std::to_string;
+using std::clamp;
 
 namespace KalaGraphics::Graphics
 {
@@ -51,8 +52,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to create camera because of invalid shader! Reason: " + err,
                 "KG_CAMERA",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -62,8 +62,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to create camera because camera type is not compatible with shader 2D state!",
                 "KG_CAMERA",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -94,8 +93,7 @@ namespace KalaGraphics::Graphics
                 "Failed to create camera because the shader '" 
                 + to_string(shaderID) + "' had no shader data!",
                 "KG_CAMERA",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -169,8 +167,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set camera '" + to_string(ID) 
                 + "' shader ID because it was empty!",
                 "KG_CAMERA",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -181,8 +178,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set camera '" + to_string(ID) + "' shader ID to '" 
                 + to_string(newValue) + "' because it is already the same!",
                 "KG_CAMERA",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -195,8 +191,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set camera '" + to_string(ID) 
                 + "' shader ID to '" + to_string(newValue) + "' because it was invalid! Reason: " + err,
                 "KG_CAMERA",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -207,13 +202,11 @@ namespace KalaGraphics::Graphics
             string err = Shader::GetRegistry().GetContent(shaderID, shader);
             if (!err.empty())
             {
-                Log::Print(
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics camera error",
                     "Failed to set camera '" + to_string(ID) 
                     + "' shader ID to '" + to_string(newValue) + "' because the old shader '" 
-                    + to_string(shaderID) + "' was invalid! Reason: " + err,
-                    "KG_CAMERA",
-                    LogType::LOG_ERROR,
-                    2);
+                    + to_string(shaderID) + "' was invalid! Reason: " + err);
 
                 return;
             }
@@ -239,8 +232,7 @@ namespace KalaGraphics::Graphics
                         + "' because its viewport '" + to_string(vp->ID) 
                         + "' uses this camera as its primary camera!",
                         "KG_CAMERA",
-                        LogType::LOG_ERROR,
-                        2);
+                        LogType::LOG_WARNING);
 
                     return;
                 }
@@ -302,10 +294,9 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to set camera '" + to_string(ID) 
                 + "' mesh ID to '" + to_string(newValue) 
-                + "' because it already is that value!",
+                + "' because it already is the same!",
                 "KG_CAMERA",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -329,8 +320,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set camera '" + to_string(ID) 
                 + "' mesh ID because it was invalid! Reason: " + err,
                 "KG_CAMERA",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -342,8 +332,7 @@ namespace KalaGraphics::Graphics
                 + "' mesh ID to '" + to_string(newValue) 
                 + "' because 2D meshes cannot be added to any cameras!",
                 "KG_CAMERA",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -354,8 +343,7 @@ namespace KalaGraphics::Graphics
                 + "' mesh ID to '" + to_string(newValue) 
                 + "' because 2D cameras cannot be given a mesh!",
                 "KG_CAMERA",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -549,19 +537,7 @@ namespace KalaGraphics::Graphics
     f32 Camera::GetSpeedMultiplier() const { return speedMultiplier; }
     void Camera::SetSpeedMultiplier(f32 newValue)
     {
-        if (newValue < SPEED_MIN
-            || newValue > SPEED_MAX)
-        {
-            Log::Print(
-                "Failed to set camera '" + to_string(ID) + "' speed multiplier because new value is out of allowed range!",
-                "KG_CAMERA",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        speedMultiplier = newValue;
+        speedMultiplier = clamp(newValue, SPEED_MIN, SPEED_MAX);
 
         Log::Print(
             "Set camera '" + to_string(ID) + "' speed multiplier to '" + to_string(speedMultiplier) + "'.",
@@ -572,19 +548,7 @@ namespace KalaGraphics::Graphics
     f32 Camera::GetSensitivityMultiplier() const { return sensitivityMultiplier; }
     void Camera::SetSensitivityMultiplier(f32 newValue)
     {
-        if (newValue < SENS_MIN
-            || newValue > SENS_MAX)
-        {
-            Log::Print(
-                "Failed to set camera '" + to_string(ID) + "' sensitivity multiplier because new value is out of allowed range!",
-                "KG_CAMERA",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        sensitivityMultiplier = newValue;
+        sensitivityMultiplier = clamp(newValue, SENS_MIN, SENS_MAX);
 
         Log::Print(
             "Set camera '" + to_string(ID) + "' sensitivity multiplier to '" + to_string(sensitivityMultiplier) + "'.",
@@ -595,19 +559,7 @@ namespace KalaGraphics::Graphics
     f32 Camera::GetFOV() const { return fov; }
     void Camera::SetFOV(f32 newValue)
     {
-        if (newValue < FOV_MIN
-            || newValue > FOV_MAX)
-        {
-            Log::Print(
-                "Failed to set camera '" + to_string(ID) + "' fov because new value is out of allowed range!",
-                "KG_CAMERA",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        fov = newValue;
+        fov = clamp(newValue, FOV_MIN, FOV_MAX);
 
         Log::Print(
             "Set camera '" + to_string(ID) + "' fov to '" + to_string(fov) + "'.",
@@ -624,21 +576,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set camera '" + to_string(ID) 
                 + "' draw distance because it is an orthographic camera!",
                 "KG_CAMERA",
-                LogType::LOG_ERROR,
-                2);
-
-            return;
-        }
-
-        if (newValue < DRAW_DISTANCE_MIN
-            || newValue > DRAW_DISTANCE_MAX)
-        {
-            Log::Print(
-                "Failed to set camera '" + to_string(ID) 
-                + "' draw distance because new value is out of allowed range!",
-                "KG_CAMERA",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -649,13 +587,12 @@ namespace KalaGraphics::Graphics
                 "Failed to set camera '" + to_string(ID) 
                 + "' draw distance because near distance cannot be equal to or more than far distance!",
                 "KG_CAMERA",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
 
-        drawDistance = newValue;
+        drawDistance = kclamp(newValue, DRAW_DISTANCE_MIN, DRAW_DISTANCE_MAX);
 
         Log::Print(
             "Set camera '" + to_string(ID) + "' draw distance to '" + to_string(drawDistance.x) + ", " + to_string(drawDistance.y) + "'.",

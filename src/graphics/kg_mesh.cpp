@@ -903,8 +903,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to create mesh because the shader was invalid! Reason: " + err,
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -916,8 +915,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to create mesh because the shader '" + to_string(shader->ID) + "' viewport was invalid! Reason: " + err,
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -929,8 +927,7 @@ namespace KalaGraphics::Graphics
                 "Failed to create mesh because the shader '" 
                 + to_string(shaderID) + "' had no shader data!",
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -1040,8 +1037,6 @@ namespace KalaGraphics::Graphics
 
     u32 Mesh::GetID() const { return ID; }
 
-
-
     u32 Mesh::GetShaderID() const { return shaderID; }
     void Mesh::SetShaderID(u32 newValue)
     {
@@ -1051,8 +1046,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set mesh '" + to_string(ID) 
                 + "' shader ID because it is used in text widget '" + to_string(textWidgetID) + "'!",
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1063,8 +1057,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set mesh '" + to_string(ID) 
                 + "' shader ID because it was empty!",
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1074,10 +1067,9 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to set mesh '" + to_string(ID) 
                 + "' shader ID to '" + to_string(newValue) 
-                + "' because it already is that value!",
+                + "' because it already is the same!",
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1090,8 +1082,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set mesh '" + to_string(ID) 
                 + "' shader ID because its material was invalid! Reason: " + err,
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1114,8 +1105,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set mesh '" + to_string(ID) 
                 + "' shader ID because it was invalid! Reason: " + err,
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1127,8 +1117,7 @@ namespace KalaGraphics::Graphics
                 + "' shader because new shader '" + to_string(shader->ID) 
                 + "' 2D state does not match old shader '" + to_string(oldShader->ID) + "' 2D state!",
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1223,8 +1212,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set mesh '" + to_string(ID) + "' "
                 "visible state because it already is the same!",
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1276,8 +1264,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set mesh '" + to_string(ID) 
                 + "' draw order index because it is a 3D mesh!",
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1335,8 +1322,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set mesh '" + to_string(ID) 
                 + "' local anchor position because it is a 3D mesh!",
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1385,8 +1371,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set mesh '" + to_string(ID) 
                 + "' viewport anchor position because it is a 3D mesh!",
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1438,8 +1423,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set mesh '" + to_string(ID) + "' data "
                 "because 2D mesh data cannot be updated!",
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1451,8 +1435,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set mesh '" + to_string(ID) + "' data "
                 "because it is already the same!",
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1463,8 +1446,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set mesh '" + to_string(ID) + "' vertices "
                 "because no 3D vertex data was passed!",
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1515,8 +1497,7 @@ namespace KalaGraphics::Graphics
                 "Failed to flip mesh '" + to_string(ID) 
                 + "' face direction because it is a 2D mesh!",
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -2381,8 +2362,7 @@ namespace KalaGraphics::Graphics
                 "Failed to destroy mesh '" + to_string(ID) 
                 + "' because it is used in text widget '" + to_string(textWidgetID) + "'!",
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }

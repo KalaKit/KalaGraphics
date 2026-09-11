@@ -166,8 +166,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to get viewport name! Reason: " + err, 
                 "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return {};
         }
@@ -182,8 +181,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to get viewport value because the passed enum was invalid!", 
                 "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return {};
         }
@@ -202,8 +200,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to initialize viewport because its graphics context was invalid! Reason: " + err,
                 "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -549,8 +546,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set viewport '" + to_string(ID) 
                 + "' visible state because it is a root viewport!", 
                 "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -577,8 +573,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set viewport '" + to_string(ID) 
                 + "' dynamic resize state because it is a root viewport!", 
                 "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -648,8 +643,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set viewport '" + to_string(ID) 
                 + "' draw order index because it is a root viewport!", 
                 "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -660,8 +654,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set viewport '" + to_string(ID) 
                 + "' draw order index because 0 can only be applied to root viewport!", 
                 "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -741,18 +734,11 @@ namespace KalaGraphics::Graphics
         }
 
         vec2 realSize = GetStaticValue(vpSize);
-        if (realSize.x + viewportOffset.x > gctx->renderSize.x
-            || realSize.y + viewportOffset.y > gctx->renderSize.y)
-        {
-            Log::Print(
-                "Failed to set viewport '" + to_string(ID) 
-                + "' static size because it is bigger than the window size!", 
-                "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
 
-            return;
-        }
+        realSize = kclamp(
+            realSize,
+            MIN_VIEWPORT_SIZE,
+            gctx->renderSize - viewportOffset);
 
         viewportStaticSize = vpSize;
 
@@ -782,8 +768,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set viewport '" + to_string(ID) 
                 + "' dynamic size because it is a root viewport!", 
                 "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -848,8 +833,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set viewport '" + to_string(ID) 
                 + "' offset because it is a root viewport!", 
                 "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -899,8 +883,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set viewport '" + to_string(ID) 
                 + "' scissor size because it is a root viewport!", 
                 "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -910,8 +893,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set viewport '" + to_string(ID) 
                 + "' scissor size because it is not a custom type!", 
                 "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -961,8 +943,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set viewport '" + to_string(ID) 
                 + "' scissor offset because it is a root viewport!", 
                 "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -972,8 +953,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set viewport '" + to_string(ID) 
                 + "' scissor offset because it is not a custom type!", 
                 "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -2014,8 +1994,7 @@ namespace KalaGraphics::Graphics
                 "Failed to destroy viewport '" + to_string(ID) 
                 + "' because it is a root viewport of graphics context '" + to_string(contextID) + "'!", 
                 "KG_VIEWPORT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }

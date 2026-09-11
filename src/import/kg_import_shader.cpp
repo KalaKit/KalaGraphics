@@ -53,8 +53,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to compile shader because in path was empty!",
                 "KG_IMPORT_SHADER",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -63,8 +62,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to compile shader because out path was empty!",
                 "KG_IMPORT_SHADER",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -74,8 +72,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to compile shader '" + inPath.string() + "' because it was the same as out path!",
                 "KG_IMPORT_SHADER",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -85,8 +82,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to compile shader '" + inPath.string() + "' because it does not exist!",
                 "KG_IMPORT_SHADER",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -96,8 +92,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to compile shader '" + inPath.string() + "' because out path '" + outPath.string() + "' already exists!",
                 "KG_IMPORT_SHADER",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -107,8 +102,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to compile shader '" + inPath.string() + "' because it is not a regular file!",
                 "KG_IMPORT_SHADER",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -121,8 +115,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to compile shader '" + inPath.string() + "' because its extension is not supported!",
                 "KG_IMPORT_SHADER",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -138,8 +131,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to compile shader '" + inPath.string() + "' because glslc was not found or could not be executed!",
                 "KG_IMPORT_SHADER",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -211,8 +203,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import shader '" + shaderPath.string() + "' because it is not a regular file!",
                 "KG_IMPORT_SHADER",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -223,8 +214,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import shader '" + shaderPath.string() + "' because its extension is not supported!",
                 "KG_IMPORT_SHADER",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }

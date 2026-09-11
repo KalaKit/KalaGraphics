@@ -248,8 +248,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set material '" + to_string(ID) + "' "
                 "base color because it already is the same!",
                 "KG_MATERIAL",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -287,8 +286,7 @@ namespace KalaGraphics::Graphics
                 "Failed to get material '" + to_string(ID) + "' "
                 "alpha mode because font material does not support it!",
                 "KG_MATERIAL",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return {};
         }
@@ -335,8 +333,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set material '" + to_string(ID) + "' "
                 "alpha mode because font material does not support it!",
                 "KG_MATERIAL",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -375,8 +372,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set material '" + to_string(ID) + "' "
                 "alpha mode because it already is the same!",
                 "KG_MATERIAL",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -439,8 +435,7 @@ namespace KalaGraphics::Graphics
                 "Failed to get material '" + to_string(ID) + "' "
                 "alpha cutoff because font material does not support it!",
                 "KG_MATERIAL",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return {};
         }
@@ -487,8 +482,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set material '" + to_string(ID) + "' "
                 "alpha cutoff because font material does not support it!",
                 "KG_MATERIAL",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -499,8 +493,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set material '" + to_string(ID) + "' "
                 "alpha cutoff because alpha mode is not set to mask!",
                 "KG_MATERIAL",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -541,8 +534,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set material '" + to_string(ID) + "' "
                 "alpha cutoff because it already is the same!",
                 "KG_MATERIAL",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -647,10 +639,9 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to set material '" + to_string(ID) 
                 + "' base color texture ID to '" + to_string(newValue) 
-                + "' because it already is that value!",
+                + "' because it already is the same!",
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -676,8 +667,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set material '" + to_string(ID) 
                 + "' base color texture ID because it was invalid! Reason: " + err,
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }

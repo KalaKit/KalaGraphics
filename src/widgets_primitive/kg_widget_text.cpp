@@ -130,8 +130,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 "Failed to initialize text widget because its font '" 
                 + to_string(fontID) + "' was invalid! Reason: " + err,
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return {};
         }
@@ -144,8 +143,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 "Failed to initialize text widget because its viewport '" 
                 + to_string(viewportID) + "' was invalid! Reason: " + err,
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return {};
         }
@@ -245,8 +243,7 @@ namespace KalaGraphics::PrimitiveWidgets
             Log::Print(
                 "Failed to set text widget '" + to_string(ID) + "' font ID because it was empty!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -257,8 +254,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 "Failed to set text widget '" + to_string(ID) 
                 + "' font ID to '" + to_string(newValue) + "' because it is already the same!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -281,8 +277,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 "Failed to set text widget '" + to_string(ID) 
                 + "' font ID because the new font ID '" + to_string(newValue) + "' was invalid!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -326,8 +321,7 @@ namespace KalaGraphics::PrimitiveWidgets
             Log::Print(
                 "Failed to set text widget '" + to_string(ID) + "' clip type because it is already the same!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -352,8 +346,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 "Failed to set text widget '" + to_string(ID) 
                 + "' field type because it is already the same!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -417,8 +410,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 "Failed to set text widget '" + to_string(ID) 
                 + "' alignment type because it is already the same!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -493,8 +485,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 "Failed to set text widget '" + to_string(ID) 
                 + "' cursor pos by UTF because its target utf must be 0 or higher!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -504,8 +495,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 "Failed to set text widget '" + to_string(ID) 
                 + "' cursor pos by UTF because its target utf slot must be -1 or higher!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -526,8 +516,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 "Failed to set text widget '" + to_string(ID) 
                 + "' cursor pos by UTF because the text widget does not contain UTF '" + to_string(targetUTF) + "'!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -598,8 +587,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 + "' cursor pos by UTF because utf '" + to_string(targetUTF) 
                 + "' was not found at utf slot '" + to_string(targetUTFSlot) + "'!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -633,8 +621,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 "Failed to set text widget '" + to_string(ID) 
                 + "' cursor pos by slot because its target slot must be -1 or higher!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -646,8 +633,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 + "' cursor pos by slot because slot '" + to_string(targetSlot) 
                 + "' exceeds total character count '" + to_string(glyphRasterData.size()) + "'!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -691,8 +677,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 "Failed to set text widget '" + to_string(ID) 
                 + "' highlighted area because first or second was below 0!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -703,8 +688,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 "Failed to set text widget '" + to_string(ID) 
                 + "' highlighted area because first cannot be equal or bigger than second!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -716,8 +700,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 + "' highlighted area because second '" + to_string(newValue.second) 
                 + "' exceeds total character count '" + to_string(glyphRasterData.size()) + "'!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -744,8 +727,7 @@ namespace KalaGraphics::PrimitiveWidgets
             Log::Print(
                 "Failed to set text widget '" + to_string(ID) + "' size because it is already the same!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -768,8 +750,7 @@ namespace KalaGraphics::PrimitiveWidgets
             Log::Print(
                 "Failed to set text widget '" + to_string(ID) + "' line width because it is already the same!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -792,8 +773,7 @@ namespace KalaGraphics::PrimitiveWidgets
             Log::Print(
                 "Failed to set text widget '" + to_string(ID) + "' line height because it is already the same!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -816,8 +796,7 @@ namespace KalaGraphics::PrimitiveWidgets
             Log::Print(
                 "Failed to set text widget '" + to_string(ID) + "' max lines because it is already the same!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -935,8 +914,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 "Failed to remove characters from text widget '" + to_string(ID) 
                 + "' because removal count was 0!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -948,8 +926,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 + "' because start character '" + to_string(startChar) 
                 + "' exceeds total character count '" + to_string(glyphRasterData.size()) + "'!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -961,8 +938,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 + "' because removal count from start character '" + to_string(count) 
                 + "' exceeds total character count '" + to_string(glyphRasterData.size() - startChar) + "'!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1010,8 +986,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 + "' because added character count '" + to_string(newValue.size() + glyphRasterData.size()) 
                 + "' exceeds max character count '" + to_string(maxCharacters) + "'!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1023,8 +998,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 + "' because start character '" + to_string(startChar) 
                 + "' exceeds total character count '" + to_string(glyphRasterData.size()) + "'!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1080,8 +1054,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 "Failed to update text widget '" + to_string(ID) 
                 + "' characters because they are already the same!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1093,8 +1066,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 + "' characters because its character count '" + to_string(newValue.size()) 
                 + "' exceeds max character count '" + to_string(maxCharacters) + "'!",
                 "KG_TEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }

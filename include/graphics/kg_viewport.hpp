@@ -38,6 +38,8 @@ namespace KalaGraphics::Graphics
     using std::filesystem::path;
     using std::default_delete;
 
+    static constexpr u32 MIN_VIEWPORT_SIZE = 50;
+
     enum class ViewportAnchorPosition : u8
     {
         P_DEFAULT = 0,

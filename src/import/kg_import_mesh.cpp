@@ -106,8 +106,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import mesh '" + meshPath.string() + "' because it was not found!",
                 "KG_IMPORT_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -117,8 +116,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import mesh '" + meshPath.string() + "' because it is not a regular file!",
                 "KG_IMPORT_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -130,8 +128,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import mesh '" + meshPath.string() + "' because its extension is not supported!",
                 "KG_IMPORT_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -715,8 +712,7 @@ bool GetPixelData(
                     + "' texture '" + path(image.uri).string() + "' extension '" + ext + "' is unsupported! "
                     "Assigning fallback texture '" + to_string(fallbackID) + "'.",
                     "KG_MESH",
-                    LogType::LOG_ERROR,
-                    2);
+                    LogType::LOG_WARNING);
 
                 return;
             }
@@ -739,8 +735,7 @@ bool GetPixelData(
                 + "' texture '" + path(image.uri).string() + "' was invalid! "
                 "Assigning fallback texture '" + to_string(fallbackID) + "'.",
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
         };
 
     auto verify_image_buffer_view = [
@@ -762,8 +757,7 @@ bool GetPixelData(
                     + "' embedded texture has invalid mime type! "
                     "Assigning fallback texture '" + to_string(fallbackID) + "'.",
                     "KG_MESH",
-                    LogType::LOG_ERROR,
-                    2);
+                    LogType::LOG_WARNING);
 
                 return;
             }
@@ -778,8 +772,7 @@ bool GetPixelData(
                     + "' embedded texture mime type '" + image.mime_type + "' is not supported! "
                     "Assigning fallback texture '" + to_string(fallbackID) + "'.",
                     "KG_MESH",
-                    LogType::LOG_ERROR,
-                    2);
+                    LogType::LOG_WARNING);
 
                 return;
             }
@@ -825,8 +818,7 @@ bool GetPixelData(
                 + "' embedded texture was invalid! "
                 "Assigning fallback texture '" + to_string(fallbackID) + "'.",
                 "KG_MESH",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
         };
 
     if (!texture.image)
@@ -839,8 +831,7 @@ bool GetPixelData(
             + "' texture was invalid! "
             "Assigning fallback texture '" + to_string(fallbackID) + "'.",
             "KG_MESH",
-            LogType::LOG_ERROR,
-            2);
+            LogType::LOG_WARNING);
 
         return true;
     }
@@ -868,8 +859,7 @@ bool GetPixelData(
             + "' texture had no URI or buffer view! "
             "Assigning fallback texture '" + to_string(fallbackID) + "'.",
             "KG_MESH",
-            LogType::LOG_ERROR,
-            2);
+            LogType::LOG_WARNING);
 
         return true;
     }

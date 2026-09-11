@@ -51,8 +51,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import texture '" + texturePath.string() + "' because it was not found!",
                 "KG_IMPORT_TEXTURE",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -62,8 +61,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import texture '" + texturePath.string() + "' because it is not a regular file!",
                 "KG_IMPORT_TEXTURE",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -74,8 +72,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import texture '" + texturePath.string() + "' because its extension is not supported!",
                 "KG_IMPORT_TEXTURE",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -149,8 +146,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import texture from image data because no image data was provided!",
                 "KG_IMPORT_TEXTURE",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }

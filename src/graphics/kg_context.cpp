@@ -246,15 +246,6 @@ static unordered_map<VkResult, VkResultData, EnumHash<VkResult>> vkResultData
     { VK_ERROR_INCOMPATIBLE_SHADER_BINARY_EXT,     { "Incompatible shader binary (EXT)",             Severity::SEVERITY_FATAL } }
 };
 
-static void PrintError(string_view message)
-{
-    Log::Print(
-        message,
-        "KG_CONTEXT",
-        LogType::LOG_ERROR,
-        2);
-}
-
 namespace KalaGraphics::Graphics
 {
     static KalaGraphicsRegistry<GraphicsContext> registry{};
@@ -268,11 +259,10 @@ namespace KalaGraphics::Graphics
     {
         if (!vkResultData.contains((VkResult)result))
         {
-            PrintError("Vulkan result code '" + to_string(result) + "' is invalid!");
-
-            KalaGraphicsCore::ForceClose(
-                std::move(title),
-                std::move(message));
+            Log::Print(
+                "Vulkan result code '" + to_string(result) + "' is invalid!",
+                "KG_CONTEXT",
+                LogType::LOG_WARNING);
         }
 
         if (result == VK_SUCCESS)
@@ -296,7 +286,11 @@ namespace KalaGraphics::Graphics
     {
         if (!vkResultData.contains((VkResult)result))
         {
-            PrintError("Vulkan result code '" + to_string(result) + "' is invalid!");
+            Log::Print(
+                "Vulkan result code '" + to_string(result) + "' is invalid!",
+                "KG_CONTEXT",
+                LogType::LOG_WARNING);
+
             return {};
         }
 
@@ -306,7 +300,11 @@ namespace KalaGraphics::Graphics
     {
         if (!vkResultData.contains((VkResult)result))
         {
-            PrintError("Vulkan result code '" + to_string(result) + "' is invalid!");
+            Log::Print(
+                "Vulkan result code '" + to_string(result) + "' is invalid!",
+                "KG_CONTEXT",
+                LogType::LOG_WARNING);
+
             return {};
         }
 
@@ -321,8 +319,7 @@ namespace KalaGraphics::Graphics
                 "Failed to initialize global graphics context because "
                 "VkInstance has not been assigned!",
                 "KG_CONTEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -332,8 +329,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to initialize global Vulkan because it is already initialized!",
                 "KG_CONTEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -796,8 +792,7 @@ namespace KalaGraphics::Graphics
                 "Failed to initialize graphics context because "
                 "VkInstance has not been assigned!",
                 "KG_CONTEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -808,8 +803,7 @@ namespace KalaGraphics::Graphics
                 "Failed to initialize graphics context because "
                 "global graphics context has not yet been initialized!",
                 "KG_CONTEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -819,8 +813,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to initialize graphics context because no window ID was passed!",
                 "KG_CONTEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -831,8 +824,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to initialize graphics context because no window was passed!",
                 "KG_CONTEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -851,8 +843,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to initialize graphics context because no window or display was passed!",
                 "KG_CONTEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -919,8 +910,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to set vsync state because it already is the same!",
                 "KG_CONTEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1380,7 +1370,10 @@ namespace KalaGraphics::Graphics
 
         if (!isInitialized)
         {
-            PrintError("Failed to recreate swapchain because Vulkan was not initialized!");
+            Log::Print(
+                "Failed to recreate swapchain because Vulkan was not initialized!",
+                "KG_CONTEXT",
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1898,8 +1891,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to get instance because it was not assigned!", 
                 "KG_CONTEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return {};
         }
@@ -1911,7 +1903,10 @@ namespace KalaGraphics::Graphics
     {
         if (!isInitialized)
         {
-            PrintError("Failed to get physical device because Vulkan has not been initialized!");
+            Log::Print(
+                "Failed to get physical device because Vulkan has not been initialized!",
+                "KG_CONTEXT",
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -1922,7 +1917,10 @@ namespace KalaGraphics::Graphics
     {
         if (!isInitialized)
         {
-            PrintError("Failed to get logical device because Vulkan has not been initialized!");
+            Log::Print(
+                "Failed to get logical device because Vulkan has not been initialized!",
+                "KG_CONTEXT",
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -1933,7 +1931,10 @@ namespace KalaGraphics::Graphics
     {
         if (!isInitialized)
         {
-            PrintError("Failed to get VMA allocator because Vulkan has not been initialized!");
+            Log::Print(
+                "Failed to get vma allocator because Vulkan has not been initialized!",
+                "KG_CONTEXT",
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -1944,7 +1945,10 @@ namespace KalaGraphics::Graphics
     {
         if (!isInitialized)
         {
-            PrintError("Failed to get descriptor pool because Vulkan has not been initialized!");
+            Log::Print(
+                "Failed to get descriptor pool because Vulkan has not been initialized!",
+                "KG_CONTEXT",
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -2521,8 +2525,7 @@ namespace KalaGraphics::Graphics
                 "Failed to end single time commands "
                 "because the passed command buffer was invalid!",
                 "KG_CONTEXT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }

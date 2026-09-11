@@ -297,8 +297,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to initialize shader because its viewport was invalid! Reason: " + err,
                 "KG_SHADER",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -310,8 +309,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to initialize shader because its viewports graphics context was invalid! Reason: " + err,
                 "KG_SHADER",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -322,8 +320,7 @@ namespace KalaGraphics::Graphics
                     "Failed to initialize shader because it did not contain a " 
                     + string(shaderType) + " shader file!", 
                     "KG_SHADER",
-                    LogType::LOG_ERROR,
-                    2);
+                    LogType::LOG_WARNING);
             };
         auto bad_ext = [](string_view shaderType) -> void
             {
@@ -331,8 +328,7 @@ namespace KalaGraphics::Graphics
                     "Failed to initialize shader because its " + string(shaderType) 
                     + " shader had a missing or incorrect extension!", 
                     "KG_SHADER",
-                    LogType::LOG_ERROR,
-                    2);
+                    LogType::LOG_WARNING);
             };
         auto invalid_path = [](
             string_view shaderType,
@@ -342,8 +338,7 @@ namespace KalaGraphics::Graphics
                     "Failed to initialize shader because its " + string(shaderType) 
                     + " shader path '" + string(shaderPath) + "' was invalid!", 
                     "KG_SHADER",
-                    LogType::LOG_ERROR,
-                    2);
+                    LogType::LOG_WARNING);
             };
         auto root_shader = [viewportID](const pair<path, path>& shaders) -> void
             {
@@ -353,8 +348,7 @@ namespace KalaGraphics::Graphics
                     "frag shader '" + shaders.second.string() + "' "
                     "are already used in an existing root shader in viewport '" + to_string(viewportID) + "'!", 
                     "KG_SHADER",
-                    LogType::LOG_ERROR,
-                    2);
+                    LogType::LOG_WARNING);
             };
 
         if (vertPath.empty())
@@ -462,8 +456,7 @@ namespace KalaGraphics::Graphics
                 Log::Print(
                     "Failed to initialize shader because " + shaderStage + " was the same as " + it->second + "!", 
                     "KG_SHADER",
-                    LogType::LOG_ERROR,
-                    2);
+                    LogType::LOG_WARNING);
 
                 return nullptr;
             }
@@ -1103,8 +1096,7 @@ namespace KalaGraphics::Graphics
                 + "' because it is a root shader and it is required "
                 "for normal operation of KalaGraphics!",
                 "KG_SHADER",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1134,8 +1126,7 @@ namespace KalaGraphics::Graphics
                         "Failed to delete shader '" + to_string(ID) 
                         + "' because it belongs to the primary 3D camera of viewport '" + to_string(viewportID) + "'!",
                         "KG_SHADER",
-                        LogType::LOG_ERROR,
-                        2);
+                        LogType::LOG_WARNING);
 
                     return;
                 }
@@ -1163,8 +1154,7 @@ namespace KalaGraphics::Graphics
                         "Failed to delete shader '" + to_string(ID) 
                         + "' because it belongs to the primary 2D camera of viewport '" + to_string(viewportID) + "'!",
                         "KG_SHADER",
-                        LogType::LOG_ERROR,
-                        2);
+                        LogType::LOG_WARNING);
 
                     return;
                 }

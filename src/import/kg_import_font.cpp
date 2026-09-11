@@ -103,8 +103,7 @@ namespace KalaGraphics::Import
                 "Failed to get glyph '" + to_string(codepoint) 
                 + "' data because it was not found!",
                 "KG_IMPORT_FONT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return empty;
         }
@@ -121,8 +120,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import font '" + fontPath.string() + "' because its font scale was set to 0!",
                 "KG_IMPORT_FONT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -132,8 +130,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import font '" + fontPath.string() + "' because it was not found!",
                 "KG_IMPORT_FONT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -143,8 +140,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import font '" + fontPath.string() + "' because it is not a regular file!",
                 "KG_IMPORT_FONT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -156,8 +152,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import font '" + fontPath.string() + "' because its extension is not supported!",
                 "KG_IMPORT_FONT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -172,8 +167,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import font '" + fontPath.string() + "'! Reason: " + errMsg,
                 "KG_IMPORT_FONT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_ERROR);
 
             return nullptr;
         }
@@ -240,8 +234,7 @@ namespace KalaGraphics::Import
                 "Failed to get glyph '" + to_string(codepoint) 
                 + "' pixel data because it was not found!",
                 "KG_IMPORT_FONT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return {};
         }
@@ -267,8 +260,7 @@ namespace KalaGraphics::Import
                     "Failed to get glyph '" + to_string(glyphData.codepoint) 
                     + "' pixel data because extent width or height was 0!",
                     "KG_IMPORT_FONT",
-                    LogType::LOG_ERROR,
-                    2);
+                    LogType::LOG_WARNING);
 
                 return {};
             }
@@ -342,8 +334,7 @@ namespace KalaGraphics::Import
                     "Failed to get glyph '" + to_string(glyphData.codepoint) 
                     + "' pixel data because extent width or height was 0!",
                     "KG_IMPORT_FONT",
-                    LogType::LOG_ERROR,
-                    2);
+                    LogType::LOG_WARNING);
 
                 hb_raster_draw_destroy(raster);
 
@@ -447,14 +438,14 @@ namespace KalaGraphics::Import
         GlyphData& glyphData = GetGlyphData(
             fontData,
             codepoint);
+
         if (glyphData.codepoint == 0)
         {
             Log::Print(
                 "Failed to draw glyph '" + to_string(codepoint) 
                 + "' because it was not found!",
                 "KG_IMPORT_FONT",
-                LogType::LOG_ERROR,
-                2);
+                LogType::LOG_WARNING);
 
             return;
         }
