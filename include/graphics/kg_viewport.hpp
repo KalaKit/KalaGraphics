@@ -158,7 +158,7 @@ namespace KalaGraphics::Graphics
 		static KalaGraphicsRegistry<Viewport>& GetRegistry();
 
         KNODISCARD
-		static string_view GetStaticName(ViewportStaticSize vpSize);
+		static string GetStaticName(ViewportStaticSize vpSize);
         KNODISCARD
 		static vec2 GetStaticValue(ViewportStaticSize vpSize);
 

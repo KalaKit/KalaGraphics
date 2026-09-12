@@ -66,7 +66,7 @@ namespace KalaGraphics::Core
         //if the callback is unassigned or invalid then it falls back to the local setup
 		KNORETURN
         static void ForceClose(
-			string&& title,
-			string&& reason);
+			string_view title,
+			string_view reason);
     };
 }

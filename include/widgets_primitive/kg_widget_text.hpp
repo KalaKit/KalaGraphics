@@ -26,6 +26,7 @@ namespace KalaGraphics::PrimitiveWidgets
     using KalaGraphics::Core::KalaGraphicsRegistry;
 
     using std::string;
+    using std::string_view;
     using std::vector;
     using std::pair;
     using std::default_delete;
@@ -44,19 +45,19 @@ namespace KalaGraphics::PrimitiveWidgets
     enum class TextFieldType : u8
     {
         //supports all characters, including emojis
-        F_ANY                    = 0,
+        F_ANY                   = 0,
         //only supports text and numbers
-        F_TEXT_ONLY              = 1,
+        F_TEXT_ONLY             = 1,
         //only supports integers, floats and doubles
-        F_NUMBER_ONLY            = 2,
+        F_NUMBER_ONLY           = 2,
         //only supports integers
-        F_INTEGER_ONLY           = 3,
+        F_INTEGER_ONLY          = 3,
         //only supports floats
-        F_FLOAT_ONLY             = 4,
+        F_FLOAT_ONLY            = 4,
         //only supports floats and doubles
         F_FLOAT_AND_DOUBLE_ONLY = 5,
         //displays written value as stars, supports all characters
-        F_PASSWORD               = 6
+        F_PASSWORD              = 6
     };
 
     enum class TextAlignmentType : u8
@@ -205,6 +206,10 @@ namespace KalaGraphics::PrimitiveWidgets
         //Set max allowed characters of this text, clamped from 1 to MAX_CHARACTERS
         void SetMaxCharacters(u16 newValue);
 
+        //Returns true if this text widget can only contain numbers
+        KNODISCARD
+        bool IsNumberField() const;
+
         //Get the smallest allowed value of this numerical field,
         //only applies to integers, floats and doubles,
         //cannot be set bigger than max
@@ -219,35 +224,56 @@ namespace KalaGraphics::PrimitiveWidgets
         f64 GetNumberMax() const;
         void SetNumberMax(f64 newValue);
 
-        //Get the full stored value as string
+        //Get string converted from UTF characters,
+        //set getDisplayed to true to get displayed text,
+        //otherwise it returns internal real text
         KNODISCARD
-        string GetText() const;
+        string GetText(bool getDisplayed = true) const;
         //Directly append or prepend string to this text widget,
-        //change startChar to decide which character to add from
+        //change startChar to decide which character to add from.
+        //Set addDisplayed to true to add as displayed text,
+        //otherwise it adds to internal real text
         void AddText(
-            string&& newValue,
+            string_view newValue,
             u32 startChar = 0,
-            bool back = true);
+            bool back = true,
+            bool addDisplayed = true);
         //Remove amount of characters from front or back,
-        //change startChar to decide which character to remove from
+        //change startChar to decide which character to remove from.
+        //Set removeDisplayed to true to remove displayed text,
+        //otherwise it removes from internal real text
         void RemoveText(
             u32 count,
             u32 startChar = 0,
-            bool back = true);
-        //Overwrite existing string with new value
-        void SetText(string&& newValue);
+            bool back = true,
+            bool removeDisplayed = true);
+        //Overwrite existing string with new value.
+        //Set setDisplayed to true to set as displayed text,
+        //otherwise it sets as internal real text
+        void SetText(
+            string_view newValue,
+            bool setDisplayed = true);
 
-        //Returns all characters and their data
+        //Returns UTF characters instead of string,
+        //set getDisplayed to true to get displayed text,
+        //otherwise it returns internal real text
         KNODISCARD
-        const vector<GlyphRasterData>& GetUTF() const;
+        vector<u32> GetUTF(bool getDisplayed = true) const;
         //Directly append or prepend UTF to this text widget,
-        //change startChar to decide which character to add from
+        //change startChar to decide which character to add from.
+        //Set addDisplayed to true to add as displayed text,
+        //otherwise it adds to internal real text
         void AddUTF(
             vector<u32>&& newValue,
             u32 startChar = 0,
-            bool back = true);
-        //Overwrite existing UTF with new value
-        void SetUTF(vector<u32>&& newValue);
+            bool back = true,
+            bool addDisplayed = true);
+        //Overwrite existing UTF with new value.
+        //Set setDisplayed to true to set as displayed text,
+        //otherwise it sets as internal real text
+        void SetUTF(
+            vector<u32>&& newValue,
+            bool setDisplayed = true);
     
         void Destroy();
     private:
@@ -282,6 +308,7 @@ namespace KalaGraphics::PrimitiveWidgets
         f64 numberMin = -DBL_MAX;
         f64 numberMax = DBL_MAX;
 
-        vector<GlyphRasterData> glyphRasterData{};
+        vector<GlyphRasterData> displayedText{};
+        vector<u32> realText{};
     };
 }

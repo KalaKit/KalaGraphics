@@ -53,7 +53,7 @@ using std::vector;
 
 static bool isVerboseLoggingEnabled{};
 
-static vector<u32> StringToUTF(string&& input)
+static vector<u32> StringToUTF(string_view input)
 {
     vector<u32> convertedText{};
 
@@ -501,7 +501,7 @@ namespace KalaGraphics::PrimitiveWidgets
         }
 
         bool foundGlyph{};
-        for (const GlyphRasterData& glyph : glyphRasterData)
+        for (const GlyphRasterData& glyph : displayedText)
         {
             if (glyph.utf == scast<u32>(targetUTF))
             {
@@ -530,9 +530,9 @@ namespace KalaGraphics::PrimitiveWidgets
 
             bool foundOld{};
 
-            for (size_t i = 0; i < glyphRasterData.size(); i++)
+            for (size_t i = 0; i < displayedText.size(); i++)
             {
-                const GlyphRasterData& glyph = glyphRasterData[i];
+                const GlyphRasterData& glyph = displayedText[i];
 
                 if (glyph.utf == scast<u32>(targetUTF))
                 {
@@ -563,9 +563,9 @@ namespace KalaGraphics::PrimitiveWidgets
         else
         {
             u32 utfSlot{};
-            for (size_t i = 0; i < glyphRasterData.size(); i++)
+            for (size_t i = 0; i < displayedText.size(); i++)
             {
-                const GlyphRasterData& glyph = glyphRasterData[i];
+                const GlyphRasterData& glyph = displayedText[i];
 
                 if (glyph.utf == scast<u32>(targetUTF))
                 {
@@ -626,12 +626,12 @@ namespace KalaGraphics::PrimitiveWidgets
             return;
         }
 
-        if (scast<u32>(targetSlot) > glyphRasterData.size())
+        if (scast<u32>(targetSlot) > displayedText.size())
         {
             Log::Print(
                 "Failed to set text widget '" + to_string(ID)
                 + "' cursor pos by slot because slot '" + to_string(targetSlot) 
-                + "' exceeds total character count '" + to_string(glyphRasterData.size()) + "'!",
+                + "' exceeds total character count '" + to_string(displayedText.size()) + "'!",
                 "KG_TEXT",
                 LogType::LOG_WARNING);
 
@@ -693,12 +693,12 @@ namespace KalaGraphics::PrimitiveWidgets
             return;
         }
 
-        if (scast<u32>(newValue.second) > glyphRasterData.size())
+        if (scast<u32>(newValue.second) > displayedText.size())
         {
             Log::Print(
                 "Failed to set text widget '" + to_string(ID) 
                 + "' highlighted area because second '" + to_string(newValue.second) 
-                + "' exceeds total character count '" + to_string(glyphRasterData.size()) + "'!",
+                + "' exceeds total character count '" + to_string(displayedText.size()) + "'!",
                 "KG_TEXT",
                 LogType::LOG_WARNING);
 
@@ -816,12 +816,12 @@ namespace KalaGraphics::PrimitiveWidgets
     {
         newValue = clamp(newValue, scast<u16>(1), MAX_CHARACTERS);
 
-        bool needsTruncation = glyphRasterData.size() > newValue;
+        bool needsTruncation = displayedText.size() > newValue;
         string removedStr{};
 
         if (needsTruncation)
         {
-            u16 toBeRemoved = scast<u16>(glyphRasterData.size() - newValue);
+            u16 toBeRemoved = scast<u16>(displayedText.size() - newValue);
             RemoveText(toBeRemoved);
 
             removedStr = 
@@ -835,6 +835,14 @@ namespace KalaGraphics::PrimitiveWidgets
             "Set text widget '" + to_string(ID) + "' max character count to '" + to_string(maxCharacters) + "'!" + removedStr,
             "KG_TEXT",
             LogType::LOG_SUCCESS);
+    }
+
+    bool Text::IsNumberField() const
+    {
+        return fieldType == TextFieldType::F_NUMBER_ONLY
+            || fieldType == TextFieldType::F_INTEGER_ONLY
+            || fieldType == TextFieldType::F_FLOAT_ONLY
+            || fieldType == TextFieldType::F_FLOAT_AND_DOUBLE_ONLY;
     }
 
     f64 Text::GetNumberMin() const { return numberMin; }
@@ -885,33 +893,51 @@ namespace KalaGraphics::PrimitiveWidgets
             LogType::LOG_SUCCESS);
     }
 
-    string Text::GetText() const
+    string Text::GetText(bool getDisplayed) const
     {
         string result{};
 
-        for (const GlyphRasterData& glyph : glyphRasterData)
+        if (getDisplayed)
         {
-            result += GetValueByUTF(glyph.utf);
+            for (const GlyphRasterData& glyph : displayedText)
+            {
+                result += GetValueByUTF(glyph.utf);
+            }
+        }
+        else
+        {
+            for (u32 utf : realText)
+            {
+                result += GetValueByUTF(utf);
+            }
         }
 
         return result;
     }
     void Text::AddText(
-        string&& newValue,
+        string_view newValue,
         u32 startChar,
-        bool back)
+        bool back,
+        bool addDisplayed)
     {
-        AddUTF(StringToUTF(std::move(newValue)), startChar, back);
+        AddUTF(
+            StringToUTF(newValue),
+            startChar,
+            back,
+            addDisplayed);
     }
     void Text::RemoveText(
         u32 count,
         u32 startChar,
-        bool back)
+        bool back,
+        bool removeDisplayed)
     {
+        string textTypeStr = removeDisplayed ? "displayed" : "real";
+
         if (count == 0)
         {
             Log::Print(
-                "Failed to remove characters from text widget '" + to_string(ID) 
+                "Failed to remove " + textTypeStr + " characters from text widget '" + to_string(ID) 
                 + "' because removal count was 0!",
                 "KG_TEXT",
                 LogType::LOG_WARNING);
@@ -919,151 +945,296 @@ namespace KalaGraphics::PrimitiveWidgets
             return;
         }
 
-        if (startChar > glyphRasterData.size())
+        if (removeDisplayed)
         {
-            Log::Print(
-                "Failed to remove characters from text widget '" + to_string(ID)
-                + "' because start character '" + to_string(startChar) 
-                + "' exceeds total character count '" + to_string(glyphRasterData.size()) + "'!",
-                "KG_TEXT",
-                LogType::LOG_WARNING);
+            if (fieldType == TextFieldType::F_PASSWORD)
+            {
+                Log::Print(
+                    "Failed to remove " + textTypeStr + " characters from text widget '" + to_string(ID) 
+                    + "' because password field type doesn't allow editing displayed text!",
+                    "KG_TEXT",
+                    LogType::LOG_WARNING);
 
-            return;
-        }
+                return;
+            }
 
-        if (count > glyphRasterData.size() - startChar)
-        {
-            Log::Print(
-                "Failed to remove characters from text widget '" + to_string(ID) 
-                + "' because removal count from start character '" + to_string(count) 
-                + "' exceeds total character count '" + to_string(glyphRasterData.size() - startChar) + "'!",
-                "KG_TEXT",
-                LogType::LOG_WARNING);
+            if (startChar > displayedText.size())
+            {
+                Log::Print(
+                    "Failed to remove " + textTypeStr + " characters from text widget '" + to_string(ID)
+                    + "' because start character '" + to_string(startChar) 
+                    + "' exceeds total character count '" + to_string(displayedText.size()) + "'!",
+                    "KG_TEXT",
+                    LogType::LOG_WARNING);
 
-            return;
-        }
+                return;
+            }
 
-        if (back)
-        {
-            glyphRasterData.erase(
-                glyphRasterData.end() - startChar - count, 
-                glyphRasterData.end() - startChar);
+            if (count > displayedText.size() - startChar)
+            {
+                Log::Print(
+                    "Failed to remove " + textTypeStr + " characters from text widget '" + to_string(ID) 
+                    + "' because removal count from start character '" + to_string(count) 
+                    + "' exceeds total character count '" + to_string(displayedText.size() - startChar) + "'!",
+                    "KG_TEXT",
+                    LogType::LOG_WARNING);
+
+                return;
+            }
+
+            if (back)
+            {
+                displayedText.erase(
+                    displayedText.end() - startChar - count, 
+                    displayedText.end() - startChar);
+            }
+            else
+            {
+                displayedText.erase(
+                    displayedText.begin() + startChar, 
+                    displayedText.begin() + startChar + count);
+            }
+
+            isTextDirty = true;
         }
         else
         {
-            glyphRasterData.erase(
-                glyphRasterData.begin() + startChar, 
-                glyphRasterData.begin() + startChar + count);
+            if (IsNumberField())
+            {
+                Log::Print(
+                    "Failed to remove " + textTypeStr + " characters from text widget '" + to_string(ID) 
+                    + "' because number field type doesn't allow editing real text!",
+                    "KG_TEXT",
+                    LogType::LOG_WARNING);
+
+                return;
+            }
+
+            if (startChar > realText.size())
+            {
+                Log::Print(
+                    "Failed to remove " + textTypeStr + " characters from text widget '" + to_string(ID)
+                    + "' because start character '" + to_string(startChar) 
+                    + "' exceeds total character count '" + to_string(realText.size()) + "'!",
+                    "KG_TEXT",
+                    LogType::LOG_WARNING);
+
+                return;
+            }
+
+            if (count > realText.size() - startChar)
+            {
+                Log::Print(
+                    "Failed to remove " + textTypeStr + " characters from text widget '" + to_string(ID) 
+                    + "' because removal count from start character '" + to_string(count) 
+                    + "' exceeds total character count '" + to_string(realText.size() - startChar) + "'!",
+                    "KG_TEXT",
+                    LogType::LOG_WARNING);
+
+                return;
+            }
+
+            if (back)
+            {
+                realText.erase(
+                    realText.end() - startChar - count, 
+                    realText.end() - startChar);
+            }
+            else
+            {
+                realText.erase(
+                    realText.begin() + startChar, 
+                    realText.begin() + startChar + count);
+            }
+
+            if (fieldType == TextFieldType::F_PASSWORD)
+            {
+                isTextDirty = true;
+            }
         }
-
-        isTextDirty = true;
-
-        string target = back ? "back" : "front";
 
         if (isVerboseLoggingEnabled)
         {
+            string target = back ? "back" : "front";
+
             Log::Print(
-                "Removed '" + to_string(count) + "' characters from text widget '" + to_string(ID) + "' text " + target + "!",
+                "Removed '" + to_string(count) + "' " + textTypeStr + " characters from text widget '" + to_string(ID) + "' text " + target + "!",
                 "KG_TEXT",
                 LogType::LOG_VERBOSE);
         }
     }
-    void Text::SetText(string&& newValue)
+    void Text::SetText(
+        string_view newValue,
+        bool setDisplayed)
     {   
-        SetUTF(StringToUTF(std::move(newValue)));
+        SetUTF(
+            StringToUTF(newValue),
+            setDisplayed);
     }
 
-    const vector<GlyphRasterData>& Text::GetUTF() const { return glyphRasterData; }
+    vector<u32> Text::GetUTF(bool getDisplayed) const
+    {
+        if (getDisplayed)
+        {
+            vector<u32> result{};
+
+            result.reserve(displayedText.size());
+            for (const GlyphRasterData& glyph : displayedText)
+            {
+                result.push_back(glyph.utf);
+            }
+
+            return result;
+        }
+        else return realText;
+    }
     void Text::AddUTF(
         vector<u32>&& newValue,
         u32 startChar,
-        bool back)
+        bool back,
+        bool addDisplayed)
     {
-        if (newValue.size() + glyphRasterData.size() > maxCharacters)
+        string textTypeStr = addDisplayed ? "displayed" : "real";
+
+        if (addDisplayed)
         {
-            Log::Print(
-                "Failed to add characters to text widget '" + to_string(ID) 
-                + "' because added character count '" + to_string(newValue.size() + glyphRasterData.size()) 
-                + "' exceeds max character count '" + to_string(maxCharacters) + "'!",
-                "KG_TEXT",
-                LogType::LOG_WARNING);
+            if (fieldType == TextFieldType::F_PASSWORD)
+            {
+                Log::Print(
+                    "Failed to add " + textTypeStr + " characters to text widget '" + to_string(ID) 
+                    + "' because password field type doesn't allow editing displayed text!",
+                    "KG_TEXT",
+                    LogType::LOG_WARNING);
 
-            return;
-        }
+                return;
+            }
 
-        if (startChar > glyphRasterData.size())
-        {
-            Log::Print(
-                "Failed to add characters to text widget '" + to_string(ID) 
-                + "' because start character '" + to_string(startChar) 
-                + "' exceeds total character count '" + to_string(glyphRasterData.size()) + "'!",
-                "KG_TEXT",
-                LogType::LOG_WARNING);
+            if (newValue.size() + displayedText.size() > maxCharacters)
+            {
+                Log::Print(
+                    "Failed to add " + textTypeStr + " characters to text widget '" + to_string(ID) 
+                    + "' because added character count '" + to_string(newValue.size() + displayedText.size()) 
+                    + "' exceeds max character count '" + to_string(maxCharacters) + "'!",
+                    "KG_TEXT",
+                    LogType::LOG_WARNING);
 
-            return;
-        }
+                return;
+            }
 
-        string target = back ? "back" : "front";
+            if (startChar > displayedText.size())
+            {
+                Log::Print(
+                    "Failed to add " + textTypeStr + " characters to text widget '" + to_string(ID) 
+                    + "' because start character '" + to_string(startChar) 
+                    + "' exceeds total character count '" + to_string(displayedText.size()) + "'!",
+                    "KG_TEXT",
+                    LogType::LOG_WARNING);
 
-        vector<GlyphRasterData> newData{};
-        newData.reserve(newValue.size());
-        for (const u32 utf : newValue)
-        {
-            newData.push_back({ .utf = utf });
-        }
+                return;
+            }
 
-        if (back)
-        {
-            //append to back
-            glyphRasterData.insert(
-                glyphRasterData.end() - startChar,
-                newData.begin(),
-                newData.end());
+            vector<GlyphRasterData> newData{};
+            newData.reserve(newValue.size());
+            for (const u32 utf : newValue)
+            {
+                newData.push_back({ .utf = utf });
+            }
+
+            if (back)
+            {
+                displayedText.insert(
+                    displayedText.end() - startChar,
+                    newData.begin(),
+                    newData.end());
+            }
+            else
+            {
+                displayedText.insert(
+                    displayedText.begin() + startChar,
+                    newData.begin(),
+                    newData.end());
+            }
+
+            isTextDirty = true;
         }
         else
         {
-            //prepend to front
-            glyphRasterData.insert(
-                glyphRasterData.begin() + startChar,
-                newData.begin(),
-                newData.end());
-        }
+            if (IsNumberField())
+            {
+                Log::Print(
+                    "Failed to add " + textTypeStr + " characters to text widget '" + to_string(ID) 
+                    + "' because number field type doesn't allow editing real text!",
+                    "KG_TEXT",
+                    LogType::LOG_WARNING);
 
-        isTextDirty = true;
+                return;
+            }
+
+            if (newValue.size() + realText.size() > maxCharacters)
+            {
+                Log::Print(
+                    "Failed to add " + textTypeStr + " characters to text widget '" + to_string(ID) 
+                    + "' because added character count '" + to_string(newValue.size() + realText.size()) 
+                    + "' exceeds max character count '" + to_string(maxCharacters) + "'!",
+                    "KG_TEXT",
+                    LogType::LOG_WARNING);
+
+                return;
+            }
+
+            if (startChar > realText.size())
+            {
+                Log::Print(
+                    "Failed to add " + textTypeStr + " characters to text widget '" + to_string(ID) 
+                    + "' because start character '" + to_string(startChar) 
+                    + "' exceeds total character count '" + to_string(realText.size()) + "'!",
+                    "KG_TEXT",
+                    LogType::LOG_WARNING);
+
+                return;
+            }
+            if (back)
+            {
+                realText.insert(
+                    realText.end() - startChar,
+                    newValue.begin(),
+                    newValue.end());
+            }
+            else
+            {
+                realText.insert(
+                    realText.begin() + startChar,
+                    newValue.begin(),
+                    newValue.end());
+            }
+
+            if (fieldType == TextFieldType::F_PASSWORD)
+            {
+                isTextDirty = true;
+            }
+        }
 
         if (isVerboseLoggingEnabled)
         {
+            string target = back ? "back" : "front";
+
             Log::Print(
-                "Added new characters to text widget '" + to_string(ID) + "' " + target + "!",
+                "Added new " + textTypeStr + " characters to text widget '" + to_string(ID) + "' " + target + "!",
                 "KG_TEXT",
                 LogType::LOG_VERBOSE);
         }
     }
-    void Text::SetUTF(vector<u32>&& newValue)
+    void Text::SetUTF(
+        vector<u32>&& newValue,
+        bool setDisplayed)
     {
-        vector<u32> existingUTFs{};
-        existingUTFs.reserve(glyphRasterData.size());
-        for (const GlyphRasterData& data : glyphRasterData)
-        {
-            existingUTFs.push_back(data.utf);
-        }
-
-        if (newValue == existingUTFs)
-        {
-            Log::Print(
-                "Failed to update text widget '" + to_string(ID) 
-                + "' characters because they are already the same!",
-                "KG_TEXT",
-                LogType::LOG_WARNING);
-
-            return;
-        }
+        string textTypeStr = setDisplayed ? "displayed" : "real";
 
         if (newValue.size() > maxCharacters)
         {
             Log::Print(
                 "Failed to update text widget '" + to_string(ID) 
-                + "' characters because its character count '" + to_string(newValue.size()) 
+                + "' " + textTypeStr + " characters because its character count '" + to_string(newValue.size()) 
                 + "' exceeds max character count '" + to_string(maxCharacters) + "'!",
                 "KG_TEXT",
                 LogType::LOG_WARNING);
@@ -1071,21 +1242,84 @@ namespace KalaGraphics::PrimitiveWidgets
             return;
         }
 
-        vector<GlyphRasterData> newData{};
-        newData.reserve(newValue.size());
-        for (const u32 utf : newValue)
+        if (setDisplayed)
         {
-            newData.push_back({ .utf = utf });
+            if (fieldType == TextFieldType::F_PASSWORD)
+            {
+                Log::Print(
+                    "Failed to update text widget '" + to_string(ID) 
+                    + "' " + textTypeStr + " characters because password field type doesn't allow editing displayed text!",
+                    "KG_TEXT",
+                    LogType::LOG_WARNING);
+
+                return;
+            }
+
+            vector<u32> existingUTFs{};
+            existingUTFs.reserve(displayedText.size());
+            for (const GlyphRasterData& data : displayedText)
+            {
+                existingUTFs.push_back(data.utf);
+            }
+
+            if (newValue == existingUTFs)
+            {
+                Log::Print(
+                    "Failed to update text widget '" + to_string(ID) 
+                    + "' " + textTypeStr + " characters because they are already the same!",
+                    "KG_TEXT",
+                    LogType::LOG_WARNING);
+
+                return;
+            }
+
+            vector<GlyphRasterData> newData{};
+            newData.reserve(newValue.size());
+            for (const u32 utf : newValue)
+            {
+                newData.push_back({ .utf = utf });
+            }
+
+            displayedText = std::move(newData);
+
+            isTextDirty = true;
         }
+        else
+        {
+            if (IsNumberField())
+            {
+                Log::Print(
+                    "Failed to update text widget '" + to_string(ID) 
+                    + "' " + textTypeStr + " characters because number field type doesn't allow editing real text!",
+                    "KG_TEXT",
+                    LogType::LOG_WARNING);
 
-        glyphRasterData = std::move(newData);
+                return;
+            }
 
-        isTextDirty = true;
+            if (newValue == realText)
+            {
+                Log::Print(
+                    "Failed to update text widget '" + to_string(ID) 
+                    + "' " + textTypeStr + " characters because they are already the same!",
+                    "KG_TEXT",
+                    LogType::LOG_WARNING);
+
+                return;
+            }
+
+            realText = std::move(newValue);
+
+            if (fieldType == TextFieldType::F_PASSWORD)
+            {
+                isTextDirty = true;
+            }
+        }
 
         if (isVerboseLoggingEnabled)
         {
             Log::Print(
-                "Overwrote text widget '" + to_string(ID) + "' characters!",
+                "Overwrote text widget '" + to_string(ID) + "' " + textTypeStr + " characters!",
                 "KG_TEXT",
                 LogType::LOG_VERBOSE);
         }
@@ -1125,7 +1359,7 @@ namespace KalaGraphics::PrimitiveWidgets
                 + to_string(meshID) + "' was invalid! Reason: " + err);
         }
 
-        if (glyphRasterData.empty())
+        if (displayedText.empty())
         {
             Shader* first = Shader::GetRegistry().GetAllContent().front();
             Texture* rootTex{};
@@ -1153,7 +1387,7 @@ namespace KalaGraphics::PrimitiveWidgets
             i32 maxX{};
 
             //calculate width
-            for (GlyphRasterData& glyph : glyphRasterData)
+            for (GlyphRasterData& glyph : displayedText)
             {
                 GlyphData& glyphData = font->GetGlyphData(
                     font->GetFontData(),
@@ -1191,7 +1425,7 @@ namespace KalaGraphics::PrimitiveWidgets
             vector<u8> finalPixels(finalWidth * finalHeight, 0);
 
             //copy glyphs into final texture
-            for (const GlyphRasterData& glyph : glyphRasterData)
+            for (const GlyphRasterData& glyph : displayedText)
             {
                 vector<u8> glyphPixelData = font->GetGlyphPixelData(glyph.utf);
 

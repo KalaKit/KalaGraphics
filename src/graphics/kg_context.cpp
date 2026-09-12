@@ -253,8 +253,8 @@ namespace KalaGraphics::Graphics
     KalaGraphicsRegistry<GraphicsContext>& GraphicsContext::GetRegistry() { return registry; }
 
     void GraphicsContext::ForceClose(
-        string&& title,
-        string&& message,
+        string_view title,
+        string_view message,
         int result)
     {
         if (!vkResultData.contains((VkResult)result))
@@ -268,14 +268,14 @@ namespace KalaGraphics::Graphics
         if (result == VK_SUCCESS)
         {
             KalaGraphicsCore::ForceClose(
-                std::move(title),
-                std::move(message));
+                title,
+                message);
         }
         else
         {
             KalaGraphicsCore::ForceClose(
-                std::move(title),
-                std::move(message) + "\nReason: " + GetVkResultMessage(result));
+                title,
+                string(message) + "\nReason: " + GetVkResultMessage(result));
         }
     }
 

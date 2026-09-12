@@ -504,7 +504,7 @@ namespace KalaGraphics::Graphics
                     {
                         KalaGraphicsCore::ForceClose(
                             "KalaGraphics shader error",
-                            std::move(message));
+                            message);
                     }
                     else
                     {
@@ -787,7 +787,7 @@ namespace KalaGraphics::Graphics
                 {
                     KalaGraphicsCore::ForceClose(
                         "KalaGraphics shader error", 
-                        std::move(message));
+                        message);
                 }
                 else
                 {
@@ -862,7 +862,7 @@ namespace KalaGraphics::Graphics
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics shader error",
-                    std::move(message));
+                    message);
             }
             else
             {
@@ -973,7 +973,7 @@ namespace KalaGraphics::Graphics
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics shader error",
-                    std::move(message));
+                    message);
             }
             else
             {

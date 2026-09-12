@@ -93,10 +93,10 @@ namespace KalaGraphics::Core
 	}
 
     void KalaGraphicsCore::ForceClose(
-		string&& target,
-		string&& reason)
+		string_view target,
+		string_view reason)
 	{
-		if (externalHandler) externalHandler(std::move(target), std::move(reason));
+		if (externalHandler) externalHandler(string(target), string(reason));
 		else
 		{
 			Log::Print(
@@ -106,8 +106,8 @@ namespace KalaGraphics::Core
 				true);
 
 			Log::Print(
-				std::move(reason),
-				std::move(target),
+				reason,
+				target,
 				LogType::LOG_ERROR,
 				2,
 				true,

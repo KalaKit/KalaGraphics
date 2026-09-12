@@ -157,7 +157,7 @@ namespace KalaGraphics::Graphics
 
     KalaGraphicsRegistry<Viewport>& Viewport::GetRegistry() { return registry; }
 
-    string_view Viewport::GetStaticName(ViewportStaticSize vpSize)
+    string Viewport::GetStaticName(ViewportStaticSize vpSize)
     {   
         string_view out{};
         string err = EnumToString(vpSize, vpNames, out);
@@ -168,10 +168,10 @@ namespace KalaGraphics::Graphics
                 "KG_VIEWPORT",
                 LogType::LOG_WARNING);
 
-            return {};
+            return "";
         }
 
-        return out;
+        return string(out);
     }
     vec2 Viewport::GetStaticValue(ViewportStaticSize vpSize)
     {
