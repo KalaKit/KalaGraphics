@@ -64,6 +64,9 @@ static bool isVerboseLoggingEnabled{};
 //which text widget did we start dragging from
 static u32 dragStartTextWidget{};
 
+//cursor width is always 4 pixels
+static constexpr u8 cursorWidth = 4;
+
 static vector<u32> StringToUTF(string_view input)
 {
     vector<u32> convertedText{};
@@ -1340,15 +1343,6 @@ namespace KalaGraphics::PrimitiveWidgets
 
     void Text::Update()
     {
-        bool hasInputUpdate{};
-
-        //TODO: use cursor pos to verify if text field is active
-        //if (!canEdit
-        //    || cursorData.characterSlot == -1)
-        //{
-        //    return;
-        //}
-
         ImportFont* font{};
         string err = ImportFont::GetRegistry().GetContent(fontID, font);
         if (!err.empty())
@@ -1357,91 +1351,6 @@ namespace KalaGraphics::PrimitiveWidgets
                 "KalaGraphics text widget error",
                 "Failed to update text widget '" + to_string(ID) + "' because its font '" 
                 + to_string(fontID) + "' was invalid! Reason: " + err);
-        }
-
-        bool pressedEnter = ContainsValue(GraphicsContext::GetPressedKeys(), KeyboardButton::K_RETURN);
-
-        u32 pressedChar = GraphicsContext::GetModifierChar(); 
-
-        if (pressedChar != 0
-            || GraphicsContext::GetBackspaceState()
-            || GraphicsContext::GetTabState()
-            || pressedEnter)
-        {
-            if (pressedChar != 0)
-            {
-                bool containsGlyph{};
-                bool emptyGlyph{};
-                for (const GlyphData& gd : font->GetFontData().glyphs)
-                {
-                    if (gd.codepoint == pressedChar)
-                    {
-                        containsGlyph = true;
-
-                        if (gd.size == 0
-                            && gd.codepoint != 0x0020  //space
-                            && gd.codepoint != 0x00A0) //non-breaking space
-                        {
-                            emptyGlyph = true;
-                        }
-
-                        break;
-                    }
-                }
-
-                if (containsGlyph)
-                {
-                    if (!emptyGlyph)
-                    {
-                        //Log::Print("@@@@@ found utf: " + to_string(pressedChar));
-
-                        AddUTF({ pressedChar });
-                    }
-                    else
-                    {
-                        Log::Print("@@@@@ found empty utf: " + to_string(pressedChar));
-
-                        AddUTF({ 0x003F }); //fallback ?
-                    }
-                }
-                else
-                {
-                    Log::Print("@@@@@ did not find utf: " + to_string(pressedChar));
-
-                    AddUTF({ 0x003F }); //fallback ?
-                }
-
-                hasInputUpdate = true;
-            }
-
-            if (GraphicsContext::GetBackspaceState()
-                && displayedText.size() > 0)
-            {
-                RemoveText(1);
-                hasInputUpdate = true;
-            }
-            if (GraphicsContext::GetTabState()
-                && displayedText.size() + 1 < maxCharacters)
-            {
-                //four spaces for tab
-                AddUTF(
-                {
-                    0x0020,
-                    0x0020,
-                    0x0020,
-                    0x0020
-                });
-
-                hasInputUpdate = true;
-            }
-
-            //single-line fields can never add a return value
-            if (pressedEnter
-                && maxLines > 1)
-            {
-                AddUTF({ 0x0A });
-                hasInputUpdate = true;
-            }
         }
 
         Texture* tex{};
@@ -1475,7 +1384,6 @@ namespace KalaGraphics::PrimitiveWidgets
         }
 
         if (!isTextDirty
-            && !hasInputUpdate
             && !hasSizeUpdate)
         {
             return;
@@ -1546,6 +1454,11 @@ namespace KalaGraphics::PrimitiveWidgets
             }
 
             maxX = max(maxX, scast<i32>(penPos.x));
+
+            for (GlyphRasterData& glyph : displayedText)
+            {
+                glyph.penPos.x -= minX;
+            }
 
             /*
             Log::Print(
@@ -1643,56 +1556,83 @@ namespace KalaGraphics::PrimitiveWidgets
                 + "' cursor because its texture was invalid! Reason: " + err);
         }
 
+        ImportFont* font{};
+        err = ImportFont::GetRegistry().GetContent(fontID, font);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics text widget error",
+                "Failed to update text widget '" + to_string(ID)
+                + "' cursor because its font '" + to_string(fontID) + "' was invalid! Reason: " + err);
+        }
+
         i32 textureWidth = scast<i32>(tex->GetSize().x);
         i32 textureHeight = scast<i32>(tex->GetSize().y);
+
+        //cursor height is derived from texture height for now...
+        //TODO: make it follow line height
+        u32 cursorHeight = scast<u32>(textureHeight * 0.8f);
 
         auto cursor_on = [
             tex,
             textureWidth,
             textureHeight,
-            this]() -> void
+            cursorHeight,
+            this,
+            font]() -> void
             {
-                i32 startX = scast<i32>(cursorData.pos.x) - CURSOR_WIDTH_PX / 2;
-                i32 startY = scast<i32>(cursorData.pos.y) - CURSOR_HEIGHT_PX / 2;
+                //position cursor from logical character slot
+                if (cursorData.isCursorPosDirty)
+                {
+                    Log::Print("@@@@@ cursor was dirty...");
+
+                    if (cursorData.characterSlot == 0)
+                    {
+                        if (displayedText.empty())
+                        {
+                            cursorData.pos.x = textureWidth * 0.5f;
+                        }
+                        else
+                        {
+                            cursorData.pos.x = displayedText[0].penPos.x;
+                        }
+                    }
+                    else if (scast<u32>(cursorData.characterSlot) < displayedText.size())
+                    {
+                        cursorData.pos.x = displayedText[cursorData.characterSlot].penPos.x;
+                    }
+                    else if (!displayedText.empty())
+                    {
+                        const GlyphRasterData& last = displayedText.back();
+                        const GlyphData* glyphData = font->GetGlyphData(
+                            font->GetFontData(),
+                            last.utf);
+
+                        cursorData.pos.x = last.penPos.x + glyphData->advance;
+                    }
+
+                    cursorData.isCursorPosDirty = false;
+                }
+
+                i32 startX = scast<i32>(cursorData.pos.x) - cursorWidth / 2;
+                i32 startY = scast<i32>(cursorData.pos.y) - cursorHeight / 2;
 
                 startX = clamp(
                     startX, 
                     0, 
-                    scast<i32>(tex->GetSize().x) - CURSOR_WIDTH_PX);
+                    scast<i32>(tex->GetSize().x) - cursorWidth);
 
                 startY = clamp(
                     startY, 
                     0, 
-                    scast<i32>(tex->GetSize().y) - CURSOR_HEIGHT_PX);
+                    scast<i32>(tex->GetSize().y) - scast<i32>(cursorHeight));
 
                 vector<u8> pixels = tex->GetPixelData();
 
-                /*
-                Log::Print(
-                    "@@@@@\n"
-                    "  cursor pos: "
-                    + to_string(cursorData.pos.x) + ", "
-                    + to_string(cursorData.pos.y) + "\n"
-                    "  cursor start: "
-                    + to_string(startX) + ", "
-                    + to_string(startY) + "\n"
-                    "  texture size: "
-                    + to_string(textureWidth) + ", "
-                    + to_string(textureHeight));
-                */
-
-                /*
-                Log::Print(
-                    "@@@@@ cursor on pixel data size: "
-                    + to_string(pixels.size())
-                    + ", expected R8 size: "
-                    + to_string(textureWidth * textureHeight));
-                */
-
                 cursorData.cursorBackPixels.clear();
                 cursorData.cursorBackPixels.reserve(
-                    CURSOR_WIDTH_PX
-                    * CURSOR_HEIGHT_PX);
+                    cursorWidth
+                    * cursorHeight);
 
                 cursorData.cursorBackPos = 
                 {
@@ -1700,9 +1640,9 @@ namespace KalaGraphics::PrimitiveWidgets
                     scast<f32>(startY)
                 };
 
-                for (u8 y = 0; y < CURSOR_HEIGHT_PX; y++)
+                for (u32 y = 0; y < cursorHeight; y++)
                 {
-                    for (u8 x = 0; x < CURSOR_WIDTH_PX; x++)
+                    for (u32 x = 0; x < cursorWidth; x++)
                     {
                         u32 pixelX = scast<u32>(startX + x);
                         u32 pixelY = scast<u32>(startY + y);
@@ -1742,9 +1682,9 @@ namespace KalaGraphics::PrimitiveWidgets
 
                         bool border = 
                             x == 0
-                            || x == CURSOR_WIDTH_PX - 1
+                            || x == cursorWidth - 1
                             || y == 0
-                            || y == CURSOR_HEIGHT_PX - 1;
+                            || y == cursorHeight - 1;
 
                         pixels[index] = border ? 0 : 255;
                     }
@@ -1757,6 +1697,7 @@ namespace KalaGraphics::PrimitiveWidgets
             tex,
             textureWidth,
             textureHeight,
+            cursorHeight,
             this]() -> void
             {
                 vector<u8> pixels = tex->GetPixelData();
@@ -1774,9 +1715,9 @@ namespace KalaGraphics::PrimitiveWidgets
 
                 u32 backPixelIndex{};
                 
-                for (u8 y = 0; y < CURSOR_HEIGHT_PX; y++)
+                for (u32 y = 0; y < cursorHeight; y++)
                 {
-                    for (u8 x = 0; x < CURSOR_WIDTH_PX; x++)
+                    for (u32 x = 0; x < cursorWidth; x++)
                     {
                         u32 pixelX = scast<u32>(backStartX + x);
                         u32 pixelY = scast<u32>(backStartY + y);
@@ -1853,7 +1794,7 @@ namespace KalaGraphics::PrimitiveWidgets
 
         if (!canEdit)
         {
-            if (cursorData.pos != 0)
+            if (cursorData.characterSlot != -1)
             {
                 cursor_off();
                 cursorData = {};   
@@ -1862,9 +1803,248 @@ namespace KalaGraphics::PrimitiveWidgets
             return;
         }
 
+        if (cursorData.characterSlot != -1)
+        {
+            bool pressedEnter = ContainsValue(GraphicsContext::GetPressedKeys(), KeyboardButton::K_RETURN);
+
+            u32 pressedChar = GraphicsContext::GetModifierChar(); 
+
+            if (pressedChar != 0
+                || GraphicsContext::GetBackspaceState()
+                || GraphicsContext::GetTabState()
+                || GraphicsContext::GetLeftArrowState()
+                || GraphicsContext::GetRightArrowState()
+                || GraphicsContext::GetUpArrowState()
+                || GraphicsContext::GetDownArrowState()
+                || pressedEnter)
+            {
+                if (pressedChar != 0)
+                {
+                    cursor_off();
+
+                    bool containsGlyph{};
+                    bool emptyGlyph{};
+                    for (const GlyphData& gd : font->GetFontData().glyphs)
+                    {
+                        if (gd.codepoint == pressedChar)
+                        {
+                            containsGlyph = true;
+
+                            if (gd.size == 0
+                                && gd.codepoint != 0x0020  //space
+                                && gd.codepoint != 0x00A0) //non-breaking space
+                            {
+                                emptyGlyph = true;
+                            }
+
+                            break;
+                        }
+                    }
+
+                    if (containsGlyph)
+                    {
+                        if (!emptyGlyph)
+                        {
+                            //Log::Print("@@@@@ found utf: " + to_string(pressedChar));
+
+                            AddUTF(
+                                { pressedChar },
+                                cursorData.characterSlot,
+                                false);
+                        }
+                        else
+                        {
+                            Log::Print("@@@@@ found empty utf: " + to_string(pressedChar));
+
+                            //fallback ?
+                            AddUTF(
+                                { 0x003F },
+                                cursorData.characterSlot,
+                                false);
+                        }
+                    }
+                    else
+                    {
+                        Log::Print("@@@@@ did not find utf: " + to_string(pressedChar));
+
+                        //fallback ?
+                        AddUTF(
+                            { 0x003F },
+                            cursorData.characterSlot,
+                            false);
+                    }
+
+                    cursorData.characterSlot++;
+                    cursorData.isCursorPosDirty = true;
+
+                    cursorData.timeSinceLastStateSwitch = CURSOR_BLINK_INTERVAL_S;
+                    cursorData.isCursorOn = false;
+                }
+
+                if (GraphicsContext::GetBackspaceState()
+                    && displayedText.size() > 0
+                    && cursorData.characterSlot > 0)
+                {
+                    cursor_off();
+
+                    RemoveText(
+                        1, 
+                        cursorData.characterSlot - 1,
+                        false);
+
+                    cursorData.characterSlot--;
+                    cursorData.isCursorPosDirty = true;
+
+                    cursorData.timeSinceLastStateSwitch = CURSOR_BLINK_INTERVAL_S;
+                    cursorData.isCursorOn = false;
+                }
+
+                if (GraphicsContext::GetTabState()
+                    && displayedText.size() + 4 <= maxCharacters)
+                {
+                    cursor_off();
+
+                    //four spaces for tab
+                    AddUTF(
+                        {
+                            0x0020,
+                            0x0020,
+                            0x0020,
+                            0x0020
+                        },
+                        cursorData.characterSlot,
+                        false);
+
+                    cursorData.isCursorPosDirty = true;
+                    cursorData.characterSlot += 4;
+
+                    cursorData.timeSinceLastStateSwitch = CURSOR_BLINK_INTERVAL_S;
+                    cursorData.isCursorOn = false;
+                }
+
+                auto is_space = [](u32 utf) -> bool
+                    {
+                        return utf == 0x0020;
+                    };
+                auto is_dot = [](u32 utf) -> bool
+                    {
+                        return utf == 0x002E;
+                    };
+
+                //space or dot
+                auto is_separator = [is_space, is_dot](u32 utf) -> bool
+                    {
+                        return is_space(utf) || is_dot(utf);
+                    };
+
+                //move cursor left
+                if (GraphicsContext::GetLeftArrowState()
+                    && cursorData.characterSlot > 0)
+                {
+                    cursor_off();
+
+                    if (!ContainsValue(GraphicsContext::GetHeldKeys(), KeyboardButton::K_LEFT_CTRL))
+                    {
+                        cursorData.characterSlot--;
+                    }
+                    else
+                    {
+                        i32 targetSlot{};
+                        i32 i = cursorData.characterSlot - 1;
+
+                        //skip all spaces between words
+                        while (i >= 0
+                            && is_space(displayedText[i].utf))
+                        {
+                            i--;
+                        }
+
+                        //skip one adjacent dot
+                        if (i >= 0
+                            && is_dot(displayedText[i].utf))
+                        {
+                            i--;
+                        }
+
+                        for (; i >= 0; i--)
+                        {
+                            if (is_separator(displayedText[i].utf))
+                            {
+                                targetSlot = i + 1;
+                                break;
+                            }
+                        }
+
+                        cursorData.characterSlot = targetSlot;
+                    }
+
+                    cursorData.isCursorPosDirty = true;
+
+                    cursorData.timeSinceLastStateSwitch = CURSOR_BLINK_INTERVAL_S;
+                    cursorData.isCursorOn = false;
+                }
+
+                //move cursor right
+                if (GraphicsContext::GetRightArrowState()
+                    && scast<u32>(cursorData.characterSlot) < displayedText.size())
+                {
+                    cursor_off();
+
+                    if (!ContainsValue(GraphicsContext::GetHeldKeys(), KeyboardButton::K_LEFT_CTRL))
+                    {
+                        cursorData.characterSlot++;
+                    }
+                    else
+                    {
+                        i32 targetSlot = displayedText.size();
+                        i32 i = cursorData.characterSlot;
+
+                        //skip all spaces between words
+                        while (i < scast<i32>(displayedText.size())
+                            && is_space(displayedText[i].utf))
+                        {
+                            i++;
+                        }
+
+                        //skip one adjacent dot
+                        if (i < scast<i32>(displayedText.size())
+                            && is_dot(displayedText[i].utf))
+                        {
+                            i++;
+                        }
+
+                        for (; i < scast<i32>(displayedText.size()); i++)
+                        {
+                            if (is_separator(displayedText[i].utf))
+                            {
+                                targetSlot = i;
+                                break;
+                            }
+                        }
+
+                        cursorData.characterSlot = targetSlot;
+                    }
+
+                    cursorData.isCursorPosDirty = true;
+
+                    cursorData.timeSinceLastStateSwitch = CURSOR_BLINK_INTERVAL_S;
+                    cursorData.isCursorOn = false;
+                }
+
+                //single-line fields can never add a return value
+                if (pressedEnter
+                    && maxLines > 1)
+                {
+                    AddUTF({ 0x0A });
+
+                    cursorData.isCursorPosDirty = true;
+                }
+            }   
+        }
+
         //clear cursor if clicked or dragged away from text field
         if (!m->IsHovered()
-            && cursorData.pos != 0
+            && cursorData.characterSlot != -1
             && (ContainsValue(GraphicsContext::GetPressedMouseButtons(), MouseButton::M_LEFT)
             || ContainsValue(GraphicsContext::GetDraggingMouseButtons(), MouseButton::M_LEFT)))
         {
@@ -1927,11 +2107,12 @@ namespace KalaGraphics::PrimitiveWidgets
             Log::Print("@@@@@ clicked on text widget...");
 
             //clear old cursor data
-            if (cursorData.pos != 0)
+            if (cursorData.characterSlot != -1)
             {
                 cursor_off();
                 cursorData = {};
             }
+            cursorData.isCursorPosDirty = true;
 
             dragStartTextWidget = 0;
 
@@ -1946,36 +2127,46 @@ namespace KalaGraphics::PrimitiveWidgets
                 pos.y - size.y * 0.5f
             };
 
-            cursorData.pos = 
+            vec2 clickPos = 
             {
                 mousePos.x - meshStart.x,
                 mousePos.y - meshStart.y
             };
 
-            /*
-            Log::Print(
-                "@@@@@\n"
-                "  mouse pos: "
-                + to_string(mousePos.x) + ", "
-                + to_string(mousePos.y) + "\n"
-                "  mesh pos: "
-                + to_string(pos.x) + ", "
-                + to_string(pos.y) + "\n"
-                "  mesh size: "
-                + to_string(size.x) + ", "
-                + to_string(size.y) + "\n"
-                "  mesh start: "
-                + to_string(meshStart.x) + ", "
-                + to_string(meshStart.y) + "\n"
-                "  cursor pos: "
-                + to_string(cursorData.pos.x) + ", "
-                + to_string(cursorData.pos.y));
-            */
+            if (displayedText.empty())
+            {
+                cursorData.characterSlot = 0;
+            }
+            else
+            {
+                f32 clickX = clickPos.x;
+                f32 closestDistance = FLT_MAX;
 
-            cursorData.characterSlot = 0; //TODO: replace with actual character slot
+                for (u32 i = 0; i < displayedText.size(); i++)
+                {
+                    f32 distance = fabsf(clickX - displayedText[i].penPos.x);
 
-            cursorData.isCursorOn = true;
-            cursor_on();
+                    if (distance < closestDistance)
+                    {
+                        closestDistance = distance;
+
+                        cursorData.characterSlot = scast<i32>(i);
+                    }
+                }
+
+                const GlyphRasterData& last = displayedText.back();
+
+                f32 endX = last.glyphPos.x + fabsf(last.glyphSize.x);
+                f32 distance = fabsf(clickX - endX);
+
+                if (distance < closestDistance)
+                {
+                    cursorData.characterSlot = scast<i32>(displayedText.size());
+                }
+            }
+
+            cursorData.timeSinceLastStateSwitch = CURSOR_BLINK_INTERVAL_S;
+            cursorData.isCursorOn = false;
         }
         //start highlighting
         else

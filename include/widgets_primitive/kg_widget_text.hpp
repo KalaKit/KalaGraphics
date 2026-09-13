@@ -41,9 +41,7 @@ namespace KalaGraphics::PrimitiveWidgets
     static constexpr f32 MAX_TEXT_MULTIPLIER_SIZE = 10.0f;
     static constexpr f32 MIN_TEXT_MULTIPLIER_SIZE = 0.1f;
 
-    static constexpr u8 CURSOR_WIDTH_PX = 4;
-    static constexpr u8 CURSOR_HEIGHT_PX = 32;
-    static constexpr f64 CURSOR_BLINK_INTERVAL_S = 1.0;
+    static constexpr f64 CURSOR_BLINK_INTERVAL_S = 0.5;
 
     enum class TextClipType : u8
     {
@@ -107,6 +105,8 @@ namespace KalaGraphics::PrimitiveWidgets
         //which line are we currently on, 1 is top line, 0 is invalid
         u32 line = 1;
 
+        //do we need to move cursor position
+        bool isCursorPosDirty = true;
         //center of cursor
         vec2 pos{};
 

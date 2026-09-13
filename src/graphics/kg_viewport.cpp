@@ -1660,7 +1660,6 @@ namespace KalaGraphics::Graphics
                         }
                         */
 
-                        
                         if (m->textWidgetID != 0)
                         {
                             Text* t{};
