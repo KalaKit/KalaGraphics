@@ -161,6 +161,45 @@ namespace KalaGraphics::Graphics
         KNODISCARD
 		static Severity GetVkResultSeverity(int result);
 
+        static u32 GetPressedChar();
+        static void SetPressedChar(u32 newValue);
+
+        static bool GetBackspaceState();
+        static void SetBackspaceState(bool newValue);
+
+        static bool GetTabState();
+        static void SetTabState(bool newValue);
+
+        static bool GetReturnState();
+        static void SetReturnState(bool newValue);
+
+        static const vector<KeyboardButton>& GetHeldKeys();
+        static void SetHeldKeys(const vector<KeyboardButton>& newValue);
+
+        static const vector<KeyboardButton>& GetPressedKeys();
+        static void SetPressedKeys(const vector<KeyboardButton>& newValue);
+
+        static const vector<KeyboardButton>& GetReleasedKeys();
+        static void SetReleasedKeys(const vector<KeyboardButton>& newValue);
+
+        static const vector<MouseButton>& GetHeldMouseButtons();
+        static void SetHeldMouseButtons(const vector<MouseButton>& newValue);
+
+        static const vector<MouseButton>& GetPressedMouseButtons();
+        static void SetPressedMouseButtons(const vector<MouseButton>& newValue);
+
+        static const vector<MouseButton>& GetReleasedMouseButtons();
+        static void SetReleasedMouseButtons(const vector<MouseButton>& newValue);
+
+        static const vector<MouseButton>& GetDoubleClickedMouseButtons();
+        static void SetDoubleClickedMouseButtons(const vector<MouseButton>& newValue);
+
+        static const vector<MouseButton>& GetDraggingMouseButtons();
+        static void SetDraggingMouseButtons(const vector<MouseButton>& newValue);
+
+        static f32 GetScrollWheelDelta();
+        static void SetScrollWheelDelta(f32 newValue);
+
         //Global one-time Vulkan 1.4 device init,
         //needs to be called before per-window Vulkan init
         static void Initialize(VkInstance vkInstance);
@@ -219,32 +258,8 @@ namespace KalaGraphics::Graphics
         //if it has then this is ignored and reset at the end of the frame
         void RequestRecreateSwapchain();
 
-        const vector<KeyboardButton>& GetHeldKeys();
-        void SetHeldKeys(const vector<KeyboardButton>& newValue);
-
-        const vector<KeyboardButton>& GetPressedKeys();
-        void SetPressedKeys(const vector<KeyboardButton>& newValue);
-
-        const vector<KeyboardButton>& GetReleasedKeys();
-        void SetReleasedKeys(const vector<KeyboardButton>& newValue);
-
-        const vector<MouseButton>& GetHeldMouseButtons();
-        void SetHeldMouseButtons(const vector<MouseButton>& newValue);
-
-        const vector<MouseButton>& GetPressedMouseButtons();
-        void SetPressedMouseButtons(const vector<MouseButton>& newValue);
-
-        const vector<MouseButton>& GetReleasedMouseButtons();
-        void SetReleasedMouseButtons(const vector<MouseButton>& newValue);
-
-        const vector<MouseButton>& GetDoubleClickedMouseButtons();
-        void SetDoubleClickedMouseButtons(const vector<MouseButton>& newValue);
-
-        const vector<MouseButton>& GetDraggingMouseButtons();
-        void SetDraggingMouseButtons(const vector<MouseButton>& newValue);
-
-        f32 GetScrollWheelDelta();
-        void SetScrollWheelDelta(f32 newValue);
+        vec2 GetMousePos(bool yReversed);
+        void SetMousePos(vec2 pos);
 
 		//What happens before per-context logic
 		//but after global early update
@@ -311,22 +326,7 @@ namespace KalaGraphics::Graphics
         vec2 oldRenderSize{};
         vec2 renderSize{};
 
-        //start outside the window until mouse is moved
         vec2 mousePos = -1;
-        //start outside the window until mouse is moved
-        vec2 mousePosYReversed = -1;
-
-        vector<KeyboardButton> pressedKeys{};
-        vector<KeyboardButton> heldKeys{};
-        vector<KeyboardButton> releasedKeys{};
-
-        vector<MouseButton> pressedMouseButtons{};
-        vector<MouseButton> heldMouseButtons{};
-        vector<MouseButton> releasedMouseButtons{};
-        vector<MouseButton> doubleClickedMouseButtons{};
-        vector<MouseButton> draggingMouseButtons{};
-
-        f32 scrollWheelDelta{};
 
 		function<void()> earlyUpdateCallback{};
 		function<void()> updateCallback{};

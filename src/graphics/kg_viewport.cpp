@@ -1406,7 +1406,7 @@ namespace KalaGraphics::Graphics
                 if (it != mouseButtonDraggingCallbacks.end()
                     && it->second)
                 {
-                    it->second(gctx->mousePos);
+                    it->second(gctx->GetMousePos(false));
                 }
             }
 
@@ -1674,6 +1674,7 @@ namespace KalaGraphics::Graphics
                             }
 
                             t->Update();
+                            t->UpdateCursor(KalaGraphicsCore::GetDeltaTime());
                         }
 
                         m->Update(cmdBuffer);

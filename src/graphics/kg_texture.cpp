@@ -325,6 +325,81 @@ namespace KalaGraphics::Graphics
 
     u32 Texture::GetTextWidgetID() const { return textWidgetID; }
 
+    void Texture::FillColor(vec4&& newValue)
+    {
+        newValue = kclamp(newValue, 0, 1);
+
+        string color = 
+            to_string(newValue.x) + ", "
+            + to_string(newValue.y) + ", "
+            + to_string(newValue.z) + ", "
+            + to_string(newValue.w);
+
+        u32 pixelCount = scast<u32>(size.x) * scast<u32>(size.y);
+
+        u8 r = scast<u8>(newValue.x * 255.0f);
+        u8 g = scast<u8>(newValue.y * 255.0f);
+        u8 b = scast<u8>(newValue.z * 255.0f);
+        u8 a = scast<u8>(newValue.w * 255.0f);
+
+        switch (format)
+        {
+        default:
+        case TexturePixelFormat::FORMAT_BASIC_R8:
+        {
+            vector<u8> newPixelData(pixelCount);
+            for (u32 i = 0; i < pixelCount; i++)
+            {
+                u32 offset = i;
+
+                newPixelData[offset] = r;
+            }
+
+            SetPixelData(std::move(newPixelData));
+
+            break;
+        }
+        case TexturePixelFormat::FORMAT_BASIC_R8G8:
+        {
+            vector<u8> newPixelData(pixelCount * 2);
+            for (u32 i = 0; i < pixelCount; i++)
+            {
+                u32 offset = i * 2;
+
+                newPixelData[offset] = r;
+                newPixelData[offset + 1] = g;
+            }
+
+            SetPixelData(std::move(newPixelData));
+
+            break;
+        }
+        case TexturePixelFormat::FORMAT_BASIC_R8G8B8A8:
+        case TexturePixelFormat::FORMAT_SRGB_R8G8B8A8:
+        {
+            vector<u8> newPixelData(pixelCount * 4);
+            for (u32 i = 0; i < pixelCount; i++)
+            {
+                u32 offset = i * 4;
+
+                newPixelData[offset] = r;
+                newPixelData[offset + 1] = g;
+                newPixelData[offset + 2] = b;
+                newPixelData[offset + 3] = a;
+            }
+
+            SetPixelData(std::move(newPixelData));
+
+            break;
+        }
+        }
+
+        Log::Print(
+            "Filled texture '" + to_string(ID) + "' with color '" + color + "'!",
+            "KG_TEXTURE",
+            LogType::LOG_SUCCESS);
+    }
+
     const vector<u8>& Texture::GetPixelData() const { return pixelData; }
     void Texture::SetPixelData(vector<u8>&& newPixelData)
     {
@@ -340,6 +415,16 @@ namespace KalaGraphics::Graphics
         }
 
         pixelData = std::move(newPixelData);
+
+        isDirty = true;
+
+        if (isVerboseLoggingEnabled)
+        {
+            Log::Print(
+                "Updated texture '" + to_string(ID) + "' pixel data!",
+                "KG_TEXTURE",
+                LogType::LOG_VERBOSE);
+        }
     }
 
     TexturePixelFormat Texture::GetPixelFormat() const { return format; }

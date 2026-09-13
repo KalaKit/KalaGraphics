@@ -73,6 +73,9 @@ using KalaHeaders::KalaLog::LogType;
 using KalaHeaders::KalaMath::vec2;
 using KalaHeaders::KalaMath::mat4;
 
+using KalaHeaders::KalaKeyStandards::KeyboardButton;
+using KalaHeaders::KalaKeyStandards::MouseButton;
+
 using KalaGraphics::Graphics::Severity;
 using KalaGraphics::Import::ImportShader;
 using KalaGraphics::Import::ImportTexture;
@@ -85,7 +88,6 @@ using std::to_string;
 using std::unordered_map;
 using std::vector;
 using std::array;
-using std::pair;
 using std::clamp;
 using std::unique_ptr;
 using std::make_unique;
@@ -124,6 +126,23 @@ static VkDevice logicalDevice{};
 static VkQueue graphicsQueue{};
 static VmaAllocator vmaAllocator{};
 static VkDescriptorPool descriptorPool{};
+
+static u32 charValue{};
+static bool backspaceState{};
+static bool tabState{};
+static bool returnState{};
+
+static vector<KeyboardButton> pressedKeys{};
+static vector<KeyboardButton> heldKeys{};
+static vector<KeyboardButton> releasedKeys{};
+
+static vector<MouseButton> pressedMouseButtons{};
+static vector<MouseButton> heldMouseButtons{};
+static vector<MouseButton> releasedMouseButtons{};
+static vector<MouseButton> doubleClickedMouseButtons{};
+static vector<MouseButton> draggingMouseButtons{};
+
+static f32 scrollWheelDelta{};
 
 struct VkResultData
 {
@@ -310,6 +329,69 @@ namespace KalaGraphics::Graphics
 
         return vkResultData[(VkResult)result].severity;
     }
+
+    const vector<KeyboardButton>& GraphicsContext::GetHeldKeys() { return heldKeys; }
+	void GraphicsContext::SetHeldKeys(const vector<KeyboardButton>& newValue)
+	{
+		heldKeys = newValue;
+	}
+
+    const vector<KeyboardButton>& GraphicsContext::GetPressedKeys() { return pressedKeys; }
+	void GraphicsContext::SetPressedKeys(const vector<KeyboardButton>& newValue)
+	{
+		pressedKeys = newValue;
+	}
+
+    const vector<KeyboardButton>& GraphicsContext::GetReleasedKeys() { return releasedKeys; }
+	void GraphicsContext::SetReleasedKeys(const vector<KeyboardButton>& newValue)
+	{
+		releasedKeys = newValue;
+	}
+
+    const vector<MouseButton>& GraphicsContext::GetHeldMouseButtons() { return heldMouseButtons; }
+	void GraphicsContext::SetHeldMouseButtons(const vector<MouseButton>& newValue)
+	{
+		heldMouseButtons = newValue;
+	}
+
+    const vector<MouseButton>& GraphicsContext::GetPressedMouseButtons() { return pressedMouseButtons; }
+	void GraphicsContext::SetPressedMouseButtons(const vector<MouseButton>& newValue)
+	{
+		pressedMouseButtons = newValue;
+	}
+
+    const vector<MouseButton>& GraphicsContext::GetReleasedMouseButtons() { return releasedMouseButtons; }
+	void GraphicsContext::SetReleasedMouseButtons(const vector<MouseButton>& newValue)
+	{
+		releasedMouseButtons = newValue;
+	}
+
+    const vector<MouseButton>& GraphicsContext::GetDoubleClickedMouseButtons() { return doubleClickedMouseButtons; }
+	void GraphicsContext::SetDoubleClickedMouseButtons(const vector<MouseButton>& newValue)
+	{
+		doubleClickedMouseButtons = newValue;
+	}
+
+    const vector<MouseButton>& GraphicsContext::GetDraggingMouseButtons() { return draggingMouseButtons; }
+	void GraphicsContext::SetDraggingMouseButtons(const vector<MouseButton>& newValue)
+	{
+		draggingMouseButtons = newValue;
+	}
+
+    u32 GraphicsContext::GetPressedChar() { return charValue; }
+    void GraphicsContext::SetPressedChar(u32 newValue) { charValue = newValue; }
+
+    bool GraphicsContext::GetBackspaceState() { return backspaceState; }
+    void GraphicsContext::SetBackspaceState(bool newValue) { backspaceState = newValue; }
+
+    bool GraphicsContext::GetTabState() { return tabState; }
+    void GraphicsContext::SetTabState(bool newValue) { tabState = newValue; }
+
+    bool GraphicsContext::GetReturnState() { return returnState; }
+    void GraphicsContext::SetReturnState(bool newValue) { returnState = newValue; }
+
+    f32 GraphicsContext::GetScrollWheelDelta() { return scrollWheelDelta; }
+	void GraphicsContext::SetScrollWheelDelta(f32 newValue) { scrollWheelDelta = newValue; }
 
     void GraphicsContext::Initialize(VkInstance newVkInstace)
     {
@@ -927,80 +1009,13 @@ namespace KalaGraphics::Graphics
 
     void GraphicsContext::RequestRecreateSwapchain() { requestedSwapchainRecreation = true; }
 
-	const vector<KeyboardButton>& GraphicsContext::GetHeldKeys()
-	{ 
-		return heldKeys;
-	}
-	void GraphicsContext::SetHeldKeys(const vector<KeyboardButton>& newValue)
-	{
-		heldKeys = newValue;
-	}
-
-	const vector<KeyboardButton>& GraphicsContext::GetPressedKeys()
-	{ 
-		return pressedKeys;
-	}
-	void GraphicsContext::SetPressedKeys(const vector<KeyboardButton>& newValue)
-	{
-		pressedKeys = newValue;
-	}
-
-	const vector<KeyboardButton>& GraphicsContext::GetReleasedKeys()
-	{ 
-		return releasedKeys;
-	}
-	void GraphicsContext::SetReleasedKeys(const vector<KeyboardButton>& newValue)
-	{
-		releasedKeys = newValue;
-	}
-
-	const vector<MouseButton>& GraphicsContext::GetHeldMouseButtons()
-	{ 
-		return heldMouseButtons;
-	}
-	void GraphicsContext::SetHeldMouseButtons(const vector<MouseButton>& newValue)
-	{
-		heldMouseButtons = newValue;
-	}
-
-	const vector<MouseButton>& GraphicsContext::GetPressedMouseButtons()
-	{ 
-		return pressedMouseButtons;
-	}
-	void GraphicsContext::SetPressedMouseButtons(const vector<MouseButton>& newValue)
-	{
-		pressedMouseButtons = newValue;
-	}
-
-	const vector<MouseButton>& GraphicsContext::GetReleasedMouseButtons()
-	{ 
-		return releasedMouseButtons;
-	}
-	void GraphicsContext::SetReleasedMouseButtons(const vector<MouseButton>& newValue)
-	{
-		releasedMouseButtons = newValue;
-	}
-
-	const vector<MouseButton>& GraphicsContext::GetDoubleClickedMouseButtons()
-	{ 
-		return doubleClickedMouseButtons;
-	}
-	void GraphicsContext::SetDoubleClickedMouseButtons(const vector<MouseButton>& newValue)
-	{
-		doubleClickedMouseButtons = newValue;
-	}
-
-	const vector<MouseButton>& GraphicsContext::GetDraggingMouseButtons()
-	{ 
-		return draggingMouseButtons;
-	}
-	void GraphicsContext::SetDraggingMouseButtons(const vector<MouseButton>& newValue)
-	{
-		draggingMouseButtons = newValue;
-	}
-
-	f32 GraphicsContext::GetScrollWheelDelta() { return scrollWheelDelta; }
-	void GraphicsContext::SetScrollWheelDelta(f32 newValue) { scrollWheelDelta = newValue; }
+    vec2 GraphicsContext::GetMousePos(bool yReversed)
+    { 
+        return (!yReversed 
+            ? mousePos 
+            : vec2{ mousePos.x, renderSize.y - mousePos.y });
+    } 
+    void GraphicsContext::SetMousePos(vec2 pos) { mousePos = pos; }
 
     void GraphicsContext::SetEarlyUpdateCallback(function<void()>&& newValue)
     {
@@ -1031,69 +1046,6 @@ namespace KalaGraphics::Graphics
             physicalDevice,
             contextData.context_vk_surface,
             &caps);
-
-        auto get_mouse_pos = [this]() -> pair<vec2, vec2>
-            {
-#if defined(KWIN_ANY)
-                POINT pt{};
-                if (!GetCursorPos(&pt)) return { -1, -1 };
-
-                HWND hwnd = ToVar<HWND>(contextData.context_window);
-                if (WindowFromPoint(pt) != hwnd) return { -1, -1 };
-
-                if (!ScreenToClient(hwnd, &pt)) return { -1, -1 };
-
-                RECT rect{};
-                if (!GetClientRect(hwnd, &rect)) return { -1, -1 };
-
-                return 
-                { 
-                    { scast<f32>(pt.x), scast<f32>(pt.y) },
-                    { scast<f32>(pt.x), scast<f32>(rect.bottom - pt.y) }
-                };
-
-#else
-                Display* display = ToVar<Display*>(contextData.context_display);
-                Window window = ToVar<Window>(contextData.context_window);
-
-                Window xquery_root{}, xquery_child{};
-                int xquery_x{}, xquery_y{}, xquery_width{}, xquery_height{};
-                unsigned int xquery_mask_return{};
-
-                if (!XQueryPointer(
-                    display, 
-                    window, 
-                    &xquery_root, 
-                    &xquery_child,
-                    &xquery_x,
-                    &xquery_y,
-                    &xquery_width,
-                    &xquery_height,
-                    &xquery_mask_return))
-                {
-                    return { -1, -1 };
-                }
-
-                XWindowAttributes attributes{};
-                if (!XGetWindowAttributes(
-                    display,
-                    window,
-                    &attributes))
-                {
-                    return { -1, -1 };
-                }
-
-                return 
-                { 
-                    { scast<f32>(xquery_width), scast<f32>(xquery_height) },
-                    { scast<f32>(xquery_width), scast<f32>(attributes.height - xquery_height) }
-                };
-#endif
-            };
-
-        pair<vec2, vec2> mousePosResult = get_mouse_pos();
-        mousePos = mousePosResult.first;
-        mousePosYReversed = mousePosResult.second;
 
         HandleResult(result, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR");
 

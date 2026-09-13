@@ -116,16 +116,6 @@ namespace KalaGraphics::Graphics
         P_CENTER = 5
     };
 
-    struct LIB_API TransformData
-    {
-        //X, Y, Z (Z is unused for 2D)
-        vec3 pos{};
-        //X, Y, Z (Y and Z are unused for 2D)
-        vec3 rot{};
-        //X, Y, Z (Z is unused for 2D)
-        vec3 size{};
-    };
-
     struct LIB_API Vertex
     {
         //X, Y, Z

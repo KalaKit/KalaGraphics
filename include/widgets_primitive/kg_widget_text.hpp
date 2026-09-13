@@ -31,6 +31,20 @@ namespace KalaGraphics::PrimitiveWidgets
     using std::pair;
     using std::default_delete;
 
+    static constexpr u16 MAX_CHARACTERS = 1024;
+
+    static constexpr u16 MAX_LINES = 1024;
+    static constexpr u16 MAX_LINE_WIDTH = 8192;
+    static constexpr u16 MIN_LINE_WIDTH = 32;
+    static constexpr u16 MAX_LINE_HEIGHT = 128;
+
+    static constexpr f32 MAX_TEXT_MULTIPLIER_SIZE = 10.0f;
+    static constexpr f32 MIN_TEXT_MULTIPLIER_SIZE = 0.1f;
+
+    static constexpr u8 CURSOR_WIDTH_PX = 4;
+    static constexpr u8 CURSOR_HEIGHT_PX = 32;
+    static constexpr f64 CURSOR_BLINK_INTERVAL_S = 1.0;
+
     enum class TextClipType : u8
     {
         //when a glyph/text exceeds line width,
@@ -90,8 +104,23 @@ namespace KalaGraphics::PrimitiveWidgets
         //then this means end of last glyph
         i32 characterSlot = -1;
 
+        //which line are we currently on, 1 is top line, 0 is invalid
+        u32 line = 1;
+
         //center of cursor
         vec2 pos{};
+
+        //are we currently drawing the cursor
+        bool isCursorOn{};
+        //when was cursor last turned on/off
+        f64 timeSinceLastStateSwitch{};
+
+        //where cursor back was last captured
+        vec2 cursorBackPos{};
+        //used when cursor is off but active,
+        //or if changing active cursor position
+        //so that whatever is behind the cursor will still appear correctly
+        vector<u8> cursorBackPixels{};
     };
 
     struct HighlightData
@@ -101,14 +130,6 @@ namespace KalaGraphics::PrimitiveWidgets
         //last selected highlighted glyph
         i32 highlightEnd = -1;
     };
-
-    static constexpr u16 MAX_CHARACTERS = 1024;
-    static constexpr u16 MAX_LINES = 1024;
-    static constexpr u16 MAX_LINE_WIDTH = 8192;
-    static constexpr u16 MIN_LINE_WIDTH = 32;
-    static constexpr u16 MAX_LINE_HEIGHT = 128;
-    static constexpr f32 MAX_TEXT_SIZE = 10.0f;
-    static constexpr f32 MIN_TEXT_SIZE = 0.1f;
 
     class LIB_API Text
     {
@@ -280,6 +301,7 @@ namespace KalaGraphics::PrimitiveWidgets
         ~Text();
 
         void Update();
+        void UpdateCursor(f64 deltaTime);
 
         u32 ID{};
         u32 fontID{};
@@ -307,6 +329,9 @@ namespace KalaGraphics::PrimitiveWidgets
 
         f64 numberMin = -DBL_MAX;
         f64 numberMax = DBL_MAX;
+
+        //start and end character of each line
+        vector<pair<u32, u32>> lineData{};
 
         vector<GlyphRasterData> displayedText{};
         vector<u32> realText{};

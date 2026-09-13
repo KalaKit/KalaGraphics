@@ -79,7 +79,7 @@ namespace KalaGraphics::Import
 
         //Returns an individual glyphs data
         KNODISCARD
-        static GlyphData& GetGlyphData(
+        static GlyphData* GetGlyphData(
             FontData& fontData,
             u32 codepoint);
 

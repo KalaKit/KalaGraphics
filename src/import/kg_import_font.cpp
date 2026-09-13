@@ -40,12 +40,6 @@ using std::ranges::find_if;
 static constexpr string_view EXT_TTF = ".ttf";
 static constexpr string_view EXT_OTF = ".otf";
 
-static constexpr array<u32, 2> KEEP_EMPTY_GLYPHS =
-{
-    32, //space
-    160 //non-breaking space
-};
-
 //for quadratic and cubic
 static constexpr u8 CURVE_STEPS = 32;
 
@@ -84,12 +78,10 @@ namespace KalaGraphics::Import
 
     KalaGraphicsRegistry<ImportFont>& ImportFont::GetRegistry() { return registry; }
 
-    GlyphData& ImportFont::GetGlyphData(
+    GlyphData* ImportFont::GetGlyphData(
         FontData& fontData, 
         u32 codepoint)
     {
-        static GlyphData empty{};
-
         auto it = find_if(
             fontData.glyphs, 
             [codepoint](const GlyphData& glyph) 
@@ -105,10 +97,10 @@ namespace KalaGraphics::Import
                 "KG_IMPORT_FONT",
                 LogType::LOG_WARNING);
 
-            return empty;
+            return nullptr;
         }
 
-        return *it;
+        return &(*it);
     }
 
     ImportFont* ImportFont::Initialize(
@@ -224,23 +216,14 @@ namespace KalaGraphics::Import
         u32 codepoint,
         bool fromAtlas)
     {
-        GlyphData& glyphData = GetGlyphData(
+        GlyphData* glyphData = GetGlyphData(
             fontData,
             codepoint);
 
-        if (glyphData.codepoint == 0)
-        {
-            Log::Print(
-                "Failed to get glyph '" + to_string(codepoint) 
-                + "' pixel data because it was not found!",
-                "KG_IMPORT_FONT",
-                LogType::LOG_WARNING);
-
-            return {};
-        }
+        if (!glyphData) return {};
 
         return GetGlyphPixelData(
-            glyphData, 
+            *glyphData, 
             fromAtlas);
     }
 
@@ -256,6 +239,12 @@ namespace KalaGraphics::Import
             if (width == 0
                 || height == 0)
             {
+                if (glyphData.codepoint == 0x0020     //space
+                    || glyphData.codepoint == 0x00A0) //non-breaking space
+                {
+                    return {};
+                }
+
                 Log::Print(
                     "Failed to get glyph '" + to_string(glyphData.codepoint) 
                     + "' pixel data because extent width or height was 0!",
@@ -435,42 +424,33 @@ namespace KalaGraphics::Import
 
     void ImportFont::DrawGlyphToConsole(u32 codepoint)
     {
-        GlyphData& glyphData = GetGlyphData(
+        GlyphData* glyphData = GetGlyphData(
             fontData,
             codepoint);
 
-        if (glyphData.codepoint == 0)
-        {
-            Log::Print(
-                "Failed to draw glyph '" + to_string(codepoint) 
-                + "' because it was not found!",
-                "KG_IMPORT_FONT",
-                LogType::LOG_WARNING);
-
-            return;
-        }
+        if (!glyphData) return;
 
         ConsoleGlyph consoleGlyph{};
 
         //normalize glyph coordinates into 64x64 console area
 
-        const f32 paddingX = fabsf(glyphData.size.x) * 0.05f;
-        const f32 paddingY = fabsf(glyphData.size.y) * 0.05f;
+        const f32 paddingX = fabsf(glyphData->size.x) * 0.05f;
+        const f32 paddingY = fabsf(glyphData->size.y) * 0.05f;
 
         const f32 minX = 
-            glyphData.bearing.x
+            glyphData->bearing.x
             - paddingX;
         const f32 maxX = 
-            glyphData.bearing.x 
-            + glyphData.size.x 
+            glyphData->bearing.x 
+            + glyphData->size.x 
             + paddingX;
 
         const f32 minY = 
-            glyphData.bearing.y 
-            + glyphData.size.y
+            glyphData->bearing.y 
+            + glyphData->size.y
             - paddingY;
         const f32 maxY = 
-            glyphData.bearing.y
+            glyphData->bearing.y
             + paddingY;
 
         const vec2 size =
@@ -773,7 +753,7 @@ namespace KalaGraphics::Import
                 
         if (!hb_font_draw_glyph_or_fail(
             font,
-            glyphData.glyphIndex,
+            glyphData->glyphIndex,
             drawFuncs,
             &drawData))
         {
@@ -883,9 +863,10 @@ namespace KalaGraphics::Import
                 glyph,
                 &extents))
             {
-                if (!ContainsValue(KEEP_EMPTY_GLYPHS, codepoint)
-                    && extents.width == 0
-                    && extents.height == 0)
+                if (extents.width == 0
+                    && extents.height == 0
+                    && codepoint != 0x0020  //space
+                    && codepoint != 0x00A0) //non-breaking space
                 {
                     Log::Print("@@@@@ skipped empty glyph '" + to_string(codepoint) + "'");
 

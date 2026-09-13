@@ -10,6 +10,7 @@
 
 #include "widgets_primitive/kg_widget_text.hpp"
 #include "import/kg_import_font.hpp"
+#include "graphics/kg_context.hpp"
 #include "graphics/kg_viewport.hpp"
 #include "graphics/kg_shader.hpp"
 #include "graphics/kg_texture.hpp"
@@ -17,13 +18,18 @@
 #include "graphics/kg_mesh.hpp"
 #include "core/kg_core.hpp"
 
+using KalaHeaders::KalaCore::ContainsValue;
+
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
 
+using KalaHeaders::KalaMath::PosTarget;
+using KalaHeaders::KalaMath::SizeTarget;
 using KalaHeaders::KalaMath::Transform2D;
 using KalaHeaders::KalaMath::vec3;
 using KalaHeaders::KalaMath::vec2;
 
+using KalaHeaders::KalaKeyStandards::MouseButton;
 using KalaHeaders::KalaKeyStandards::GetUTFByValue;
 using KalaHeaders::KalaKeyStandards::GetValueByUTF;
 
@@ -33,6 +39,7 @@ using KalaGraphics::Import::GlyphData;
 using KalaGraphics::Import::ImportFont;
 
 using KalaGraphics::Graphics::RootShaderTarget;
+using KalaGraphics::Graphics::GraphicsContext;
 using KalaGraphics::Graphics::Viewport;
 using KalaGraphics::Graphics::Shader;
 using KalaGraphics::Graphics::TexturePixelFormat;
@@ -52,6 +59,9 @@ using std::clamp;
 using std::vector;
 
 static bool isVerboseLoggingEnabled{};
+
+//which text widget did we start dragging from
+static u32 dragStartTextWidget{};
 
 static vector<u32> StringToUTF(string_view input)
 {
@@ -238,7 +248,7 @@ namespace KalaGraphics::PrimitiveWidgets
     u32 Text::GetFontID() const { return fontID; }
     void Text::SetFontID(u32 newValue)
     {
-        if (fontID == 0)
+        if (newValue == 0)
         {
             Log::Print(
                 "Failed to set text widget '" + to_string(ID) + "' font ID because it was empty!",
@@ -373,8 +383,10 @@ namespace KalaGraphics::PrimitiveWidgets
         case TextFieldType::F_INTEGER_ONLY:
             fieldTypeStr = "integer only";
 
-            SetNumberMin(INT64_MIN);
-            SetNumberMax(INT64_MAX);
+            //not true i64 limits but its not a big deal
+
+            SetNumberMin(-FLT_MAX);
+            SetNumberMax(FLT_MAX);
             break;
         case TextFieldType::F_FLOAT_ONLY:
             fieldTypeStr = "float only";
@@ -732,7 +744,7 @@ namespace KalaGraphics::PrimitiveWidgets
             return;
         }
 
-        textSizeMultiplier = clamp(newValue, MIN_TEXT_SIZE, MAX_TEXT_SIZE);
+        textSizeMultiplier = clamp(newValue, MIN_TEXT_MULTIPLIER_SIZE, MAX_TEXT_MULTIPLIER_SIZE);
 
         isTextDirty = true;
 
@@ -1327,7 +1339,14 @@ namespace KalaGraphics::PrimitiveWidgets
 
     void Text::Update()
     {
-        if (!isTextDirty) return;
+        bool hasInputUpdate{};
+
+        //TODO: use cursor pos to verify if text field is active
+        //if (!canEdit
+        //    || cursorData.characterSlot == -1)
+        //{
+        //    return;
+        //}
 
         ImportFont* font{};
         string err = ImportFont::GetRegistry().GetContent(fontID, font);
@@ -1337,6 +1356,89 @@ namespace KalaGraphics::PrimitiveWidgets
                 "KalaGraphics text widget error",
                 "Failed to update text widget '" + to_string(ID) + "' because its font '" 
                 + to_string(fontID) + "' was invalid! Reason: " + err);
+        }
+
+        u32 pressedChar = GraphicsContext::GetPressedChar(); 
+
+        if (pressedChar != 0
+            || GraphicsContext::GetBackspaceState()
+            || GraphicsContext::GetTabState()
+            || GraphicsContext::GetReturnState())
+        {
+            if (pressedChar != 0)
+            {
+                bool containsGlyph{};
+                bool emptyGlyph{};
+                for (const GlyphData& gd : font->GetFontData().glyphs)
+                {
+                    if (gd.codepoint == pressedChar)
+                    {
+                        containsGlyph = true;
+
+                        if (gd.size == 0
+                            && gd.codepoint != 0x0020  //space
+                            && gd.codepoint != 0x00A0) //non-breaking space
+                        {
+                            emptyGlyph = true;
+                        }
+
+                        break;
+                    }
+                }
+
+                if (containsGlyph)
+                {
+                    if (!emptyGlyph)
+                    {
+                        //Log::Print("@@@@@ found utf: " + to_string(pressedChar));
+
+                        AddUTF({ pressedChar });
+                    }
+                    else
+                    {
+                        Log::Print("@@@@@ found empty utf: " + to_string(pressedChar));
+
+                        AddUTF({ 0x003F }); //fallback ?
+                    }
+                }
+                else
+                {
+                    Log::Print("@@@@@ did not find utf: " + to_string(pressedChar));
+
+                    AddUTF({ 0x003F }); //fallback ?
+                }
+
+                hasInputUpdate = true;
+            }
+
+            if (GraphicsContext::GetBackspaceState()
+                && displayedText.size() > 0)
+            {
+                RemoveText(1);
+                hasInputUpdate = true;
+            }
+            if (GraphicsContext::GetTabState()
+                && displayedText.size() + 1 < maxCharacters)
+            {
+                //four spaces for tab
+                AddUTF(
+                {
+                    0x0020,
+                    0x0020,
+                    0x0020,
+                    0x0020
+                });
+
+                hasInputUpdate = true;
+            }
+
+            //single-line fields can never add a return value
+            if (GraphicsContext::GetReturnState()
+                && maxLines > 1)
+            {
+                AddUTF({ 0x0A });
+                hasInputUpdate = true;
+            }
         }
 
         Texture* tex{};
@@ -1359,23 +1461,31 @@ namespace KalaGraphics::PrimitiveWidgets
                 + to_string(meshID) + "' was invalid! Reason: " + err);
         }
 
-        if (displayedText.empty())
+        bool hasSizeUpdate{};
+        vec2 meshSize = scast<Transform2D&>(mesh->GetTransform()).getsize(SizeTarget::SIZE_WORLD);
+        if (tex->GetSize() != meshSize)
         {
-            Shader* first = Shader::GetRegistry().GetAllContent().front();
-            Texture* rootTex{};
-            string err = Texture::GetRegistry().GetContent(first->GetRootTextureID(), rootTex);
-            if (!err.empty())
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics text widget error",
-                    "Failed to update text widget '" + to_string(ID) + "' because the shader '" 
-                    + to_string(first->GetID()) + "' root texture was invalid! Reason: " + err);
-            }
+            tex->SetSize(meshSize);
+            hasSizeUpdate = true;
 
-            tex->SetSize({ 100.0f });
-            tex->SetPixelData( vector<u8>{ rootTex->GetPixelData() });
+            Log::Print("@@@@@ text widget '" + to_string(ID) + "' size changed... updating its texture size");
+        }
 
-            scast<Transform2D&>(mesh->GetTransform()).setsize({ 100.0f });
+        if (!isTextDirty
+            && !hasInputUpdate
+            && !hasSizeUpdate)
+        {
+            return;
+        }
+
+        if (displayedText.empty()
+            || (fieldType == TextFieldType::F_PASSWORD
+            && realText.empty()))
+        {
+            tex->SetSize(100.0f);
+            tex->FillColor(0.0f);
+
+            scast<Transform2D&>(mesh->GetTransform()).setsize( 100.0f );
         }
         else
         {
@@ -1386,20 +1496,35 @@ namespace KalaGraphics::PrimitiveWidgets
             i32 minX{};
             i32 maxX{};
 
-            //calculate width
+            //calculate size
             for (GlyphRasterData& glyph : displayedText)
             {
-                GlyphData& glyphData = font->GetGlyphData(
+                GlyphData* glyphData = font->GetGlyphData(
                     font->GetFontData(),
                     glyph.utf);
 
-                i32 glyphWidth = scast<i32>(fabsf(glyphData.size.x));
+                if (!glyphData) continue;
 
-                i32 glyphLeft = penPos.x + scast<i32>(glyphData.bearing.x);
+                i32 glyphWidth = scast<i32>(fabsf(glyphData->size.x));
+
+                i32 glyphLeft = penPos.x + scast<i32>(glyphData->bearing.x);
                 i32 glyphRight = glyphLeft + glyphWidth;
 
                 minX = min(minX, glyphLeft);
                 maxX = max(maxX, glyphRight);
+
+                /*
+                Log::Print(
+                    "@@@@@\n"
+                    "TEXT GLYPH BOUNDS: \n"
+                    "  UTF: " + to_string(glyph.utf) + "\n"
+                    "  penX: " + to_string(penPos.x) + "\n"
+                    "  bearingX: " + to_string(glyphData.bearing.x) + "\n"
+                    "  sizeX: " + to_string(glyphData.size.x) + "\n"
+                    "  glyphLeft: " + to_string(glyphLeft) + "\n"
+                    "  glyphRight: " + to_string(glyphRight) + "\n"
+                    "  advance: " + to_string(glyphData.advance));
+                */
 
                 glyph.penPos =
                 { 
@@ -1409,15 +1534,25 @@ namespace KalaGraphics::PrimitiveWidgets
                 glyph.glyphPos = 
                 {
                     scast<f32>(glyphLeft),
-                    scast<f32>(glyphData.bearing.y + glyphData.size.y - descender)
+                    scast<f32>(glyphData->bearing.y + glyphData->size.y - descender)
                 };
 
-                glyph.glyphSize = glyphData.size;
+                glyph.glyphSize = glyphData->size;
 
-                penPos.x += glyphData.advance;
+                penPos.x += glyphData->advance;
             }
 
             maxX = max(maxX, scast<i32>(penPos.x));
+
+            /*
+            Log::Print(
+                "@@@@@\n"
+                "FINAL TEXT BOUNDS:\n"
+                "  minX: " + to_string(minX) + "\n"
+                "  maxX: " + to_string(maxX) + "\n"
+                "  finalPenX: " + to_string(penPos.x) + "\n"
+                "  finalWidth: " + to_string(maxX - minX));
+            */
 
             const u32 finalWidth = scast<u32>(maxX - minX);
             const u32 finalHeight = scast<u32>(ascender - descender);
@@ -1428,6 +1563,9 @@ namespace KalaGraphics::PrimitiveWidgets
             for (const GlyphRasterData& glyph : displayedText)
             {
                 vector<u8> glyphPixelData = font->GetGlyphPixelData(glyph.utf);
+
+                //prevent invalid glyphs from doing any further actions
+                if (glyphPixelData.empty()) continue;
 
                 u32 glyphWidth  = scast<u32>(fabsf(glyph.glyphSize.x));
                 u32 glyphHeight = scast<u32>(fabsf(glyph.glyphSize.y));
@@ -1455,8 +1593,12 @@ namespace KalaGraphics::PrimitiveWidgets
                             continue;
                         }
 
-                        finalPixels[scast<u32>(dstY) * finalWidth + scast<u32>(dstX)]
-                            = glyphPixelData[y * glyphWidth + x];
+                        //dont overwrite colored pixels with transparent pixels
+
+                        u8& dstPixel = finalPixels[scast<u32>(dstY) * finalWidth + scast<u32>(dstX)];
+                        u8 srcPixel = glyphPixelData[y * glyphWidth + x];
+
+                        if (srcPixel > dstPixel) dstPixel = srcPixel;
                     }
                 }
             }
@@ -1474,6 +1616,373 @@ namespace KalaGraphics::PrimitiveWidgets
         }
 
         isTextDirty = false;
+    }
+
+    void Text::UpdateCursor(f64 deltaTime)
+    {
+        Mesh* m{};
+        string err = Mesh::GetRegistry().GetContent(meshID, m);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics text error",
+                "Failed to update text widget '" + to_string(ID) 
+                + "' cursor because its mesh was invalid! Reason: " + err);
+        }
+
+        Texture* tex{};
+        err = Texture::GetRegistry().GetContent(textureID, tex);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics text error",
+                "Failed to update text widget '" + to_string(ID) 
+                + "' cursor because its texture was invalid! Reason: " + err);
+        }
+
+        i32 textureWidth = scast<i32>(tex->GetSize().x);
+        i32 textureHeight = scast<i32>(tex->GetSize().y);
+
+        auto cursor_on = [
+            tex,
+            textureWidth,
+            textureHeight,
+            this]() -> void
+            {
+                i32 startX = scast<i32>(cursorData.pos.x) - CURSOR_WIDTH_PX / 2;
+                i32 startY = scast<i32>(cursorData.pos.y) - CURSOR_HEIGHT_PX / 2;
+
+                startX = clamp(
+                    startX, 
+                    0, 
+                    scast<i32>(tex->GetSize().x) - CURSOR_WIDTH_PX);
+
+                startY = clamp(
+                    startY, 
+                    0, 
+                    scast<i32>(tex->GetSize().y) - CURSOR_HEIGHT_PX);
+
+                vector<u8> pixels = tex->GetPixelData();
+
+                /*
+                Log::Print(
+                    "@@@@@\n"
+                    "  cursor pos: "
+                    + to_string(cursorData.pos.x) + ", "
+                    + to_string(cursorData.pos.y) + "\n"
+                    "  cursor start: "
+                    + to_string(startX) + ", "
+                    + to_string(startY) + "\n"
+                    "  texture size: "
+                    + to_string(textureWidth) + ", "
+                    + to_string(textureHeight));
+                */
+
+                /*
+                Log::Print(
+                    "@@@@@ cursor on pixel data size: "
+                    + to_string(pixels.size())
+                    + ", expected R8 size: "
+                    + to_string(textureWidth * textureHeight));
+                */
+
+                cursorData.cursorBackPixels.clear();
+                cursorData.cursorBackPixels.reserve(
+                    CURSOR_WIDTH_PX
+                    * CURSOR_HEIGHT_PX);
+
+                cursorData.cursorBackPos = 
+                {
+                    scast<f32>(startX),
+                    scast<f32>(startY)
+                };
+
+                for (u8 y = 0; y < CURSOR_HEIGHT_PX; y++)
+                {
+                    for (u8 x = 0; x < CURSOR_WIDTH_PX; x++)
+                    {
+                        u32 pixelX = scast<u32>(startX + x);
+                        u32 pixelY = scast<u32>(startY + y);
+
+                        if (pixelX >= scast<u32>(textureWidth)
+                            || pixelY >= scast<u32>(textureHeight))
+                        {
+                            Log::Print(
+                                "Cursor pixel out of bounds: "
+                                + to_string(pixelX) + ", "
+                                + to_string(pixelY) + "\n"
+                                + "  texture size: "
+                                + to_string(textureWidth) + ", "
+                                + to_string(textureHeight),
+                                "KG_TEXT",
+                                LogType::LOG_WARNING);
+
+                            return;
+                        }
+
+                        u32 index = pixelY * textureWidth + pixelX;
+
+                        if (index >= pixels.size())
+                        {
+                            Log::Print(
+                                "Cursor index out of bounds: "
+                                + to_string(index) + "\n"
+                                + "  pixel count: "
+                                + to_string(pixels.size()),
+                                "KG_TEXT",
+                                LogType::LOG_WARNING);
+
+                            return;
+                        }
+
+                        cursorData.cursorBackPixels.push_back(pixels[index]);
+
+                        bool border = 
+                            x == 0
+                            || x == CURSOR_WIDTH_PX - 1
+                            || y == 0
+                            || y == CURSOR_HEIGHT_PX - 1;
+
+                        pixels[index] = border ? 0 : 255;
+                    }
+                }
+
+                tex->SetPixelData(std::move(pixels));
+            };
+
+        auto cursor_off = [
+            tex,
+            textureWidth,
+            textureHeight,
+            this]() -> void
+            {
+                vector<u8> pixels = tex->GetPixelData();
+
+                /*
+                Log::Print(
+                    "@@@@@ cursor off pixel data size: "
+                    + to_string(pixels.size())
+                    + ", expected R8 size: "
+                    + to_string(textureWidth * textureHeight));
+                */
+
+                i32 backStartX = scast<i32>(cursorData.cursorBackPos.x);
+                i32 backStartY = scast<i32>(cursorData.cursorBackPos.y);
+
+                u32 backPixelIndex{};
+                
+                for (u8 y = 0; y < CURSOR_HEIGHT_PX; y++)
+                {
+                    for (u8 x = 0; x < CURSOR_WIDTH_PX; x++)
+                    {
+                        u32 pixelX = scast<u32>(backStartX + x);
+                        u32 pixelY = scast<u32>(backStartY + y);
+
+                        if (pixelX >= scast<u32>(textureWidth)
+                            || pixelY >= scast<u32>(textureHeight))
+                        {
+                            Log::Print(
+                                "Restore cursor pixel out of bounds: "
+                                + to_string(pixelX) + ", "
+                                + to_string(pixelY) + "\n"
+                                + "  texture size: "
+                                + to_string(textureWidth) + ", "
+                                + to_string(textureHeight),
+                                "KG_TEXT",
+                                LogType::LOG_WARNING);
+
+                            return;
+                        }
+
+                        u32 index = pixelY * textureWidth + pixelX;
+
+                        if (index >= pixels.size())
+                        {
+                            Log::Print(
+                                "Restore cursor index out of bounds: "
+                                + to_string(index) + "\n"
+                                + "  pixel count: "
+                                + to_string(pixels.size()),
+                                "KG_TEXT",
+                                LogType::LOG_WARNING);
+
+                            return;
+                        }
+
+                        if (backPixelIndex >= cursorData.cursorBackPixels.size())
+                        {
+                            Log::Print(
+                                "Cursor backing pixel out of bounds: "
+                                + to_string(backPixelIndex) + "\n"
+                                + "  backing pixel count: "
+                                + to_string(cursorData.cursorBackPixels.size()),
+                                "KG_TEXT",
+                                LogType::LOG_WARNING);
+
+                            return;
+                        }
+
+                        pixels[index] = cursorData.cursorBackPixels[backPixelIndex++];
+                    }
+                }
+
+                cursorData.cursorBackPixels.clear();
+                cursorData.cursorBackPos = {};
+
+                tex->SetPixelData(std::move(pixels));
+            };
+
+        //update blinking cursor
+        if (cursorData.characterSlot != -1
+            && !ContainsValue(GraphicsContext::GetDraggingMouseButtons(), MouseButton::M_LEFT))
+        {
+            cursorData.timeSinceLastStateSwitch += deltaTime;
+
+            if (cursorData.timeSinceLastStateSwitch >= CURSOR_BLINK_INTERVAL_S)
+            {
+                cursorData.isCursorOn = !cursorData.isCursorOn;
+                cursorData.timeSinceLastStateSwitch = 0;
+
+                if (cursorData.isCursorOn) cursor_on();
+                else                       cursor_off();
+            }
+        }
+
+        if (!canEdit)
+        {
+            if (cursorData.pos != 0)
+            {
+                cursor_off();
+                cursorData = {};   
+            }
+
+            return;
+        }
+
+        //clear cursor if clicked or dragged away from text field
+        if (!m->IsHovered()
+            && cursorData.pos != 0
+            && (ContainsValue(GraphicsContext::GetPressedMouseButtons(), MouseButton::M_LEFT)
+            || ContainsValue(GraphicsContext::GetDraggingMouseButtons(), MouseButton::M_LEFT)))
+        {
+            cursor_off();
+            cursorData = {};
+
+            return;
+        }
+
+        //dont proceed with cursor position updates
+        //if dragging isnt already live for this text widget and it isnt even hovered
+        if (dragStartTextWidget != ID
+            && !m->IsHovered())
+        {
+            return;
+        }
+
+        //no mouse update logic was done
+        if (!ContainsValue(GraphicsContext::GetPressedMouseButtons(), MouseButton::M_LEFT)
+            && !ContainsValue(GraphicsContext::GetDraggingMouseButtons(), MouseButton::M_LEFT))
+        {
+            return;
+        }
+
+        Shader* shader{};
+        err = Shader::GetRegistry().GetContent(shaderID, shader);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics text widget error",
+                "Failed to update text widget '" + to_string(ID) 
+                + "' cursor because its shader was invalid! Reason: " + err);
+        }
+
+        Viewport* vp{};
+        err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics text widget error",
+                "Failed to update text widget '" + to_string(ID) 
+                + "' cursor because its shader '" + to_string(shaderID) + "' viewport was invalid! Reason: " + err);
+        }
+
+        GraphicsContext* gctx{};
+        err = GraphicsContext::GetRegistry().GetContent(vp->GetContextID(), gctx);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics text widget error",
+                "Failed to update text widget '" + to_string(ID) 
+                + "' cursor because its viewport '" + to_string(shader->viewportID) + "' graphics context was invalid! Reason: " + err);
+        }
+
+        bool clicked = ContainsValue(GraphicsContext::GetPressedMouseButtons(), MouseButton::M_LEFT);
+
+        //place cursor
+        if (clicked)
+        {
+            Log::Print("@@@@@ clicked on text widget...");
+
+            //clear old cursor data
+            if (cursorData.pos != 0)
+            {
+                cursor_off();
+                cursorData = {};
+            }
+
+            dragStartTextWidget = 0;
+
+            vec2 pos = m->finalAnchorPos;
+            vec2 size = scast<Transform2D&>(m->GetTransform()).getsize(SizeTarget::SIZE_WORLD);
+
+            vec2 mousePos = gctx->GetMousePos(true);
+
+            vec2 meshStart = 
+            {
+                pos.x - size.x * 0.5f,
+                pos.y - size.y * 0.5f
+            };
+
+            cursorData.pos = 
+            {
+                mousePos.x - meshStart.x,
+                mousePos.y - meshStart.y
+            };
+
+            /*
+            Log::Print(
+                "@@@@@\n"
+                "  mouse pos: "
+                + to_string(mousePos.x) + ", "
+                + to_string(mousePos.y) + "\n"
+                "  mesh pos: "
+                + to_string(pos.x) + ", "
+                + to_string(pos.y) + "\n"
+                "  mesh size: "
+                + to_string(size.x) + ", "
+                + to_string(size.y) + "\n"
+                "  mesh start: "
+                + to_string(meshStart.x) + ", "
+                + to_string(meshStart.y) + "\n"
+                "  cursor pos: "
+                + to_string(cursorData.pos.x) + ", "
+                + to_string(cursorData.pos.y));
+            */
+
+            cursorData.characterSlot = 0; //TODO: replace with actual character slot
+
+            cursorData.isCursorOn = true;
+            cursor_on();
+        }
+        //start highlighting
+        else
+        {
+            Log::Print("@@@@@ dragged on text widget...");
+
+            dragStartTextWidget = ID;
+
+            //tbd...
+        }
     }
 
     void Text::Destroy()

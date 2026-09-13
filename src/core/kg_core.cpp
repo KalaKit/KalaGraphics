@@ -29,6 +29,7 @@ using std::raise;
 #endif
 
 static path exePath{};
+static f64 deltaTime{};
 
 static function<void(string, string)> externalHandler{};
 
@@ -86,6 +87,9 @@ namespace KalaGraphics::Core
 
 		return exePath;
 	}
+
+	f64 KalaGraphicsCore::GetDeltaTime() { return deltaTime; }
+	void KalaGraphicsCore::SetDeltaTime(f64 newValue) { deltaTime = newValue; }
 
 	void KalaGraphicsCore::SetExternalHandler(function<void (string, string)>&& newExternalHandler)
 	{ 

@@ -119,28 +119,27 @@ namespace KalaGraphics::Graphics
 
         clear_old_data();
 
-        if (gctx->mousePos < 0
-            || gctx->mousePosYReversed < 0)
-        {
-            return;
-        }
+        if (gctx->GetMousePos(false) < 0) return;
 
-        auto hit_viewport = [gctx](vec2 pos, vec2 size) -> bool
+        vec2 mousePos = gctx->GetMousePos(false);
+        vec2 mousePosYReversed = gctx->GetMousePos(true);
+
+        auto hit_viewport = [mousePos](vec2 pos, vec2 size) -> bool
             {
                 return 
-                    gctx->mousePos.x >= pos.x 
-                    && gctx->mousePos.x < pos.x + size.x
-                    && gctx->mousePos.y >= pos.y
-                    && gctx->mousePos.y < pos.y + size.y;
+                    mousePos.x >= pos.x 
+                    && mousePos.x < pos.x + size.x
+                    && mousePos.y >= pos.y
+                    && mousePos.y < pos.y + size.y;
             };
 
-        auto hit_2d_mesh = [gctx](
+        auto hit_2d_mesh = [mousePosYReversed](
             vec2 pos,
             vec2 size,
             Mesh* m) -> bool
             {
                 //move mouse into rectangle-local space
-                vec2 local = gctx->mousePosYReversed - pos;
+                vec2 local = mousePosYReversed - pos;
 
                 f32 rotation = radians(scast<Transform2D&>(m->GetTransform())
                     .getrot(RotTarget::ROT_WORLD));

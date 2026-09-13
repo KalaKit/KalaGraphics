@@ -42,6 +42,7 @@ namespace KalaGraphics::PrimitiveWidgets
 namespace KalaGraphics::Graphics
 {
     using KalaHeaders::KalaMath::vec2;
+    using KalaHeaders::KalaMath::vec4;
 
     using KalaGraphics::Core::KalaGraphicsRegistry;
 
@@ -172,6 +173,15 @@ namespace KalaGraphics::Graphics
 
         KNODISCARD
         u32 GetTextWidgetID() const;
+
+        //converts linear RGB to sRGB color
+        vec4 ToSRGB(vec4&& linearColor);
+
+        //Converts sRGB color to linear RGB color
+        vec4 ToLinear(vec4&& sRGBColor);
+
+        //Fill this texture with fixed color and transparency
+        void FillColor(vec4&& newValue);
 
         KNODISCARD
 		const vector<u8>& GetPixelData() const;

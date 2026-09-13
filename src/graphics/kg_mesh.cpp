@@ -1774,7 +1774,9 @@ namespace KalaGraphics::Graphics
                 && it->second.second
                 && is_valid_hover_state(it->second.first))
             {
-                it->second.second(gctx->mousePosYReversed);
+                vec2 mousePosYReversed = gctx->GetMousePos(true);
+
+                it->second.second(mousePosYReversed);
             }
         }
 

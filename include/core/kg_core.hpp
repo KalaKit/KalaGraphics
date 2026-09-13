@@ -58,6 +58,10 @@ namespace KalaGraphics::Core
 		KNODISCARD
 		static path GetExePath();
 
+        KNODISCARD
+        static f64 GetDeltaTime();
+        static void SetDeltaTime(f64 newValue);
+
         //External handler for force close, overrides local version so external version can do its own action
         static void SetExternalHandler(function<void(string, string)>&& externalHandler);
 
