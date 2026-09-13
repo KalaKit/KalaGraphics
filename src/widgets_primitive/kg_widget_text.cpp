@@ -29,6 +29,7 @@ using KalaHeaders::KalaMath::Transform2D;
 using KalaHeaders::KalaMath::vec3;
 using KalaHeaders::KalaMath::vec2;
 
+using KalaHeaders::KalaKeyStandards::KeyboardButton;
 using KalaHeaders::KalaKeyStandards::MouseButton;
 using KalaHeaders::KalaKeyStandards::GetUTFByValue;
 using KalaHeaders::KalaKeyStandards::GetValueByUTF;
@@ -1358,12 +1359,14 @@ namespace KalaGraphics::PrimitiveWidgets
                 + to_string(fontID) + "' was invalid! Reason: " + err);
         }
 
-        u32 pressedChar = GraphicsContext::GetPressedChar(); 
+        bool pressedEnter = ContainsValue(GraphicsContext::GetPressedKeys(), KeyboardButton::K_RETURN);
+
+        u32 pressedChar = GraphicsContext::GetModifierChar(); 
 
         if (pressedChar != 0
             || GraphicsContext::GetBackspaceState()
             || GraphicsContext::GetTabState()
-            || GraphicsContext::GetReturnState())
+            || pressedEnter)
         {
             if (pressedChar != 0)
             {
@@ -1433,7 +1436,7 @@ namespace KalaGraphics::PrimitiveWidgets
             }
 
             //single-line fields can never add a return value
-            if (GraphicsContext::GetReturnState()
+            if (pressedEnter
                 && maxLines > 1)
             {
                 AddUTF({ 0x0A });

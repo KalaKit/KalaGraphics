@@ -127,10 +127,13 @@ static VkQueue graphicsQueue{};
 static VmaAllocator vmaAllocator{};
 static VkDescriptorPool descriptorPool{};
 
-static u32 charValue{};
+static u32 modifierChar{};
 static bool backspaceState{};
 static bool tabState{};
-static bool returnState{};
+static bool leftArrowState{};
+static bool rightArrowState{};
+static bool upArrowState{};
+static bool downArrowState{};
 
 static vector<KeyboardButton> pressedKeys{};
 static vector<KeyboardButton> heldKeys{};
@@ -378,8 +381,8 @@ namespace KalaGraphics::Graphics
 		draggingMouseButtons = newValue;
 	}
 
-    u32 GraphicsContext::GetPressedChar() { return charValue; }
-    void GraphicsContext::SetPressedChar(u32 newValue) { charValue = newValue; }
+    u32 GraphicsContext::GetModifierChar() { return modifierChar; }
+    void GraphicsContext::SetModifierChar(u32 newValue) { modifierChar = newValue; }
 
     bool GraphicsContext::GetBackspaceState() { return backspaceState; }
     void GraphicsContext::SetBackspaceState(bool newValue) { backspaceState = newValue; }
@@ -387,8 +390,17 @@ namespace KalaGraphics::Graphics
     bool GraphicsContext::GetTabState() { return tabState; }
     void GraphicsContext::SetTabState(bool newValue) { tabState = newValue; }
 
-    bool GraphicsContext::GetReturnState() { return returnState; }
-    void GraphicsContext::SetReturnState(bool newValue) { returnState = newValue; }
+    bool GraphicsContext::GetLeftArrowState() { return leftArrowState; }
+    void GraphicsContext::SetLeftArrowState(bool newValue) { leftArrowState = newValue; }
+
+    bool GraphicsContext::GetRightArrowState() { return rightArrowState; }
+    void GraphicsContext::SetRightArrowState(bool newValue) { rightArrowState = newValue; }
+
+    bool GraphicsContext::GetUpArrowState() { return upArrowState; }
+    void GraphicsContext::SetUpArrowState(bool newValue) { upArrowState = newValue; }
+
+    bool GraphicsContext::GetDownArrowState() { return downArrowState; }
+    void GraphicsContext::SetDownArrowState(bool newValue) { downArrowState = newValue; }
 
     f32 GraphicsContext::GetScrollWheelDelta() { return scrollWheelDelta; }
 	void GraphicsContext::SetScrollWheelDelta(f32 newValue) { scrollWheelDelta = newValue; }

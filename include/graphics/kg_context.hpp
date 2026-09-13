@@ -161,8 +161,8 @@ namespace KalaGraphics::Graphics
         KNODISCARD
 		static Severity GetVkResultSeverity(int result);
 
-        static u32 GetPressedChar();
-        static void SetPressedChar(u32 newValue);
+        static u32 GetModifierChar();
+        static void SetModifierChar(u32 newValue);
 
         static bool GetBackspaceState();
         static void SetBackspaceState(bool newValue);
@@ -170,8 +170,17 @@ namespace KalaGraphics::Graphics
         static bool GetTabState();
         static void SetTabState(bool newValue);
 
-        static bool GetReturnState();
-        static void SetReturnState(bool newValue);
+        static bool GetLeftArrowState();
+        static void SetLeftArrowState(bool newValue);
+
+        static bool GetRightArrowState();
+        static void SetRightArrowState(bool newValue);
+
+        static bool GetUpArrowState();
+        static void SetUpArrowState(bool newValue);
+
+        static bool GetDownArrowState();
+        static void SetDownArrowState(bool newValue);
 
         static const vector<KeyboardButton>& GetHeldKeys();
         static void SetHeldKeys(const vector<KeyboardButton>& newValue);
