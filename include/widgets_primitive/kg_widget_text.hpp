@@ -36,7 +36,8 @@ namespace KalaGraphics::PrimitiveWidgets
     static constexpr u16 MAX_LINES = 1024;
     static constexpr u16 MAX_LINE_WIDTH = 8192;
     static constexpr u16 MIN_LINE_WIDTH = 32;
-    static constexpr u16 MAX_LINE_HEIGHT = 128;
+    static constexpr u16 MAX_LINE_HEIGHT = 255;
+    static constexpr u16 MIN_LINE_HEIGHT = 1;
 
     static constexpr f32 MAX_TEXT_MULTIPLIER_SIZE = 10.0f;
     static constexpr f32 MIN_TEXT_MULTIPLIER_SIZE = 0.1f;
@@ -214,7 +215,6 @@ namespace KalaGraphics::PrimitiveWidgets
 
         KNODISCARD
         u16 GetLineHeight() const;
-        void SetLineHeight(u16 newValue);
 
         KNODISCARD
         u16 GetMaxLines() const;
@@ -321,8 +321,9 @@ namespace KalaGraphics::PrimitiveWidgets
 
         f32 textSizeMultiplier = 1.0f;
 
-        u16 lineWidth = 256;
-        u16 lineHeight = 32;
+        u16 lineWidth = 128;
+        u16 lineHeight{};
+        u16 cursorOffset = 16;
         u16 maxLines = 1;
 
         u16 maxCharacters = 32;

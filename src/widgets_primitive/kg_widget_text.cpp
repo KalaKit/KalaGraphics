@@ -298,6 +298,9 @@ namespace KalaGraphics::PrimitiveWidgets
 
         fontID = newValue;
 
+        //ensure new font calculates line height again
+        lineHeight = 0;
+
         isTextDirty = true;
 
         Log::Print(
@@ -782,27 +785,6 @@ namespace KalaGraphics::PrimitiveWidgets
     }
 
     u16 Text::GetLineHeight() const { return lineHeight; }
-    void Text::SetLineHeight(u16 newValue)
-    {
-        if (newValue == lineHeight)
-        {
-            Log::Print(
-                "Failed to set text widget '" + to_string(ID) + "' line height because it is already the same!",
-                "KG_TEXT",
-                LogType::LOG_WARNING);
-
-            return;
-        }
-
-        lineHeight = clamp(newValue, scast<u16>(1), MAX_LINE_HEIGHT);
-
-        isTextDirty = true;
-
-        Log::Print(
-            "Set text widget '" + to_string(ID) + "' line height to '" + to_string(lineHeight) + "'!",
-            "KG_TEXT",
-            LogType::LOG_SUCCESS);
-    }
 
     u16 Text::GetMaxLines() const { return maxLines; }
     void Text::SetMaxLines(u16 newValue)
@@ -1566,6 +1548,20 @@ namespace KalaGraphics::PrimitiveWidgets
                 + "' cursor because its font '" + to_string(fontID) + "' was invalid! Reason: " + err);
         }
 
+        if (lineHeight == 0)
+        {
+            for (const GlyphData& gd : font->GetFontData().glyphs)
+            {
+                lineHeight = max(
+                    lineHeight, 
+                    scast<u16>(fabsf(gd.bearing.y)));
+            }
+
+            Log::Print("@@@@@ set line height to '" + to_string(lineHeight) + "'...");
+        }
+
+        //set fixed cursor height and line height
+
         i32 textureWidth = scast<i32>(tex->GetSize().x);
         i32 textureHeight = scast<i32>(tex->GetSize().y);
 
@@ -1610,6 +1606,12 @@ namespace KalaGraphics::PrimitiveWidgets
 
                         cursorData.pos.x = last.penPos.x + glyphData->advance;
                     }
+
+                    cursorData.pos.y = 
+                        -font->GetFontData().descender 
+                        + lineHeight * 0.5f;
+
+                    Log::Print("@@@@@ set cursor y pos to '" + to_string(cursorData.pos.y) + "'...");
 
                     cursorData.isCursorPosDirty = false;
                 }
@@ -2023,6 +2025,49 @@ namespace KalaGraphics::PrimitiveWidgets
                         }
 
                         cursorData.characterSlot = targetSlot;
+                    }
+
+                    cursorData.isCursorPosDirty = true;
+
+                    cursorData.timeSinceLastStateSwitch = CURSOR_BLINK_INTERVAL_S;
+                    cursorData.isCursorOn = false;
+                }
+
+                //move cursor to above line or start of current line
+                if (GraphicsContext::GetUpArrowState()
+                    && cursorData.characterSlot > 0)
+                {
+                    cursor_off();
+
+                    if (maxLines == 1
+                        || cursorData.line == 1)
+                    {
+                        cursorData.characterSlot = 0;
+                    }
+                    else
+                    {
+                        //TODO: go to above line
+                    }
+
+                    cursorData.isCursorPosDirty = true;
+
+                    cursorData.timeSinceLastStateSwitch = CURSOR_BLINK_INTERVAL_S;
+                    cursorData.isCursorOn = false;
+                }
+
+                //move cursor to below line or end of current line
+                if (GraphicsContext::GetDownArrowState()
+                    && scast<u32>(cursorData.characterSlot) < displayedText.size())
+                {
+                    cursor_off();
+
+                    if (cursorData.line == maxLines)
+                    {
+                        cursorData.characterSlot = displayedText.size();
+                    }
+                    else
+                    {
+                        //TODO: go to below line
                     }
 
                     cursorData.isCursorPosDirty = true;
