@@ -666,14 +666,7 @@ namespace KalaGraphics::PrimitiveWidgets
             LogType::LOG_SUCCESS);
     }
 
-    pair<i32, i32> Text::GetHighlightRange() const 
-    { 
-        return 
-        { 
-            highlightData.highlightStart, 
-            highlightData.highlightEnd 
-        };
-    }
+    pair<i32, i32> Text::GetHighlightRange() const { return highlightData.highlightRange; }
     void Text::SetHighlightRange(pair<i32, i32> newValue)
     {
         if (newValue.first == -1
@@ -724,16 +717,13 @@ namespace KalaGraphics::PrimitiveWidgets
             return;
         }
 
-        highlightData = 
-        {
-            .highlightStart = newValue.first,
-            .highlightEnd = newValue.second
-        };
+        highlightData.highlightRange = newValue;
+        highlightData.isHighlightDirty = true;
 
         Log::Print(
             "Set text widget '" + to_string(ID) + "' highlighted area start to '" 
-            + to_string(highlightData.highlightStart) + "' and end to "
-            + to_string(highlightData.highlightEnd) + "'!",
+            + to_string(highlightData.highlightRange.first) + "' and end to "
+            + to_string(highlightData.highlightRange.second) + "'!",
             "KG_TEXT",
             LogType::LOG_SUCCESS);
     }
@@ -1051,6 +1041,9 @@ namespace KalaGraphics::PrimitiveWidgets
             }
         }
 
+        if (cursorData.characterSlot != -1) cursorData.isCursorPosDirty = true;
+        if (highlightData.highlightRange != pair{ -1, -1 }) highlightData.isHighlightDirty = true;
+
         if (isVerboseLoggingEnabled)
         {
             string target = back ? "back" : "front";
@@ -1212,6 +1205,9 @@ namespace KalaGraphics::PrimitiveWidgets
             }
         }
 
+        if (cursorData.characterSlot != -1) cursorData.isCursorPosDirty = true;
+        if (highlightData.highlightRange != pair{ -1, -1 }) highlightData.isHighlightDirty = true;
+
         if (isVerboseLoggingEnabled)
         {
             string target = back ? "back" : "front";
@@ -1313,6 +1309,9 @@ namespace KalaGraphics::PrimitiveWidgets
                 isTextDirty = true;
             }
         }
+
+        if (cursorData.characterSlot != -1) cursorData.isCursorPosDirty = true;
+        if (highlightData.highlightRange != pair{ -1, -1 }) highlightData.isHighlightDirty = true;
 
         if (isVerboseLoggingEnabled)
         {
@@ -1557,7 +1556,7 @@ namespace KalaGraphics::PrimitiveWidgets
                     scast<u16>(fabsf(gd.bearing.y)));
             }
 
-            Log::Print("@@@@@ set line height to '" + to_string(lineHeight) + "'...");
+            //Log::Print("@@@@@ set line height to '" + to_string(lineHeight) + "'...");
         }
 
         //set fixed cursor height and line height
@@ -1580,8 +1579,6 @@ namespace KalaGraphics::PrimitiveWidgets
                 //position cursor from logical character slot
                 if (cursorData.isCursorPosDirty)
                 {
-                    Log::Print("@@@@@ cursor was dirty...");
-
                     if (cursorData.characterSlot == 0)
                     {
                         if (displayedText.empty())
@@ -1611,7 +1608,7 @@ namespace KalaGraphics::PrimitiveWidgets
                         -font->GetFontData().descender 
                         + lineHeight * 0.5f;
 
-                    Log::Print("@@@@@ set cursor y pos to '" + to_string(cursorData.pos.y) + "'...");
+                    //Log::Print("@@@@@ set cursor y pos to '" + to_string(cursorData.pos.y) + "'...");
 
                     cursorData.isCursorPosDirty = false;
                 }
@@ -1652,15 +1649,16 @@ namespace KalaGraphics::PrimitiveWidgets
                         if (pixelX >= scast<u32>(textureWidth)
                             || pixelY >= scast<u32>(textureHeight))
                         {
+                            /*
                             Log::Print(
-                                "Cursor pixel out of bounds: "
+                                "@@@@@\n"
+                                "  cursor pixel out of bounds: "
                                 + to_string(pixelX) + ", "
                                 + to_string(pixelY) + "\n"
                                 + "  texture size: "
                                 + to_string(textureWidth) + ", "
-                                + to_string(textureHeight),
-                                "KG_TEXT",
-                                LogType::LOG_WARNING);
+                                + to_string(textureHeight));
+                            */
 
                             return;
                         }
@@ -1669,13 +1667,14 @@ namespace KalaGraphics::PrimitiveWidgets
 
                         if (index >= pixels.size())
                         {
+                            /*
                             Log::Print(
-                                "Cursor index out of bounds: "
+                                "@@@@@\n"
+                                "  cursor index out of bounds: "
                                 + to_string(index) + "\n"
                                 + "  pixel count: "
-                                + to_string(pixels.size()),
-                                "KG_TEXT",
-                                LogType::LOG_WARNING);
+                                + to_string(pixels.size()));
+                            */
 
                             return;
                         }
@@ -1727,15 +1726,16 @@ namespace KalaGraphics::PrimitiveWidgets
                         if (pixelX >= scast<u32>(textureWidth)
                             || pixelY >= scast<u32>(textureHeight))
                         {
+                            /*
                             Log::Print(
-                                "Restore cursor pixel out of bounds: "
+                                "@@@@@\n"
+                                "  restore cursor pixel out of bounds: "
                                 + to_string(pixelX) + ", "
                                 + to_string(pixelY) + "\n"
                                 + "  texture size: "
                                 + to_string(textureWidth) + ", "
-                                + to_string(textureHeight),
-                                "KG_TEXT",
-                                LogType::LOG_WARNING);
+                                + to_string(textureHeight));
+                            */
 
                             return;
                         }
@@ -1744,26 +1744,28 @@ namespace KalaGraphics::PrimitiveWidgets
 
                         if (index >= pixels.size())
                         {
+                            /*
                             Log::Print(
-                                "Restore cursor index out of bounds: "
+                                "@@@@@\n"
+                                "  restore cursor index out of bounds: "
                                 + to_string(index) + "\n"
                                 + "  pixel count: "
-                                + to_string(pixels.size()),
-                                "KG_TEXT",
-                                LogType::LOG_WARNING);
+                                + to_string(pixels.size()));
+                            */
 
                             return;
                         }
 
                         if (backPixelIndex >= cursorData.cursorBackPixels.size())
                         {
+                            /*
                             Log::Print(
-                                "Cursor backing pixel out of bounds: "
+                                "@@@@@\n"
+                                "  cursor backing pixel out of bounds: "
                                 + to_string(backPixelIndex) + "\n"
                                 + "  backing pixel count: "
-                                + to_string(cursorData.cursorBackPixels.size()),
-                                "KG_TEXT",
-                                LogType::LOG_WARNING);
+                                + to_string(cursorData.cursorBackPixels.size()));
+                            */
 
                             return;
                         }
@@ -1774,6 +1776,186 @@ namespace KalaGraphics::PrimitiveWidgets
 
                 cursorData.cursorBackPixels.clear();
                 cursorData.cursorBackPos = {};
+
+                tex->SetPixelData(std::move(pixels));
+            };
+
+        auto hightlight_on = [
+            tex,
+            textureWidth,
+            textureHeight,
+            this,
+            font]() -> void
+            {
+                if (highlightData.highlightRange.first == -1
+                    || highlightData.highlightRange.second == -1)
+                {
+                    return;
+                }
+
+                i32 startSlot = min(
+                    highlightData.highlightRange.first,
+                    highlightData.highlightRange.second);
+
+                i32 endSlot = max(
+                    highlightData.highlightRange.first,
+                    highlightData.highlightRange.second);
+
+                if (startSlot == endSlot) return;
+
+                f32 startX{};
+
+                if (scast<u32>(startSlot) < displayedText.size())
+                {
+                    startX = displayedText[startSlot].penPos.x;
+                }
+                else
+                {
+                    const GlyphRasterData& last = displayedText.back();
+
+                    const GlyphData* glyphData = font->GetGlyphData(
+                        font->GetFontData(),
+                        last.utf);
+                        
+                    startX = last.penPos.x + glyphData->advance;
+                }
+
+                f32 endX{};
+
+                if (scast<u32>(endSlot) < displayedText.size())
+                {
+                    endX = displayedText[endSlot].penPos.x;
+                }
+                else
+                {
+                    const GlyphRasterData& last = displayedText.back();
+
+                    const GlyphData* glyphData = font->GetGlyphData(
+                        font->GetFontData(),
+                        last.utf);
+                        
+                    endX = last.penPos.x + glyphData->advance;
+                }
+
+                i32 highlightStartX = scast<i32>(startX);
+                i32 highlightStartY = -font->GetFontData().descender;
+
+                u32 highlightWidth = scast<u32>(fabsf(endX - startX));
+                u32 highlightHeight = lineHeight;
+
+                if (highlightWidth == 0
+                    || highlightHeight == 0)
+                {
+                    return;
+                }
+
+                highlightStartX = clamp(
+                    highlightStartX,
+                    0,
+                    scast<i32>(textureWidth) - 1);
+
+                highlightStartY = clamp(
+                    highlightStartY,
+                    0,
+                    scast<i32>(textureHeight) - 1);
+
+                highlightWidth = min(
+                    highlightWidth,
+                    textureWidth - scast<u32>(highlightStartX));
+
+                highlightHeight = min(
+                    highlightHeight,
+                    textureHeight - scast<u32>(highlightStartY));
+
+                vector<u8> pixels = tex->GetPixelData();
+
+                highlightData.highlightBackPixels.clear();
+                highlightData.highlightBackPixels.reserve(
+                    highlightWidth 
+                    * highlightHeight);
+
+                highlightData.highlightBackPos =
+                {
+                    scast<f32>(highlightStartX),
+                    scast<f32>(highlightStartY)
+                };
+
+                highlightData.highlightBackSize = 
+                {
+                    scast<f32>(highlightWidth),
+                    scast<f32>(highlightHeight)
+                };
+
+                for (u32 y = 0; y < highlightHeight; y++)
+                {
+                    for (u32 x = 0; x < highlightWidth; x++)
+                    {
+                        u32 pixelX = scast<u32>(highlightStartX) + x;
+                        u32 pixelY = scast<u32>(highlightStartY) + y;
+
+                        u32 index = pixelY * textureWidth + pixelX;
+
+                        highlightData.highlightBackPixels.push_back(pixels[index]);
+
+                        //temporary visual highlight:
+                        //invert whatever is already underneath
+                        pixels[index] = 255 - pixels[index];
+                    }
+                }
+
+                tex->SetPixelData(std::move(pixels));
+            };
+
+        auto hightlight_off = [
+            tex,
+            textureWidth,
+            textureHeight,
+            this]() -> void
+            {
+                if (highlightData.highlightBackPixels.empty()) return;
+
+                i32 startX = scast<i32>(highlightData.highlightBackPos.x);
+                i32 startY = scast<i32>(highlightData.highlightBackPos.y);
+
+                u32 width = scast<u32>(highlightData.highlightBackSize.x);
+                u32 height = scast<u32>(highlightData.highlightBackSize.y);
+
+                vector<u8> pixels = tex->GetPixelData();
+
+                u32 backIndex{};
+
+                for (u32 y = 0; y < height; y++)
+                {
+                    for (u32 x = 0; x < width; x++)
+                    {
+                        i32 pixelX = startX + x;
+                        i32 pixelY = startY + y;
+
+                        if (pixelX < 0
+                            || pixelY < 0
+                            || pixelX >= scast<i32>(textureWidth)
+                            || pixelY >= scast<i32>(textureHeight))
+                        {
+                            backIndex++;
+                            continue;
+                        }
+
+                        u32 index = 
+                            scast<u32>(pixelY) * textureWidth 
+                            + scast<u32>(pixelX);
+
+                        if (backIndex < highlightData.highlightBackPixels.size())
+                        {
+                            pixels[index] = highlightData.highlightBackPixels[backIndex];
+                        }
+
+                        backIndex++;
+                    }
+                }
+
+                highlightData.highlightBackPixels.clear();
+                highlightData.highlightBackPos = {};
+                highlightData.highlightBackSize = {};
 
                 tex->SetPixelData(std::move(pixels));
             };
@@ -1794,7 +1976,8 @@ namespace KalaGraphics::PrimitiveWidgets
             }
         }
 
-        if (!canEdit)
+        if (m->ignoreHover
+            || !canEdit)
         {
             if (cursorData.characterSlot != -1)
             {
@@ -1802,11 +1985,40 @@ namespace KalaGraphics::PrimitiveWidgets
                 cursorData = {};   
             }
 
+            if (highlightData.highlightRange != pair{ -1, -1 })
+            {
+                hightlight_off();
+                highlightData = {};
+            }
+
             return;
         }
 
-        if (cursorData.characterSlot != -1)
+        if (highlightData.highlightRange.first != -1
+            && highlightData.highlightRange.second != -1
+            && cursorData.characterSlot != -1)
         {
+            cursor_off();
+            cursorData = {};
+        }
+
+        if (highlightData.isHighlightDirty)
+        {
+            hightlight_off();
+            hightlight_on();
+
+            highlightData.isHighlightDirty = false;
+        }
+
+        bool isCursorActive = cursorData.characterSlot != -1;
+        bool wasHighlighted = highlightData.highlightRange != pair{ -1, -1 };
+
+        if (isCursorActive
+            || wasHighlighted)
+        {
+            bool heldLeftCtrl = ContainsValue(GraphicsContext::GetHeldKeys(), KeyboardButton::K_LEFT_CTRL);
+            bool heldLeftShift = ContainsValue(GraphicsContext::GetHeldKeys(), KeyboardButton::K_LEFT_SHIFT);
+
             bool pressedEnter = ContainsValue(GraphicsContext::GetPressedKeys(), KeyboardButton::K_RETURN);
 
             u32 pressedChar = GraphicsContext::GetModifierChar(); 
@@ -1820,9 +2032,33 @@ namespace KalaGraphics::PrimitiveWidgets
                 || GraphicsContext::GetDownArrowState()
                 || pressedEnter)
             {
-                if (pressedChar != 0)
+                auto delete_highlight_range = [this, hightlight_off]() -> void
+                    {
+                        i32 highlightStart = min(
+                            highlightData.highlightRange.first,
+                            highlightData.highlightRange.second);
+
+                        cursorData.characterSlot = highlightStart;
+
+                        u32 highlightCount = scast<u32>(abs(
+                            highlightData.highlightRange.second
+                            - highlightData.highlightRange.first));
+
+                        hightlight_off();
+                        highlightData = {};
+
+                        RemoveText(
+                            highlightCount,
+                            highlightStart,
+                            false);
+                    };
+
+                if (pressedChar != 0
+                    && !heldLeftCtrl)
                 {
                     cursor_off();
+
+                    if (wasHighlighted) delete_highlight_range();
 
                     bool containsGlyph{};
                     bool emptyGlyph{};
@@ -1856,7 +2092,10 @@ namespace KalaGraphics::PrimitiveWidgets
                         }
                         else
                         {
-                            Log::Print("@@@@@ found empty utf: " + to_string(pressedChar));
+                            Log::Print(
+                                "Found empty utf '" + to_string(pressedChar) + "', replaced with placeholder '?'.",
+                                "KG_TEXT",
+                                LogType::LOG_WARNING);
 
                             //fallback ?
                             AddUTF(
@@ -1867,7 +2106,10 @@ namespace KalaGraphics::PrimitiveWidgets
                     }
                     else
                     {
-                        Log::Print("@@@@@ did not find utf: " + to_string(pressedChar));
+                        Log::Print(
+                            "Did not find utf '" + to_string(pressedChar) + "', replaced with placeholder '?'.",
+                            "KG_TEXT",
+                            LogType::LOG_WARNING);
 
                         //fallback ?
                         AddUTF(
@@ -1885,16 +2127,22 @@ namespace KalaGraphics::PrimitiveWidgets
 
                 if (GraphicsContext::GetBackspaceState()
                     && displayedText.size() > 0
-                    && cursorData.characterSlot > 0)
+                    && (isCursorActive
+                    || wasHighlighted))
                 {
                     cursor_off();
 
-                    RemoveText(
-                        1, 
-                        cursorData.characterSlot - 1,
-                        false);
+                    if (wasHighlighted) delete_highlight_range();
+                    else
+                    {
+                        RemoveText(
+                            1, 
+                            cursorData.characterSlot - 1,
+                            false);
 
-                    cursorData.characterSlot--;
+                        cursorData.characterSlot--;
+                    }
+
                     cursorData.isCursorPosDirty = true;
 
                     cursorData.timeSinceLastStateSwitch = CURSOR_BLINK_INTERVAL_S;
@@ -1905,6 +2153,11 @@ namespace KalaGraphics::PrimitiveWidgets
                     && displayedText.size() + 4 <= maxCharacters)
                 {
                     cursor_off();
+
+                    if (wasHighlighted)
+                    {
+                        delete_highlight_range();
+                    }
 
                     //four spaces for tab
                     AddUTF(
@@ -1941,18 +2194,38 @@ namespace KalaGraphics::PrimitiveWidgets
 
                 //move cursor left
                 if (GraphicsContext::GetLeftArrowState()
-                    && cursorData.characterSlot > 0)
+                    && (isCursorActive
+                    || wasHighlighted))
                 {
                     cursor_off();
 
-                    if (!ContainsValue(GraphicsContext::GetHeldKeys(), KeyboardButton::K_LEFT_CTRL))
+                    if (wasHighlighted
+                        && !(heldLeftCtrl
+                        && heldLeftShift))
                     {
-                        cursorData.characterSlot--;
+                        i32 highlightStart = min(
+                            highlightData.highlightRange.first,
+                            highlightData.highlightRange.second);
+
+                        cursorData.characterSlot = highlightStart;
+
+                        hightlight_off();
+                        highlightData = {};
+                    }
+
+                    if (!heldLeftCtrl)
+                    {
+                        if (!wasHighlighted) cursorData.characterSlot--;
                     }
                     else
                     {
+                        i32 startSlot = wasHighlighted
+                            && heldLeftShift
+                            ? highlightData.highlightRange.second
+                            : cursorData.characterSlot;
+
                         i32 targetSlot{};
-                        i32 i = cursorData.characterSlot - 1;
+                        i32 i = startSlot - 1;
 
                         //skip all spaces between words
                         while (i >= 0
@@ -1977,29 +2250,85 @@ namespace KalaGraphics::PrimitiveWidgets
                             }
                         }
 
-                        cursorData.characterSlot = targetSlot;
+                        if (!heldLeftShift) cursorData.characterSlot = targetSlot;
+                        else
+                        {
+                            if (!wasHighlighted)
+                            {
+                                highlightData.highlightRange = 
+                                {
+                                    cursorData.characterSlot,
+                                    targetSlot
+                                };
+
+                                cursorData = {};
+                            }
+                            else highlightData.highlightRange.second = targetSlot;
+
+                            highlightData.isHighlightDirty = true;
+                        }
                     }
 
-                    cursorData.isCursorPosDirty = true;
+                    if (!(heldLeftCtrl
+                        && heldLeftShift))
+                    {
+                        cursorData.isCursorPosDirty = true;
 
-                    cursorData.timeSinceLastStateSwitch = CURSOR_BLINK_INTERVAL_S;
-                    cursorData.isCursorOn = false;
+                        cursorData.timeSinceLastStateSwitch = CURSOR_BLINK_INTERVAL_S;
+                        cursorData.isCursorOn = false;
+                    }
+                }
+
+                //highlight everything
+                if (heldLeftCtrl
+                    && ContainsValue(GraphicsContext::GetHeldKeys(), KeyboardButton::K_A)
+                    && !displayedText.empty()
+                    && highlightData.highlightRange != pair{ 0, displayedText.size() })
+                {
+                    if (isCursorActive)
+                    {
+                        cursor_off();
+                        cursorData = {};
+                    }
+
+                    highlightData.highlightRange = pair{ 0, displayedText.size() };
+                    highlightData.isHighlightDirty = true;
                 }
 
                 //move cursor right
                 if (GraphicsContext::GetRightArrowState()
-                    && scast<u32>(cursorData.characterSlot) < displayedText.size())
+                    && (scast<u32>(cursorData.characterSlot) < displayedText.size()
+                    || wasHighlighted))
                 {
                     cursor_off();
 
-                    if (!ContainsValue(GraphicsContext::GetHeldKeys(), KeyboardButton::K_LEFT_CTRL))
+                    if (wasHighlighted
+                        && !(heldLeftCtrl
+                        && heldLeftShift))
                     {
-                        cursorData.characterSlot++;
+                        i32 highlightEnd = max(
+                            highlightData.highlightRange.first,
+                            highlightData.highlightRange.second);
+
+                        cursorData.characterSlot = highlightEnd;
+
+                        hightlight_off();
+                        highlightData = {};
+                    }
+
+                    if (!heldLeftCtrl)
+                    {
+                        if (!wasHighlighted) cursorData.characterSlot++;
                     }
                     else
                     {
+                        i32 startSlot = wasHighlighted
+                            && heldLeftShift
+                            ? highlightData.highlightRange.second
+                            : cursorData.characterSlot;
+
                         i32 targetSlot = displayedText.size();
-                        i32 i = cursorData.characterSlot;
+                        i32 i = startSlot;
 
                         //skip all spaces between words
                         while (i < scast<i32>(displayedText.size())
@@ -2024,20 +2353,47 @@ namespace KalaGraphics::PrimitiveWidgets
                             }
                         }
 
-                        cursorData.characterSlot = targetSlot;
+                        if (!heldLeftShift) cursorData.characterSlot = targetSlot;
+                        else
+                        {
+                            if (!wasHighlighted)
+                            {
+                                highlightData.highlightRange = 
+                                {
+                                    cursorData.characterSlot,
+                                    targetSlot
+                                };
+
+                                cursorData = {};
+                            }
+                            else highlightData.highlightRange.second = targetSlot;
+
+                            highlightData.isHighlightDirty = true;
+                        }
                     }
 
-                    cursorData.isCursorPosDirty = true;
+                    if (!(heldLeftCtrl
+                        && heldLeftShift))
+                    {
+                        cursorData.isCursorPosDirty = true;
 
-                    cursorData.timeSinceLastStateSwitch = CURSOR_BLINK_INTERVAL_S;
-                    cursorData.isCursorOn = false;
+                        cursorData.timeSinceLastStateSwitch = CURSOR_BLINK_INTERVAL_S;
+                        cursorData.isCursorOn = false;
+                    }
                 }
 
                 //move cursor to above line or start of current line
                 if (GraphicsContext::GetUpArrowState()
-                    && cursorData.characterSlot > 0)
+                    && (isCursorActive
+                    || wasHighlighted))
                 {
                     cursor_off();
+
+                    if (wasHighlighted)
+                    {
+                        hightlight_off();
+                        highlightData = {};
+                    }
 
                     if (maxLines == 1
                         || cursorData.line == 1)
@@ -2057,9 +2413,16 @@ namespace KalaGraphics::PrimitiveWidgets
 
                 //move cursor to below line or end of current line
                 if (GraphicsContext::GetDownArrowState()
-                    && scast<u32>(cursorData.characterSlot) < displayedText.size())
+                    && (scast<u32>(cursorData.characterSlot) < displayedText.size()
+                    || wasHighlighted))
                 {
                     cursor_off();
+
+                    if (wasHighlighted)
+                    {
+                        hightlight_off();
+                        highlightData = {};
+                    }
 
                     if (cursorData.line == maxLines)
                     {
@@ -2081,15 +2444,13 @@ namespace KalaGraphics::PrimitiveWidgets
                     && maxLines > 1)
                 {
                     AddUTF({ 0x0A });
-
-                    cursorData.isCursorPosDirty = true;
                 }
             }   
         }
 
         //clear cursor if clicked or dragged away from text field
         if (!m->IsHovered()
-            && cursorData.characterSlot != -1
+            && isCursorActive
             && (ContainsValue(GraphicsContext::GetPressedMouseButtons(), MouseButton::M_LEFT)
             || ContainsValue(GraphicsContext::GetDraggingMouseButtons(), MouseButton::M_LEFT)))
         {
@@ -2146,25 +2507,32 @@ namespace KalaGraphics::PrimitiveWidgets
 
         bool clicked = ContainsValue(GraphicsContext::GetPressedMouseButtons(), MouseButton::M_LEFT);
 
+        bool dragging = ContainsValue(GraphicsContext::GetDraggingMouseButtons(), MouseButton::M_LEFT);
+
         //place cursor
         if (clicked)
         {
-            Log::Print("@@@@@ clicked on text widget...");
+            //Log::Print("@@@@@ clicked on text widget...");
+
+            if (wasHighlighted)
+            {
+                hightlight_off();
+                highlightData = {};
+            }
+
+            dragStartTextWidget = 0;
+            highlightData.dragStartMousePos = gctx->GetMousePos(true);
 
             //clear old cursor data
-            if (cursorData.characterSlot != -1)
+            if (isCursorActive)
             {
                 cursor_off();
                 cursorData = {};
             }
             cursorData.isCursorPosDirty = true;
 
-            dragStartTextWidget = 0;
-
             vec2 pos = m->finalAnchorPos;
             vec2 size = scast<Transform2D&>(m->GetTransform()).getsize(SizeTarget::SIZE_WORLD);
-
-            vec2 mousePos = gctx->GetMousePos(true);
 
             vec2 meshStart = 
             {
@@ -2174,8 +2542,8 @@ namespace KalaGraphics::PrimitiveWidgets
 
             vec2 clickPos = 
             {
-                mousePos.x - meshStart.x,
-                mousePos.y - meshStart.y
+                highlightData.dragStartMousePos.x - meshStart.x,
+                highlightData.dragStartMousePos.y - meshStart.y
             };
 
             if (displayedText.empty())
@@ -2201,7 +2569,11 @@ namespace KalaGraphics::PrimitiveWidgets
 
                 const GlyphRasterData& last = displayedText.back();
 
-                f32 endX = last.glyphPos.x + fabsf(last.glyphSize.x);
+                const GlyphData* glyphData = font->GetGlyphData(
+                    font->GetFontData(),
+                    last.utf);
+
+                f32 endX = last.penPos.x + glyphData->advance;
                 f32 distance = fabsf(clickX - endX);
 
                 if (distance < closestDistance)
@@ -2214,13 +2586,105 @@ namespace KalaGraphics::PrimitiveWidgets
             cursorData.isCursorOn = false;
         }
         //start highlighting
-        else
+        else if (dragging)
         {
-            Log::Print("@@@@@ dragged on text widget...");
+            if (displayedText.empty()) return;
+
+            vec2 mousePos = gctx->GetMousePos(true);
+            f32 dragDistance = length(mousePos - highlightData.dragStartMousePos);
+
+            if (dragDistance < DRAG_THRESHOLD_PX) return;
+
+            //Log::Print("@@@@@ dragged on text widget...");
 
             dragStartTextWidget = ID;
 
-            //tbd...
+            vec2 pos = m->finalAnchorPos;
+            vec2 size = scast<Transform2D&>(m->GetTransform()).getsize(SizeTarget::SIZE_WORLD);
+
+            vec2 meshStart = 
+            {
+                pos.x - size.x * 0.5f,
+                pos.y - size.y * 0.5f
+            };
+
+            const GlyphRasterData& last = displayedText.back();
+
+            const GlyphData* glyphData = font->GetGlyphData(
+                font->GetFontData(), 
+                last.utf);
+
+            f32 endX = last.penPos.x + glyphData->advance;
+
+            if (highlightData.highlightRange.first == -1)
+            {
+                vec2 clickPos = 
+                {
+                    highlightData.dragStartMousePos.x - meshStart.x,
+                    highlightData.dragStartMousePos.y - meshStart.y
+                };
+                
+                f32 clickX = clickPos.x;
+                f32 closestDistance = FLT_MAX;
+
+                for (u32 i = 0; i < displayedText.size(); i++)
+                {
+                    f32 distance = fabsf(clickX - displayedText[i].penPos.x);
+
+                    if (distance < closestDistance)
+                    {
+                        closestDistance = distance;
+
+                        highlightData.highlightRange.first = scast<i32>(i);
+                    }
+                }
+
+                f32 distance = fabsf(clickX - endX);
+
+                if (distance < closestDistance)
+                {
+                    highlightData.highlightRange.first = scast<i32>(displayedText.size());
+                }
+
+                cursor_off();
+                cursorData = {};
+            }
+
+            vec2 dragPos = 
+            {
+                mousePos.x - meshStart.x,
+                mousePos.y - meshStart.y
+            };
+
+            f32 dragX = dragPos.x;
+            f32 closestDistance = FLT_MAX;
+
+            for (u32 i = 0; i < displayedText.size(); i++)
+            {
+                f32 distance = fabsf(dragX - displayedText[i].penPos.x);
+
+                if (distance < closestDistance)
+                {
+                    closestDistance = distance;
+
+                    highlightData.highlightRange.second = scast<i32>(i);
+                }
+            }
+
+            f32 distance = fabsf(dragX - endX);
+
+            if (distance < closestDistance)
+            {
+                highlightData.highlightRange.second = scast<i32>(displayedText.size());
+            }
+
+            /*
+            Log::Print(
+                "@@@@@ start: " + to_string(highlightData.highlightRange.first) 
+                + ", end: " + to_string(highlightData.highlightRange.second));
+            */
+
+            highlightData.isHighlightDirty = true;
         }
     }
 

@@ -44,6 +44,8 @@ namespace KalaGraphics::PrimitiveWidgets
 
     static constexpr f64 CURSOR_BLINK_INTERVAL_S = 0.5;
 
+    static constexpr f32 DRAG_THRESHOLD_PX = 5;
+
     enum class TextClipType : u8
     {
         //when a glyph/text exceeds line width,
@@ -116,20 +118,29 @@ namespace KalaGraphics::PrimitiveWidgets
         //when was cursor last turned on/off
         f64 timeSinceLastStateSwitch{};
 
-        //where cursor back was last captured
+        //where cursor back pixels were last captured
         vec2 cursorBackPos{};
-        //used when cursor is off but active,
-        //or if changing active cursor position
-        //so that whatever is behind the cursor will still appear correctly
+        //store old pixels behind cursor so when cursor goes off we can still use them
         vector<u8> cursorBackPixels{};
     };
 
     struct HighlightData
     {
-        //first selected highlighted glyph
-        i32 highlightStart = -1;
-        //last selected highlighted glyph
-        i32 highlightEnd = -1;
+        //what character slots are currently highlighted
+        pair<i32, i32> highlightRange = { -1, -1 };
+
+        //do we need to redraw highlight
+        bool isHighlightDirty{};
+
+        //where highlight drag detection starts from
+        vec2 dragStartMousePos{};
+
+        //where highlight back pixels were last captured
+        vec2 highlightBackPos{};
+        //how big was the last highlight range
+        vec2 highlightBackSize{};
+        //store old pixels behind highlight so when highlight ends we can still use them
+        vector<u8> highlightBackPixels{};
     };
 
     class LIB_API Text

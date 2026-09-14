@@ -105,15 +105,14 @@ namespace KalaGraphics::Graphics
 
     enum class AnchorPosition : u8
     {
-        P_DEFAULT = 0,
+        P_NONE = 0,
+        P_CENTER = 1,
 
-        P_BOTTOM_LEFT = 1,
-        P_BOTTOM_RIGHT = 2,
+        P_BOTTOM_LEFT = 2,
+        P_BOTTOM_RIGHT = 3,
 
-        P_TOP_LEFT = 3,
-        P_TOP_RIGHT = 4,
-        
-        P_CENTER = 5
+        P_TOP_LEFT = 4,
+        P_TOP_RIGHT = 5
     };
 
     struct LIB_API Vertex
@@ -266,6 +265,10 @@ namespace KalaGraphics::Graphics
         void SetVisibleState(bool newValue);
 
         KNODISCARD
+        bool IgnoreHover() const;
+        void SetIgnoreHoverState(bool newValue);
+
+        KNODISCARD
 		bool Is2D() const;
 
         KNODISCARD
@@ -277,10 +280,19 @@ namespace KalaGraphics::Graphics
         KNODISCARD
         Transform GetTransform();
 
-        AnchorPosition GetLocalAnchorPosition() const;
-        //Automatically always updates this mesh transform position relative to local anchor,
+        AnchorPosition GetSelfAnchorPosition() const;
+        //Automatically always updates this mesh transform position relative to its own anchor,
         //not used for 3D meshes
-        void SetLocalAnchorPosition(AnchorPosition pos);
+        void SetSelfAnchorPosition(AnchorPosition pos);
+
+        AnchorPosition GetTargetAnchorPosition() const;
+        //Automatically always updates this mesh transform relative to its target anchor,
+        //not used for 3D meshes, you must assign id on first time setter,
+        //after that keep as UINT32_MAX if you wanna use already assigned target mesh,
+        //set as 0 if you want to detach attached target anchor
+        void SetTargetAnchorPosition(
+            AnchorPosition pos,
+            u32 targetAnchorID = UINT32_MAX);
 
         AnchorPosition GetViewportAnchorPosition() const;
         //Automatically always updates this mesh transform position relative to viewport anchor,
@@ -373,6 +385,7 @@ namespace KalaGraphics::Graphics
         bool isMeshDataDirty{};
 
         bool isVisible = true;
+        bool ignoreHover = true;
 
         bool isDestroyingCamera{};
 
@@ -384,7 +397,10 @@ namespace KalaGraphics::Graphics
         Transform2D transform2D{};
         vec3 lastPos{}; //used for detecting if mesh has moved
 
-        AnchorPosition localAnchor{};
+        u32 targetAnchorID{};
+
+        AnchorPosition selfAnchor{};
+        AnchorPosition targetAnchor{};
         AnchorPosition viewportAnchor{};
 
         //vertex data

@@ -394,10 +394,13 @@ namespace KalaGraphics::Graphics
         }
         }
 
-        Log::Print(
-            "Filled texture '" + to_string(ID) + "' with color '" + color + "'!",
-            "KG_TEXTURE",
-            LogType::LOG_SUCCESS);
+        if (isVerboseLoggingEnabled)
+        {
+            Log::Print(
+                "Filled texture '" + to_string(ID) + "' with color '" + color + "'!",
+                "KG_TEXTURE",
+                LogType::LOG_VERBOSE);
+        }
     }
 
     const vector<u8>& Texture::GetPixelData() const { return pixelData; }

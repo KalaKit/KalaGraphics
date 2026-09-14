@@ -237,8 +237,12 @@ namespace KalaGraphics::Graphics
                             + "' because its mesh was invalid! Reason: " + err);
                     }
 
-                    //ignore hidden meshes
-                    if (!m->isVisible) continue;
+                    //ignore hidden and uninteractable meshes
+                    if (!m->isVisible
+                        || m->ignoreHover)
+                    {
+                        continue;
+                    }
 
                     Transform2D& t = m->GetTransform();
                     vec2 pos = t.getpos(PosTarget::POS_WORLD);

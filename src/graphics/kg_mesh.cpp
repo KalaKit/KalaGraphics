@@ -1253,6 +1253,19 @@ namespace KalaGraphics::Graphics
             LogType::LOG_SUCCESS);
     }
 
+    bool Mesh::IgnoreHover() const { return ignoreHover; }
+    void Mesh::SetIgnoreHoverState(bool newValue)
+    {
+        ignoreHover = newValue;
+        string val = ignoreHover ? "true" : "false";
+
+        Log::Print(
+            "Set mesh '" + to_string(ID) + "' "
+            "ignore hover state to " + val + "!", 
+            "KG_MESH",
+            LogType::LOG_SUCCESS);
+    }
+
     bool Mesh::Is2D() const { return is2D; }
 
     u16 Mesh::GetDrawOrderIndex() const { return drawOrderIndex; }
@@ -1313,28 +1326,32 @@ namespace KalaGraphics::Graphics
         };
     }
 
-    AnchorPosition Mesh::GetLocalAnchorPosition() const { return localAnchor; }
-    void Mesh::SetLocalAnchorPosition(AnchorPosition newValue)
+    AnchorPosition Mesh::GetSelfAnchorPosition() const { return selfAnchor; }
+    void Mesh::SetSelfAnchorPosition(AnchorPosition newValue)
     { 
         if (!is2D)
         {
             Log::Print(
                 "Failed to set mesh '" + to_string(ID) 
-                + "' local anchor position because it is a 3D mesh!",
+                + "' self anchor position because it is a 3D mesh!",
                 "KG_MESH",
                 LogType::LOG_WARNING);
 
             return;
         }
 
-        localAnchor = newValue;
+        selfAnchor = newValue;
 
         string val{};
         switch (newValue)
         {
         default:
-        case AnchorPosition::P_DEFAULT:
-            val = "default";
+        case AnchorPosition::P_NONE:
+            val = "none";
+            break;
+
+        case AnchorPosition::P_CENTER:
+            val = "center";
             break;
 
         case AnchorPosition::P_BOTTOM_LEFT:
@@ -1350,14 +1367,126 @@ namespace KalaGraphics::Graphics
         case AnchorPosition::P_TOP_RIGHT:
             val = "top right";
             break;
+        }
+
+        Log::Print(
+            "Set mesh '" + to_string(ID) + "' self anchor position to '" + val + "'!",
+            "KG_MESH",
+            LogType::LOG_SUCCESS);
+    }
+
+    AnchorPosition Mesh::GetTargetAnchorPosition() const { return targetAnchor; }
+    void Mesh::SetTargetAnchorPosition(
+        AnchorPosition newValue,
+        u32 newTargetAnchorID)
+    { 
+        if (!is2D)
+        {
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) 
+                + "' target anchor position because it is a 3D mesh!",
+                "KG_MESH",
+                LogType::LOG_WARNING);
+
+            return;
+        }
+
+        if (newTargetAnchorID == 0
+            && targetAnchorID == 0)
+        {
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) 
+                + "' target anchor position because ID '0' was passed "
+                "even though target mesh has already been detached!",
+                "KG_MESH",
+                LogType::LOG_WARNING);
+
+            return;
+        }
+
+        if (newTargetAnchorID == UINT32_MAX
+            && (targetAnchorID == 0
+            || targetAnchorID == UINT32_MAX))
+        {
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) 
+                + "' target anchor position because ID 'UINT32_MAX' was passed "
+                "even though no prior mesh was assigned!",
+                "KG_MESH",
+                LogType::LOG_WARNING);
+
+            return;
+        }
+
+        //detach existing
+        if (newTargetAnchorID == 0)
+        {
+            targetAnchorID = 0;
+            targetAnchor = AnchorPosition::P_NONE;
+
+            return;
+        }
+        //detach existing, add new
+        else if (newTargetAnchorID != UINT32_MAX)
+        {
+            Mesh* mesh{};
+            string err = registry.GetContent(newTargetAnchorID, mesh);
+            if (!err.empty())
+            {
+                Log::Print(
+                    "Failed to set mesh '" + to_string(ID) + "' target anchor position "
+                    "because target anchor ID was invalid! Reason: " + err,
+                    "KG_MESH",
+                    LogType::LOG_WARNING);
+
+                return;
+            }
+
+            if (!mesh->is2D)
+            {
+                Log::Print(
+                    "Failed to set mesh '" + to_string(ID) + "' target anchor position "
+                    "because target anchor mesh '" + to_string(newTargetAnchorID) + "' was 3D!",
+                    "KG_MESH",
+                    LogType::LOG_WARNING);
+
+                return;
+            }
+
+            targetAnchorID = newTargetAnchorID;
+        }
+
+        targetAnchor = newValue;
+
+        string val{};
+        switch (newValue)
+        {
+        default:
+        case AnchorPosition::P_NONE:
+            val = "none";
+            break;
 
         case AnchorPosition::P_CENTER:
             val = "center";
             break;
+
+        case AnchorPosition::P_BOTTOM_LEFT:
+            val = "bottom left";
+            break;
+        case AnchorPosition::P_BOTTOM_RIGHT:
+            val = "bottom right";
+            break;
+
+        case AnchorPosition::P_TOP_LEFT:
+            val = "top left";
+            break;
+        case AnchorPosition::P_TOP_RIGHT:
+            val = "top right";
+            break;
         }
 
         Log::Print(
-            "Set mesh '" + to_string(ID) + "' local anchor position to '" + val + "'!",
+            "Set mesh '" + to_string(ID) + "' target anchor position to '" + val + "'!",
             "KG_MESH",
             LogType::LOG_SUCCESS);
     }
@@ -1382,8 +1511,12 @@ namespace KalaGraphics::Graphics
         switch (newValue)
         {
         default:
-        case AnchorPosition::P_DEFAULT:
-            val = "default";
+        case AnchorPosition::P_NONE:
+            val = "none";
+            break;
+
+        case AnchorPosition::P_CENTER:
+            val = "center";
             break;
 
         case AnchorPosition::P_BOTTOM_LEFT:
@@ -1398,10 +1531,6 @@ namespace KalaGraphics::Graphics
             break;
         case AnchorPosition::P_TOP_RIGHT:
             val = "top right";
-            break;
-
-        case AnchorPosition::P_CENTER:
-            val = "center";
             break;
         }
 
@@ -1883,28 +2012,27 @@ namespace KalaGraphics::Graphics
             f32 halfWidth = fullWidth * 0.5f;
             f32 halfHeight = fullHeight * 0.5f;
 
-            vec2 localAnchorPos{};
-            switch (localAnchor)
+            vec2 selfAnchorPos{};
+            switch (selfAnchor)
             {
             default:
-            case AnchorPosition::P_DEFAULT:
             case AnchorPosition::P_CENTER:
                 break;
 
             case AnchorPosition::P_BOTTOM_LEFT:
-                localAnchorPos = { -halfWidth, -halfHeight };
+                selfAnchorPos = { -halfWidth, -halfHeight };
                 break;
 
             case AnchorPosition::P_BOTTOM_RIGHT:
-                localAnchorPos = { halfWidth, -halfHeight };
+                selfAnchorPos = { halfWidth, -halfHeight };
                 break;
 
             case AnchorPosition::P_TOP_LEFT:
-                localAnchorPos = { -halfWidth, halfHeight };
+                selfAnchorPos = { -halfWidth, halfHeight };
                 break;
 
             case AnchorPosition::P_TOP_RIGHT:
-                localAnchorPos = { halfWidth, halfHeight };
+                selfAnchorPos = { halfWidth, halfHeight };
                 break;
             }
 
@@ -1912,7 +2040,7 @@ namespace KalaGraphics::Graphics
             switch (viewportAnchor)
             {
             default:
-            case AnchorPosition::P_DEFAULT:
+            case AnchorPosition::P_NONE:
                 viewportAnchorPos = 0;
                 break;
 
@@ -1936,7 +2064,7 @@ namespace KalaGraphics::Graphics
             }
 
             //stored for hit test
-            finalAnchorPos = pos_world - localAnchorPos + viewportAnchorPos;
+            finalAnchorPos = pos_world - selfAnchorPos + viewportAnchorPos;
 
             meshMatrix = createmodelmatrix(
                 finalAnchorPos, 
