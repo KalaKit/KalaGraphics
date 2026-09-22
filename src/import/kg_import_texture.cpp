@@ -204,7 +204,7 @@ namespace KalaGraphics::Import
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics import texture error",
-                "Failed to destroy import texture '" + to_string(ID) + "'! Reason: " + err);
+                "Failed to destroy import texture! Reason: " + err);
         }
     }
 

@@ -245,11 +245,12 @@ namespace KalaGraphics::Graphics
     u32 Texture::GetShaderID() const { return shaderID; }
     void Texture::SetShaderID(u32 newValue)
     {
-        if (textWidgetID != 0)
+        if (textWidgetID != 0
+            || buttonWidgetID != 0)
         {
             Log::Print(
                 "Failed to set texture '" + to_string(ID) 
-                + "' shader ID because it is used in text widget '" + to_string(textWidgetID) + "'!",
+                + "' shader ID because it is used in a widget!",
                 "KG_TEXTURE",
                 LogType::LOG_WARNING);
 
@@ -324,6 +325,8 @@ namespace KalaGraphics::Graphics
     const vector<pair<u32, array<bool, 11>>>& Texture::GetMaterialIDs() const { return materialIDs; }
 
     u32 Texture::GetTextWidgetID() const { return textWidgetID; }
+
+    u32 Texture::GetButtonWidgetID() const { return buttonWidgetID; }
 
     void Texture::FillColor(vec4&& newValue)
     {
@@ -1702,11 +1705,12 @@ namespace KalaGraphics::Graphics
             return;
         }
 
-        if (textWidgetID != 0)
+        if (textWidgetID != 0
+            || buttonWidgetID != 0)
         {
             Log::Print(
                 "Failed to destroy texture '" + to_string(ID) 
-                + "' because it is used in text widget '" + to_string(textWidgetID) + "'!",
+                + "' because it is used in a widget!",
                 "KG_TEXTURE",
                 LogType::LOG_WARNING);
 
@@ -1731,7 +1735,7 @@ namespace KalaGraphics::Graphics
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics texture error",
-                "Failed to destroy texture '" + to_string(ID) + "'! Reason: " + err);
+                "Failed to destroy texture! Reason: " + err);
         }
     }
 

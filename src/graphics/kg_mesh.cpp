@@ -1199,7 +1199,10 @@ namespace KalaGraphics::Graphics
 
     u32 Mesh::GetCameraID() const { return cameraID; }
     u32 Mesh::GetMaterialID() const { return materialID; }
+
     u32 Mesh::GetTextWidgetID() const { return textWidgetID; }
+
+    u32 Mesh::GetButtonWidgetID() const { return buttonWidgetID; }
 
     bool Mesh::IsHovered() const { return hitTestID != 0; }
 
@@ -1418,6 +1421,17 @@ namespace KalaGraphics::Graphics
             return;
         }
 
+        if (viewportAnchor != AnchorPosition::P_NONE)
+        {
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) 
+                + "' target anchor position because viewport anchor position has already been assigned!",
+                "KG_MESH",
+                LogType::LOG_WARNING);
+
+            return; 
+        }
+
         //detach existing
         if (newTargetAnchorID == 0)
         {
@@ -1503,6 +1517,17 @@ namespace KalaGraphics::Graphics
                 LogType::LOG_WARNING);
 
             return;
+        }
+
+        if (targetAnchor != AnchorPosition::P_NONE)
+        {
+            Log::Print(
+                "Failed to set mesh '" + to_string(ID) 
+                + "' viewport anchor position because target anchor position has already been assigned!",
+                "KG_MESH",
+                LogType::LOG_WARNING);
+
+            return; 
         }
 
         viewportAnchor = newValue;
@@ -2036,35 +2061,110 @@ namespace KalaGraphics::Graphics
                 break;
             }
 
-            vec2 viewportAnchorPos{};
-            switch (viewportAnchor)
+            if (targetAnchorID != 0
+                && targetAnchorID != UINT32_MAX
+                && targetAnchor != AnchorPosition::P_NONE
+                && viewportAnchor != AnchorPosition::P_NONE)
             {
-            default:
-            case AnchorPosition::P_NONE:
-                viewportAnchorPos = 0;
-                break;
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics mesh error",
+                    "Failed to update mesh '" + to_string(ID) + "' data because "
+                    "both viewport and target anchor cannot be used at the same time!");
+            }
 
-            case AnchorPosition::P_BOTTOM_LEFT:
-                viewportAnchorPos = vp->posBottomLeft;
-                break;
-            case AnchorPosition::P_BOTTOM_RIGHT:
-                viewportAnchorPos = vp->posBottomRight;
-                break;
+            vec2 targetAnchorPos{};
 
-            case AnchorPosition::P_TOP_LEFT:
-                viewportAnchorPos = vp->posTopLeft;
-                break;
-            case AnchorPosition::P_TOP_RIGHT:
-                viewportAnchorPos = vp->posTopRight;
-                break;
+            if (targetAnchorID != 0
+                && targetAnchorID != UINT32_MAX)
+            {
+                Mesh* targetMesh{};
+                string err = registry.GetContent(targetAnchorID, targetMesh);
+                if (!err.empty())
+                {
+                    KalaGraphicsCore::ForceClose(
+                        "KalaGraphics mesh error",
+                        "Failed to update mesh '" + to_string(ID) + "' data because "
+                        "its target mesh was invalid! Reason: " + err);
+                }
 
-            case AnchorPosition::P_CENTER:
-                viewportAnchorPos = vp->posCenter;
-                break;
+                const vec2 targetPos = targetMesh->finalAnchorPos;
+                const vec2 targetSize = targetMesh->transform2D.getsize(SizeTarget::SIZE_WORLD);
+
+                f32 targetHalfWidth = targetSize.x * 0.5f;
+                f32 targetHalfHeight = targetSize.y * 0.5f;
+
+                switch (targetAnchor)
+                {
+                default:
+                case AnchorPosition::P_NONE:
+                case AnchorPosition::P_CENTER:
+                    targetAnchorPos = targetPos;
+                    break;
+
+                case AnchorPosition::P_BOTTOM_LEFT:
+                    targetAnchorPos = targetPos + vec2
+                    {
+                        -targetHalfWidth,
+                        -targetHalfHeight
+                    };
+                    break;
+
+                case AnchorPosition::P_BOTTOM_RIGHT:
+                    targetAnchorPos = targetPos + vec2
+                    {
+                        targetHalfWidth,
+                        -targetHalfHeight
+                    };
+                    break;
+
+                case AnchorPosition::P_TOP_LEFT:
+                    targetAnchorPos = targetPos + vec2
+                    {
+                        -targetHalfWidth,
+                        targetHalfHeight
+                    };
+                    break;
+
+                case AnchorPosition::P_TOP_RIGHT:
+                    targetAnchorPos = targetPos + vec2
+                    {
+                        targetHalfWidth,
+                        targetHalfHeight
+                    };
+                    break;
+                }
+            }
+            else
+            {
+                switch (viewportAnchor)
+                {
+                default:
+                case AnchorPosition::P_NONE:
+                    targetAnchorPos = 0;
+                    break;
+
+                case AnchorPosition::P_BOTTOM_LEFT:
+                    targetAnchorPos = vp->posBottomLeft;
+                    break;
+                case AnchorPosition::P_BOTTOM_RIGHT:
+                    targetAnchorPos = vp->posBottomRight;
+                    break;
+
+                case AnchorPosition::P_TOP_LEFT:
+                    targetAnchorPos = vp->posTopLeft;
+                    break;
+                case AnchorPosition::P_TOP_RIGHT:
+                    targetAnchorPos = vp->posTopRight;
+                    break;
+
+                case AnchorPosition::P_CENTER:
+                    targetAnchorPos = vp->posCenter;
+                    break;
+                }
             }
 
             //stored for hit test
-            finalAnchorPos = pos_world - selfAnchorPos + viewportAnchorPos;
+            finalAnchorPos = pos_world - selfAnchorPos + targetAnchorPos;
 
             meshMatrix = createmodelmatrix(
                 finalAnchorPos, 
@@ -2486,11 +2586,12 @@ namespace KalaGraphics::Graphics
 
     void Mesh::Destroy()
     {
-        if (textWidgetID != 0)
+        if (textWidgetID != 0
+            || buttonWidgetID != 0)
         {
             Log::Print(
                 "Failed to destroy mesh '" + to_string(ID) 
-                + "' because it is used in text widget '" + to_string(textWidgetID) + "'!",
+                + "' because it is used in a widget!",
                 "KG_MESH",
                 LogType::LOG_WARNING);
 
@@ -2542,7 +2643,7 @@ namespace KalaGraphics::Graphics
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics mesh error",
-                "Failed to destroy mesh '" + to_string(ID) + "'! Reason: " + err);
+                "Failed to destroy mesh! Reason: " + err);
         }
     }
 

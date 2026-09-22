@@ -1049,7 +1049,7 @@ namespace KalaGraphics::Import
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics import font error",
-                "Failed to destroy import font '" + to_string(ID) + "'! Reason: " + err);
+                "Failed to destroy import font! Reason: " + err);
         }
     }
 

@@ -289,7 +289,7 @@ namespace KalaGraphics::Import
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics import shader error",
-                "Failed to destroy import shader '" + to_string(ID) + "'! Reason: " + err);
+                "Failed to destroy import shader! Reason: " + err);
         }
     }
 

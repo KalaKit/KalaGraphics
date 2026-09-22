@@ -42,6 +42,11 @@ namespace KalaGraphics::PrimitiveWidgets
 	class ClipArea;
 }
 
+namespace KalaGraphics::CompositeWidgets
+{
+	class Button;
+}
+
 namespace KalaGraphics::Core
 {
 	using std::unordered_map;
@@ -79,6 +84,7 @@ namespace KalaGraphics::Core
 	friend class KalaGraphics::Import::ImportShader;
 	friend class KalaGraphics::PrimitiveWidgets::Text;
 	friend class KalaGraphics::PrimitiveWidgets::ClipArea;
+	friend class KalaGraphics::CompositeWidgets::Button;
 	public:
 		//Get a runtime iteration safe list of all
 		//created object pointers of this registry

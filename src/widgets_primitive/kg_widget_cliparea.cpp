@@ -61,7 +61,7 @@ namespace KalaGraphics::PrimitiveWidgets
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics clip area error",
-                "Failed to destroy clip area '" + to_string(ID) + "'! Reason: " + err);
+                "Failed to destroy clip area! Reason: " + err);
         }
     }
 

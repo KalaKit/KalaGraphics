@@ -2633,7 +2633,7 @@ namespace KalaGraphics::Graphics
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics context error",
-                "Failed to destroy graphics context '" + to_string(ID) + "'! Reason: " + err);
+                "Failed to destroy graphics context! Reason: " + err);
         }
     }
 

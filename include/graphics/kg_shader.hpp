@@ -31,6 +31,11 @@ namespace KalaGraphics::PrimitiveWidgets
     class Text;
 }
 
+namespace KalaGraphics::CompositeWidgets
+{
+    class Button;
+}
+
 namespace KalaGraphics::Graphics
 {
     using KalaHeaders::KalaMath::mat4;
@@ -68,6 +73,7 @@ namespace KalaGraphics::Graphics
     friend class Texture;
     friend class Mesh;
     friend class KalaGraphics::PrimitiveWidgets::Text;
+    friend class KalaGraphics::CompositeWidgets::Button;
     friend default_delete<Shader>;
     public:
         KNODISCARD
@@ -96,6 +102,9 @@ namespace KalaGraphics::Graphics
 
         KNODISCARD
         const vector<u32>& GetTextWidgetIDs() const;
+        
+        KNODISCARD
+        const vector<u32>& GetButtonWidgetIDs() const;
 
         //The ID of the fallback pink and black tile texture
         u32 GetFallbackTextureID() const;
@@ -127,6 +136,7 @@ namespace KalaGraphics::Graphics
         vector<u32> meshIDs{};
 
         vector<u32> textWidgetIDs{};
+        vector<u32> buttonWidgetIDs{};
 
         u32 fallbackTextureID{};
         u32 rootTextureID{};

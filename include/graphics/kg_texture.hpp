@@ -39,6 +39,11 @@ namespace KalaGraphics::PrimitiveWidgets
     class Text;
 }
 
+namespace KalaGraphics::CompositeWidgets
+{
+    class Button;
+}
+
 namespace KalaGraphics::Graphics
 {
     using KalaHeaders::KalaMath::vec2;
@@ -145,6 +150,7 @@ namespace KalaGraphics::Graphics
     friend class Mesh;
     friend class Material;
     friend class KalaGraphics::PrimitiveWidgets::Text;
+    friend class KalaGraphics::CompositeWidgets::Button;
     friend struct default_delete<Texture>;
     public:
         KNODISCARD
@@ -173,6 +179,9 @@ namespace KalaGraphics::Graphics
 
         KNODISCARD
         u32 GetTextWidgetID() const;
+
+        KNODISCARD
+        u32 GetButtonWidgetID() const;
 
         //converts linear RGB to sRGB color
         vec4 ToSRGB(vec4&& linearColor);
@@ -249,6 +258,7 @@ namespace KalaGraphics::Graphics
         vector<pair<u32, array<bool, 11>>> materialIDs{};
 
         u32 textWidgetID{};
+        u32 buttonWidgetID{};
 
         bool isRootTexture{};
 

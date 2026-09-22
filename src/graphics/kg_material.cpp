@@ -862,7 +862,7 @@ namespace KalaGraphics::Graphics
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics material error",
-                "Failed to destroy material '" + to_string(ID) + "'! Reason: " + err);
+                "Failed to destroy material! Reason: " + err);
         }
     }
 

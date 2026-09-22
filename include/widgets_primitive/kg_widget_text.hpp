@@ -14,9 +14,17 @@
 
 #include "core/kg_registry.hpp"
 
+struct VkCommandBuffer_T;
+using VkCommandBuffer = VkCommandBuffer_T*;
+
 namespace KalaGraphics::Graphics
 {
     class Viewport;
+}
+
+namespace KalaGraphics::CompositeWidgets
+{
+    class Button;
 }
 
 namespace KalaGraphics::PrimitiveWidgets
@@ -146,6 +154,7 @@ namespace KalaGraphics::PrimitiveWidgets
     class LIB_API Text
     {
     friend class KalaGraphics::Graphics::Viewport;
+    friend class KalaGraphics::CompositeWidgets::Button;
     friend struct default_delete<Text>;
     public:
         KNODISCARD
@@ -311,7 +320,7 @@ namespace KalaGraphics::PrimitiveWidgets
     private:
         ~Text();
 
-        void Update();
+        void Update(VkCommandBuffer buffer);
         void UpdateCursor(f64 deltaTime);
 
         u32 ID{};
@@ -319,6 +328,8 @@ namespace KalaGraphics::PrimitiveWidgets
         u32 shaderID{};
         u32 textureID{};
         u32 meshID{};
+        
+        u32 buttonWidgetID{};
 
         bool canEdit{};
         bool isTextDirty = true;

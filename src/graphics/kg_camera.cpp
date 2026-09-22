@@ -811,7 +811,7 @@ namespace KalaGraphics::Graphics
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics camera error",
-                "Failed to destroy camera '" + to_string(ID) + "'! Reason: " + err);
+                "Failed to destroy camera! Reason: " + err);
         }
     }
 

@@ -372,7 +372,7 @@ namespace KalaGraphics::Graphics
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics hit test error",
-                "Failed to destroy hit test '" + to_string(ID) + "'! Reason: " + err);
+                "Failed to destroy hit test! Reason: " + err);
         }
     }
 
