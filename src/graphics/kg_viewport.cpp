@@ -2022,14 +2022,17 @@ namespace KalaGraphics::Graphics
             return;
         }
 
-        _Destroy();
-    }
-
-    void Viewport::_Destroy()
-    {
         HitTest* hitTest{};
         string err = HitTest::GetRegistry().GetContent(hitTestID, hitTest);
-        if (err.empty()) hitTest->viewportID = 0;
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics context error",
+                "Failed to destroy viewport '" + to_string(ID) + "' because "
+                "its hit test was invalid! Reason: " + err);
+        }
+        
+        hitTest->viewportID = 0;
 
         for (u32 sID : shader3DIDs)
         {

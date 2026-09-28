@@ -2610,7 +2610,8 @@ namespace KalaGraphics::Graphics
         }
 
         rvp->isDestroyingGraphicsContext = true;
-        rvp->_Destroy();
+        rvp->isRootViewport = false;
+        rvp->Destroy();
 
         for (u32 vID : extraViewportIDs)
         {
@@ -2625,7 +2626,8 @@ namespace KalaGraphics::Graphics
             }
 
             vp->isDestroyingGraphicsContext = true;
-            vp->_Destroy();
+            vp->isRootViewport = false;
+            vp->Destroy();
         }
 
         err = registry.DestroyContent(ID);

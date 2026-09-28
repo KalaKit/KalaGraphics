@@ -308,8 +308,6 @@ namespace KalaGraphics::Graphics
 
         void UpdateViewportSize();
 
-        void _Destroy();
-
         u32 ID{};
         u32 contextID{};
         u32 hitTestID{};
