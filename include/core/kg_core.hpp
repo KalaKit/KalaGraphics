@@ -47,6 +47,7 @@ namespace KalaGraphics::Core
     using std::vector;
     using std::filesystem::path;
 
+    static constexpr u8 MIN_NAME_LENGTH = 4;
     static constexpr u8 MAX_NAME_LENGTH = 64;
 
     class LIB_API KalaGraphicsCore

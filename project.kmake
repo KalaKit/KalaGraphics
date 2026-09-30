@@ -4,8 +4,8 @@
 
 #references
 name_bin: kalagraphics
-dir_release: build/release-
-dir_debug: build/debug-
+dir_release: build/temp/release-
+dir_debug: build/temp/debug-
 def_win: WIN32_LEAN_AND_MEAN, NOMINMAX, UNICODE, _UNICODE
 
 #global
@@ -14,7 +14,7 @@ compiler: clang++
 standard: c++20
 binarytype: static
 sources: "src"
-headers: "include", "../external-shared/KalaHeaders/include", "../external-shared/Vulkan/Include", "../external-shared/Spirv-reflect/include", "../external-shared/HarfBuzz/include", "../external-shared/cgltf/include", "../external-shared/lodepng/include"
+headers: "include", "external/kalaheaders/include", "external/vulkan/Include", "external/spirv-reflect/include", "external/harfbuzz/include", "external/cgltf/include", "external/lodepng/include"
 defines: LIB_STATIC
 warninglevel: normal
 customflags: export-compile-commands, export-vscode-sln
