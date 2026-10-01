@@ -51,39 +51,91 @@ mv "${VK_TARGET}/_vk" "${VK_TARGET}/vulkan"
 # Spirv-Reflect
 mkdir "${SPV_TARGET}"
 
-mf --f "${SPV_ORIGIN}/LICENSE" --t "${SPV_TARGET}/LICENSE"
+if [ -d "${SPV_ORIGIN}/release-windows" ]; then
+    mf --f "${SPV_ORIGIN}/release-windows" --t "${SPV_TARGET}"
+fi
+if [ -d "${SPV_ORIGIN}/release-windows-gnu" ]; then
+    mf --f "${SPV_ORIGIN}/release-windows-gnu" --t "${SPV_TARGET}"
+fi
+if [ -d "${SPV_ORIGIN}/release-linux" ]; then
+    mf --f "${SPV_ORIGIN}/release-linux" --t "${SPV_TARGET}"
+fi
 
-mf --f "${SPV_ORIGIN}/include" --t "${SPV_TARGET}"
-
-mf --f "${SPV_ORIGIN}/release" --t "${SPV_TARGET}"
-mf --f "${SPV_ORIGIN}/debug" --t "${SPV_TARGET}"
+if [ -d "${SPV_ORIGIN}/debug-windows" ]; then
+    mf --f "${SPV_ORIGIN}/debug-windows" --t "${SPV_TARGET}"
+fi
+if [ -d "${SPV_ORIGIN}/debug-windows-gnu" ]; then
+    mf --f "${SPV_ORIGIN}/debug-windows-gnu" --t "${SPV_TARGET}"
+fi
+if [ -d "${SPV_ORIGIN}/debug-linux" ]; then
+    mf --f "${SPV_ORIGIN}/debug-linux" --t "${SPV_TARGET}"
+fi
 
 # Harfbuzz
 mkdir "${HB_TARGET}"
 
-mf --f "${HB_ORIGIN}/LICENSE" --t "${HB_TARGET}/LICENSE"
+if [ -d "${HB_ORIGIN}/release-windows" ]; then
+    mf --f "${HB_ORIGIN}/release-windows" --t "${HB_TARGET}"
+fi
+if [ -d "${HB_ORIGIN}/release-windows-gnu" ]; then
+    mf --f "${HB_ORIGIN}/release-windows-gnu" --t "${HB_TARGET}"
+fi
+if [ -d "${HB_ORIGIN}/release-linux" ]; then
+    mf --f "${HB_ORIGIN}/release-linux" --t "${HB_TARGET}"
+fi
 
-mf --f "${HB_ORIGIN}/include" --t "${HB_TARGET}"
-
-mf --f "${HB_ORIGIN}/release" --t "${HB_TARGET}"
-mf --f "${HB_ORIGIN}/debug" --t "${HB_TARGET}"
+if [ -d "${HB_ORIGIN}/debug-windows" ]; then
+    mf --f "${HB_ORIGIN}/debug-windows" --t "${HB_TARGET}"
+fi
+if [ -d "${HB_ORIGIN}/debug-windows-gnu" ]; then
+    mf --f "${HB_ORIGIN}/debug-windows-gnu" --t "${HB_TARGET}"
+fi
+if [ -d "${HB_ORIGIN}/debug-linux" ]; then
+    mf --f "${HB_ORIGIN}/debug-linux" --t "${HB_TARGET}"
+fi
 
 # cgltf
 mkdir "${CG_TARGET}"
 
-mf --f "${CG_ORIGIN}/LICENSE" --t "${CG_TARGET}/LICENSE"
+if [ -d "${CG_ORIGIN}/release-windows" ]; then
+    mf --f "${CG_ORIGIN}/release-windows" --t "${CG_TARGET}"
+fi
+if [ -d "${CG_ORIGIN}/release-windows-gnu" ]; then
+    mf --f "${CG_ORIGIN}/release-windows-gnu" --t "${CG_TARGET}"
+fi
+if [ -d "${CG_ORIGIN}/release-linux" ]; then
+    mf --f "${CG_ORIGIN}/release-linux" --t "${CG_TARGET}"
+fi
 
-mf --f "${CG_ORIGIN}/include" --t "${CG_TARGET}"
-
-mf --f "${CG_ORIGIN}/release" --t "${CG_TARGET}"
-mf --f "${CG_ORIGIN}/debug" --t "${CG_TARGET}"
+if [ -d "${CG_ORIGIN}/debug-windows" ]; then
+    mf --f "${CG_ORIGIN}/debug-windows" --t "${CG_TARGET}"
+fi
+if [ -d "${CG_ORIGIN}/debug-windows-gnu" ]; then
+    mf --f "${CG_ORIGIN}/debug-windows-gnu" --t "${CG_TARGET}"
+fi
+if [ -d "${CG_ORIGIN}/debug-linux" ]; then
+    mf --f "${CG_ORIGIN}/debug-linux" --t "${CG_TARGET}"
+fi
 
 # lodepng
 mkdir "${LO_TARGET}"
 
-mf --f "${LO_ORIGIN}/LICENSE" --t "${LO_TARGET}/LICENSE"
+if [ -d "${LO_ORIGIN}/release-windows" ]; then
+    mf --f "${LO_ORIGIN}/release-windows" --t "${LO_TARGET}"
+fi
+if [ -d "${LO_ORIGIN}/release-windows-gnu" ]; then
+    mf --f "${LO_ORIGIN}/release-windows-gnu" --t "${LO_TARGET}"
+fi
+if [ -d "${LO_ORIGIN}/release-linux" ]; then
+    mf --f "${LO_ORIGIN}/release-linux" --t "${LO_TARGET}"
+fi
 
-mf --f "${LO_ORIGIN}/include" --t "${LO_TARGET}"
-
-mf --f "${LO_ORIGIN}/release" --t "${LO_TARGET}"
-mf --f "${LO_ORIGIN}/debug" --t "${LO_TARGET}"
+if [ -d "${LO_ORIGIN}/debug-windows" ]; then
+    mf --f "${LO_ORIGIN}/debug-windows" --t "${LO_TARGET}"
+fi
+if [ -d "${LO_ORIGIN}/debug-windows-gnu" ]; then
+    mf --f "${LO_ORIGIN}/debug-windows-gnu" --t "${LO_TARGET}"
+fi
+if [ -d "${LO_ORIGIN}/debug-linux" ]; then
+    mf --f "${LO_ORIGIN}/debug-linux" --t "${LO_TARGET}"
+fi

@@ -43,6 +43,18 @@ case "$1" in
 
         TARGET_REL_DIR=${BUILD_DIR}/${VERSION}/release-linux
         TARGET_DEB_DIR=${BUILD_DIR}/${VERSION}/debug-linux
+
+        SOURCE_SPV_REL_DIR=${SPV_DIR}/release-linux
+        SOURCE_SPV_DEB_DIR=${SPV_DIR}/debug-linux
+
+        SOURCE_HB_REL_DIR=${HB_DIR}/release-linux
+        SOURCE_HB_DEB_DIR=${HB_DIR}/debug-linux
+
+        SOURCE_CG_REL_DIR=${CG_DIR}/release-linux
+        SOURCE_CG_DEB_DIR=${CG_DIR}/debug-linux
+
+        SOURCE_LO_REL_DIR=${LO_DIR}/release-linux
+        SOURCE_LO_DEB_DIR=${LO_DIR}/debug-linux
         ;;
     --windows-gnu)
         BIN_NAME_FRONT=
@@ -57,6 +69,18 @@ case "$1" in
 
         TARGET_REL_DIR=${BUILD_DIR}/${VERSION}/release-windows-gnu
         TARGET_DEB_DIR=${BUILD_DIR}/${VERSION}/debug-windows-gnu
+
+        SOURCE_SPV_REL_DIR=${SPV_DIR}/release-windows-gnu
+        SOURCE_SPV_DEB_DIR=${SPV_DIR}/debug-windows-gnu
+
+        SOURCE_HB_REL_DIR=${HB_DIR}/release-windows-gnu
+        SOURCE_HB_DEB_DIR=${HB_DIR}/debug-windows-gnu
+
+        SOURCE_CG_REL_DIR=${CG_DIR}/release-windows-gnu
+        SOURCE_CG_DEB_DIR=${CG_DIR}/debug-windows-gnu
+
+        SOURCE_LO_REL_DIR=${LO_DIR}/release-windows-gnu
+        SOURCE_LO_DEB_DIR=${LO_DIR}/debug-windows-gnu
         ;;
     --windows)
         BIN_NAME_FRONT=
@@ -71,6 +95,18 @@ case "$1" in
 
         TARGET_REL_DIR=${BUILD_DIR}/${VERSION}/release-windows
         TARGET_DEB_DIR=${BUILD_DIR}/${VERSION}/debug-windows
+
+        SOURCE_SPV_REL_DIR=${SPV_DIR}/release-windows
+        SOURCE_SPV_DEB_DIR=${SPV_DIR}/debug-windows
+
+        SOURCE_HB_REL_DIR=${HB_DIR}/release-windows
+        SOURCE_HB_DEB_DIR=${HB_DIR}/debug-windows
+
+        SOURCE_CG_REL_DIR=${CG_DIR}/release-windows
+        SOURCE_CG_DEB_DIR=${CG_DIR}/debug-windows
+
+        SOURCE_LO_REL_DIR=${LO_DIR}/release-windows
+        SOURCE_LO_DEB_DIR=${LO_DIR}/debug-windows
         ;;
     *)
         echo "Error: Argument must be --linux, --windows-gnu or --windows" >&2
@@ -140,13 +176,22 @@ if [ "$1" = "--windows-gnu" ]; then
     mf --o --f "${VK_DIR}" --t "${TARGET_REL_DIR}"
 fi
 
-mf --o --f "${SPV_DIR}" --t "${TARGET_REL_DIR}"
-
-mf --o --f "${HB_DIR}" --t "${TARGET_REL_DIR}"
-
-mf --o --f "${CG_DIR}" --t "${TARGET_REL_DIR}"
-
-mf --o --f "${LO_DIR}" --t "${TARGET_REL_DIR}"
+if [ ! -d "${TARGET_REL_DIR}/spirv-reflect" ]; then
+    mkdir "${TARGET_REL_DIR}/spirv-reflect"
+    cp -R "${SOURCE_SPV_REL_DIR}/." "${TARGET_REL_DIR}/spirv-reflect/"
+fi
+if [ ! -d "${TARGET_REL_DIR}/harfbuzz" ]; then
+    mkdir "${TARGET_REL_DIR}/harfbuzz"
+    cp -R "${SOURCE_HB_REL_DIR}/." "${TARGET_REL_DIR}/harfbuzz/"
+fi
+if [ ! -d "${TARGET_REL_DIR}/cgltf" ]; then
+    mkdir "${TARGET_REL_DIR}/cgltf"
+    cp -R "${SOURCE_CG_REL_DIR}/." "${TARGET_REL_DIR}/cgltf/"
+fi
+if [ ! -d "${TARGET_REL_DIR}/lodepng" ]; then
+    mkdir "${TARGET_REL_DIR}/lodepng"
+    cp -R "${SOURCE_LO_REL_DIR}/." "${TARGET_REL_DIR}/lodepng/"
+fi
 
 # Debug
 
@@ -177,13 +222,22 @@ else
         mf --o --f "${VK_DIR}" --t "${TARGET_DEB_DIR}"
     fi
 
-    mf --o --f "${SPV_DIR}" --t "${TARGET_DEB_DIR}"
-
-    mf --o --f "${HB_DIR}" --t "${TARGET_DEB_DIR}"
-
-    mf --o --f "${CG_DIR}" --t "${TARGET_DEB_DIR}"
-
-    mf --o --f "${LO_DIR}" --t "${TARGET_DEB_DIR}"
+    if [ ! -d "${TARGET_DEB_DIR}/spirv-reflect" ]; then
+        mkdir "${TARGET_DEB_DIR}/spirv-reflect"
+        cp -R "${SOURCE_SPV_DEB_DIR}/." "${TARGET_DEB_DIR}/spirv-reflect/"
+    fi
+    if [ ! -d "${TARGET_DEB_DIR}/harfbuzz" ]; then
+        mkdir "${TARGET_DEB_DIR}/harfbuzz"
+        cp -R "${SOURCE_HB_DEB_DIR}/." "${TARGET_DEB_DIR}/harfbuzz/"
+    fi
+    if [ ! -d "${TARGET_DEB_DIR}/cgltf" ]; then
+        mkdir "${TARGET_DEB_DIR}/cgltf"
+        cp -R "${SOURCE_CG_DEB_DIR}/." "${TARGET_DEB_DIR}/cgltf/"
+    fi
+    if [ ! -d "${TARGET_DEB_DIR}/lodepng" ]; then
+        mkdir "${TARGET_DEB_DIR}/lodepng"
+        cp -R "${SOURCE_LO_DEB_DIR}/." "${TARGET_DEB_DIR}/lodepng/"
+    fi
 fi
 
 #

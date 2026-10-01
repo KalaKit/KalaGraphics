@@ -14,7 +14,7 @@ compiler: clang++
 standard: c++20
 binarytype: static
 sources: "src"
-headers: "include", "external/kalaheaders/include", "external/vulkan/Include", "external/spirv-reflect/include", "external/harfbuzz/include", "external/cgltf/include", "external/lodepng/include"
+headers: "include", "external/kalaheaders/include"
 defines: LIB_STATIC
 warninglevel: normal
 customflags: export-compile-commands, export-vscode-sln
@@ -24,12 +24,14 @@ binaryname: ${name_bin}d
 buildtype: debug
 buildpath: "${dir_debug}windows"
 defines: ${def_win}
+headers: "external/vulkan/Include", "external/spirv-reflect/debug-windows/include", "external/harfbuzz/debug-windows/include", "external/cgltf/debug-windows/include", "external/lodepng/debug-windows/include"
 
 #profile release-windows
 binaryname: ${name_bin}
 buildtype: minsizerel
 buildpath: "${dir_release}windows"
 defines: ${def_win}
+headers: "external/vulkan/Include", "external/spirv-reflect/release-windows/include", "external/harfbuzz/release-windows/include", "external/cgltf/release-windows/include", "external/lodepng/release-windows/include"
 
 #profile debug-windows-gnu
 targettype: windows-gnu
@@ -37,6 +39,7 @@ binaryname: ${name_bin}-gnud
 buildtype: debug
 buildpath: "${dir_debug}windows-gnu"
 defines: ${def_win}
+headers: "external/vulkan/Include", "external/spirv-reflect/debug-windows-gnu/include", "external/harfbuzz/debug-windows-gnu/include", "external/cgltf/debug-windows-gnu/include", "external/lodepng/debug-windows-gnu/include"
 
 #profile release-windows-gnu
 targettype: windows-gnu
@@ -44,13 +47,16 @@ binaryname: ${name_bin}-gnu
 buildtype: minsizerel
 buildpath: "${dir_release}windows-gnu"
 defines: ${def_win}
+headers: "external/vulkan/Include", "external/spirv-reflect/release-windows-gnu/include", "external/harfbuzz/release-windows-gnu/include", "external/cgltf/release-windows-gnu/include", "external/lodepng/release-windows-gnu/include"
 
 #profile debug-linux
 binaryname: lib${name_bin}d
 buildtype: debug
 buildpath: "${dir_debug}linux"
+headers: "external/vulkan/Include", "external/spirv-reflect/debug-linux/include", "external/harfbuzz/debug-linux/include", "external/cgltf/debug-linux/include", "external/lodepng/debug-linux/include"
 
 #profile release-linux
 binaryname: lib${name_bin}
 buildtype: minsizerel
 buildpath: "${dir_release}linux"
+headers: "external/vulkan/Include", "external/spirv-reflect/release-linux/include", "external/harfbuzz/release-linux/include", "external/cgltf/release-linux/include", "external/lodepng/release-linux/include"
