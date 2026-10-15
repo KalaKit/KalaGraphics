@@ -2587,20 +2587,8 @@ namespace KalaGraphics::Graphics
 
     void GraphicsContext::Destroy()
     {
-        HitTest* ht{};
-        string err = HitTest::GetRegistry().GetContent(hitTestID, ht);
-        if (!err.empty())
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics context error",
-                "Failed to destroy graphics context '" + to_string(ID) 
-                + "' because its hit test was invalid! Reason: " + err);
-        }
-
-        ht->Destroy();
-
         Viewport* rvp{};
-        err = Viewport::GetRegistry().GetContent(rootViewportID, rvp);
+        string err = Viewport::GetRegistry().GetContent(rootViewportID, rvp);
         if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(
