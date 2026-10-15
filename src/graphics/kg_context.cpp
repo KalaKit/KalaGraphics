@@ -44,7 +44,7 @@ struct VmaStdRWMutex
 
 #define VMA_IMPLEMENTATION
 KG_VK_MEM_ALLOC_IGNORE_PUSH
-#include "vma/vk_mem_alloc.h"
+#include "vk_mem_alloc.h"
 KG_VK_MEM_ALLOC_IGNORE_POP
 
 #include "core_utils.hpp"

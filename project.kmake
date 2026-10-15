@@ -1,56 +1,48 @@
 //Build script for use with kalamake. Read more at https://github.com/kalakit/kalamake
 
-#version 1.0
+#version 2.0
 
 #references
-name_bin: kalagraphics
-dir_release: build/temp/release-
-dir_debug: build/temp/debug-
-def_win: WIN32_LEAN_AND_MEAN, NOMINMAX, UNICODE, _UNICODE
+name_bin: "kalagraphics"
+dir_release: "build/temp/release-"
+dir_debug: "build/temp/debug-"
+def_win: "WIN32_LEAN_AND_MEAN", "NOMINMAX", "UNICODE", "_UNICODE"
 
 #global
-compilerlauncher: ccache
-compiler: clang++
-standard: c++20
-binarytype: static
+compilerlauncher: "ccache"
+compiler: "clang++"
+standard: "c++20"
+binarytype: "static"
 sources: "src"
-headers: "include", "external/kalaheaders/include", "external/vulkan/Include", "external/spirv-reflect/include", "external/harfbuzz/include", "external/cgltf/include", "external/lodepng/include"
-defines: LIB_STATIC
-warninglevel: normal
-customflags: export-compile-commands, export-vscode-sln
+headers:
+    "include",
+    "external/kalaheaders/include",
+    "external/spirv-reflect/include",
+    "external/harfbuzz/include",
+    "external/cgltf/include",
+    "external/lodepng/include"
+defines: "LIB_STATIC"
+warninglevel: "normal"
+customflags: "export-compile-commands", "export-vscode-sln"
 
 #profile debug-windows
-binaryname: ${name_bin}d
-buildtype: debug
+binaryname: "${name_bin}d"
+buildtype: "debug"
 buildpath: "${dir_debug}windows"
-defines: ${def_win}
+defines: "${def_win}"
 
 #profile release-windows
-binaryname: ${name_bin}
-buildtype: minsizerel
+binaryname: "${name_bin}"
+buildtype: "minsizerel"
 buildpath: "${dir_release}windows"
-defines: ${def_win}
-
-#profile debug-windows-gnu
-targettype: windows-gnu
-binaryname: ${name_bin}-gnud
-buildtype: debug
-buildpath: "${dir_debug}windows-gnu"
-defines: ${def_win}
-
-#profile release-windows-gnu
-targettype: windows-gnu
-binaryname: ${name_bin}-gnu
-buildtype: minsizerel
-buildpath: "${dir_release}windows-gnu"
-defines: ${def_win}
+defines: "${def_win}"
 
 #profile debug-linux
-binaryname: lib${name_bin}d
-buildtype: debug
+binaryname: "lib${name_bin}d"
+buildtype: "debug"
 buildpath: "${dir_debug}linux"
 
 #profile release-linux
-binaryname: lib${name_bin}
-buildtype: minsizerel
+binaryname: "lib${name_bin}"
+buildtype: "minsizerel"
 buildpath: "${dir_release}linux"

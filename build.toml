@@ -9,12 +9,10 @@ dir_cg="../../_forks/cgltf/_build/build/1-15-0"
 dir_hb="../../_forks/harfbuzz/_build/build/14-5-0"
 dir_lo="../../_forks/lodepng/_build/build/1-0-0"
 dir_vk_spv="../../_forks/spirv-reflect/_build/build/1-4-363"
-dir_vk_win="../../_forks/spirv-reflect/_vk"
 ext_kh="external/kalaheaders"
 ext_cg="external/cgltf"
 ext_hb="external/harfbuzz"
 ext_lo="external/lodepng"
-ext_vk="external/vulkan"
 ext_spv="external/spirv-reflect"
 
 [windows-sync]
@@ -24,7 +22,6 @@ kh_include=[ "${dir_kh}/include", "${ext_kh}/include", "copy" ]
 cg_stuff=[ "${dir_cg}", "${ext_cg}", "copy" ]
 hb_stuff=[ "${dir_hb}", "${ext_hb}", "copy" ]
 lo_stuff=[ "${dir_lo}", "${ext_lo}", "copy" ]
-vk_win_stuff=[ "${dir_vk_win}", "${ext_vk}", "copy" ]
 vk_spv_stuff=[ "${dir_vk_spv}", "${ext_spv}", "copy" ]
 
 [windows-post-build-sync]
@@ -40,30 +37,6 @@ hb_stuff=[ "${ext_hb}", "build/${version}/harfbuzz", "copy" ]
 lo_stuff=[ "${ext_lo}", "build/${version}/lodepng", "copy" ]
 vk_spv_stuff=[ "${ext_spv}", "build/${version}/spirv-reflect", "copy" ]
 
-[windows-gnu-sync]
-kh_license=[ "${dir_kh}/LICENSE.md", "${ext_kh}/LICENSE.md", "copy" ]
-kh_readme=[ "${dir_kh}/README.md", "${ext_kh}/README.md", "copy" ]
-kh_include=[ "${dir_kh}/include", "${ext_kh}/include", "copy" ]
-cg_stuff=[ "${dir_cg}", "${ext_cg}", "copy" ]
-hb_stuff=[ "${dir_hb}", "${ext_hb}", "copy" ]
-lo_stuff=[ "${dir_lo}", "${ext_lo}", "copy" ]
-vk_win_stuff=[ "${dir_vk_win}", "${ext_vk}", "copy" ]
-vk_spv_stuff=[ "${dir_vk_spv}", "${ext_spv}", "copy" ]
-
-[windows-gnu-post-build-sync]
-kg_bin_rel=[ "build/temp/release-windows-gnu/kalagraphics-gnu.lib", "build/${version}/kalagraphics-gnu.lib", "copy" ]
-kg_bin_deb=[ "build/temp/debug-windows-gnu/kalagraphics-gnud.lib", "build/${version}/kalagraphics-gnud.lib", "copy" ]
-kg_include=[ "include", "build/${version}/include", "copy" ]
-kg_license=[ "LICENSE.md", "build/${version}/LICENSE.md", "copy" ]
-kg_readme=[ "README.md", "build/${version}/README.md", "copy" ]
-kg_changes=[ "CHANGES.md", "build/${version}/CHANGES.md", "copy" ]
-kh_stuff=[ "${ext_kh}", "build/${version}/kalaheaders", "copy" ]
-cg_stuff=[ "${ext_cg}", "build/${version}/cgltf", "copy" ]
-hb_stuff=[ "${ext_hb}", "build/${version}/harfbuzz", "copy" ]
-lo_stuff=[ "${ext_lo}", "build/${version}/lodepng", "copy" ]
-vk_spv_stuff=[ "${ext_spv}", "build/${version}/spirv-reflect", "copy" ]
-vk_win_stuff=[ "${ext_vk}", "build/${version}/vulkan", "copy" ] # Only windows-gnu needs vk stuff
-
 [linux-sync]
 kh_license=[ "${dir_kh}/LICENSE.md", "${ext_kh}/LICENSE.md", "copy" ]
 kh_readme=[ "${dir_kh}/README.md", "${ext_kh}/README.md", "copy" ]
@@ -71,7 +44,6 @@ kh_include=[ "${dir_kh}/include", "${ext_kh}/include", "copy" ]
 cg_stuff=[ "${dir_cg}", "${ext_cg}", "copy" ]
 hb_stuff=[ "${dir_hb}", "${ext_hb}", "copy" ]
 lo_stuff=[ "${dir_lo}", "${ext_lo}", "copy" ]
-vk_win_stuff=[ "${dir_vk_win}", "${ext_vk}", "copy" ]
 vk_spv_stuff=[ "${dir_vk_spv}", "${ext_spv}", "copy" ]
 
 [linux-post-build-sync]
