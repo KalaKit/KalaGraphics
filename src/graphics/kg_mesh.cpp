@@ -2088,24 +2088,24 @@ namespace KalaGraphics::Graphics
                 selfAnchorPos = { halfWidth, 0.0f };
                 break;
             case AnchorPosition::P_TOP_CENTER:
-                selfAnchorPos = { 0.0f, -halfHeight };
+                selfAnchorPos = { 0.0f, halfHeight };
                 break;
             case AnchorPosition::P_BOTTOM_CENTER:
-                selfAnchorPos = { 0.0f, halfHeight };
+                selfAnchorPos = { 0.0f, -halfHeight };
                 break;
 
             case AnchorPosition::P_BOTTOM_LEFT:
-                selfAnchorPos = { -halfWidth, halfHeight };
+                selfAnchorPos = { -halfWidth, -halfHeight };
                 break;
             case AnchorPosition::P_BOTTOM_RIGHT:
-                selfAnchorPos = { halfWidth, halfHeight };
+                selfAnchorPos = { halfWidth, -halfHeight };
                 break;
 
             case AnchorPosition::P_TOP_LEFT:
-                selfAnchorPos = { -halfWidth, -halfHeight };
+                selfAnchorPos = { -halfWidth, halfHeight };
                 break;
             case AnchorPosition::P_TOP_RIGHT:
-                selfAnchorPos = { halfWidth, -halfHeight };
+                selfAnchorPos = { halfWidth, halfHeight };
                 break;
             }
 
@@ -2152,14 +2152,14 @@ namespace KalaGraphics::Graphics
                 case AnchorPosition::P_LEFT_CENTER:
                     targetAnchorPos = targetPos + vec2
                     {
-                        -targetHalfWidth,
+                        targetHalfWidth,
                         0.0f
                     };
                     break;
                 case AnchorPosition::P_RIGHT_CENTER:
                     targetAnchorPos = targetPos + vec2
                     {
-                        targetHalfWidth,
+                        -targetHalfWidth,
                         0.0f
                     };
                     break;
@@ -2181,14 +2181,14 @@ namespace KalaGraphics::Graphics
                 case AnchorPosition::P_BOTTOM_LEFT:
                     targetAnchorPos = targetPos + vec2
                     {
-                        -targetHalfWidth,
+                        targetHalfWidth,
                         targetHalfHeight
                     };
                     break;
                 case AnchorPosition::P_BOTTOM_RIGHT:
                     targetAnchorPos = targetPos + vec2
                     {
-                        targetHalfWidth,
+                        -targetHalfWidth,
                         targetHalfHeight
                     };
                     break;
@@ -2196,14 +2196,14 @@ namespace KalaGraphics::Graphics
                 case AnchorPosition::P_TOP_LEFT:
                     targetAnchorPos = targetPos + vec2
                     {
-                        -targetHalfWidth,
+                        targetHalfWidth,
                         -targetHalfHeight
                     };
                     break;
                 case AnchorPosition::P_TOP_RIGHT:
                     targetAnchorPos = targetPos + vec2
                     {
-                        targetHalfWidth,
+                        -targetHalfWidth,
                         -targetHalfHeight
                     };
                     break;

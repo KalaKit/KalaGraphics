@@ -24,6 +24,7 @@ using KalaHeaders::KalaLog::DateFormat;
 using std::function;
 using std::string;
 using std::filesystem::path;
+using std::source_location;
 #if defined(KLIN_ANY)
 using std::raise;
 #endif
@@ -31,7 +32,7 @@ using std::raise;
 static path exePath{};
 static f64 deltaTime{};
 
-static function<void(string, string)> externalHandler{};
+static function<void(string, string, const source_location&)> externalHandler{};
 
 namespace KalaGraphics::Core
 {
@@ -91,16 +92,17 @@ namespace KalaGraphics::Core
 	f64 KalaGraphicsCore::GetDeltaTime() { return deltaTime; }
 	void KalaGraphicsCore::SetDeltaTime(f64 newValue) { deltaTime = newValue; }
 
-	void KalaGraphicsCore::SetExternalHandler(function<void (string, string)>&& newExternalHandler)
+	void KalaGraphicsCore::SetExternalHandler(function<void (string, string, const source_location&)>&& newExternalHandler)
 	{ 
 		externalHandler = std::move(newExternalHandler);
 	}
 
     void KalaGraphicsCore::ForceClose(
 		string_view target,
-		string_view reason)
+		string_view reason,
+		const source_location& location)
 	{
-		if (externalHandler) externalHandler(string(target), string(reason));
+		if (externalHandler) externalHandler(string(target), string(reason), location);
 		else
 		{
 			Log::Print(

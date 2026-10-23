@@ -1919,32 +1919,32 @@ namespace KalaGraphics::Graphics
             scissorOffset = {};
         }
 
-        posTopLeft =
-        {
-            viewportOffset.x + scissorOffset.x,
-            viewportOffset.y + scissorOffset.y,
-        };
-        posTopRight =
-        {
-            posTopLeft.x + scissorSize.x,
-            posTopLeft.y
-        };
-
         posBottomLeft =
         {
-            posTopLeft.x,
-            posTopLeft.y + scissorSize.y
+            viewportOffset.x + scissorOffset.x,
+            viewportOffset.y + scissorOffset.y
         };
         posBottomRight =
         {
-            posTopRight.x,
+            posBottomLeft.x + scissorSize.x,
             posBottomLeft.y
+        };
+
+        posTopLeft =
+        {
+            posBottomLeft.x,
+            posBottomLeft.y + scissorSize.y
+        };
+        posTopRight =
+        {
+            posBottomRight.x,
+            posTopLeft.y
         };
         
         posCenter =
         {
             posTopLeft.x + scissorSize.x * 0.5f,
-            posTopLeft.y + scissorSize.y * 0.5f
+            posTopLeft.y - scissorSize.y * 0.5f
         };
 
         posLeftCenter = 
