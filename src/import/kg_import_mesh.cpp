@@ -604,6 +604,7 @@ string Init_GLTF_GLB(
         //safely converts glb XYZW to math_utils quat WXYZ
         newNodeData.transform.setrotquat(toquat(worldMat));
         newNodeData.transform.setsize(tosize(worldMat));
+        newNodeData.transform.update();
 
         /*
         auto bool_to_string = [](bool value) -> string

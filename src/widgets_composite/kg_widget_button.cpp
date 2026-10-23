@@ -174,9 +174,9 @@ namespace KalaGraphics::CompositeWidgets
         buttonPtr->meshID = mesh->GetID();
         buttonPtr->textWidgetID = text->ID;
 
-        tex->textWidgetID = newID;
-        mesh->textWidgetID = newID;
-        shader->textWidgetIDs.push_back(newID);
+        tex->buttonWidgetID = newID;
+        mesh->buttonWidgetID = newID;
+        shader->buttonWidgetIDs.push_back(newID);
         text->buttonWidgetID = newID;
 
         err = registry.AddContent(newID, std::move(newButton));
@@ -273,16 +273,14 @@ namespace KalaGraphics::CompositeWidgets
                 + "' because its shader was invalid! Reason: " + err);
         }
 
-        tex->textWidgetID = 0;
-        mesh->textWidgetID = 0;
-
+        tex->buttonWidgetID = 0;
+        mesh->buttonWidgetID = 0;
         text->buttonWidgetID = 0;
 
         erase(shader->buttonWidgetIDs, ID);
 
         tex->Destroy();
         mesh->Destroy();
-
         text->Destroy();
 
         err = registry.DestroyContent(ID);

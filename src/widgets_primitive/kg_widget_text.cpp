@@ -1420,7 +1420,9 @@ namespace KalaGraphics::PrimitiveWidgets
             tex->SetSize(100.0f);
             tex->FillColor(0.0f);
 
-            scast<Transform2D&>(mesh->GetTransform()).setsize( 100.0f );
+            Transform2D& meshTransform = scast<Transform2D&>(mesh->GetTransform());
+            meshTransform.setsize( 100.0f );
+            meshTransform.update();
         }
         else
         {
@@ -1552,7 +1554,9 @@ namespace KalaGraphics::PrimitiveWidgets
             tex->SetSize(finalSize);
             tex->SetPixelData(std::move(finalPixels));
 
-            scast<Transform2D&>(mesh->GetTransform()).setsize(finalSize);
+            Transform2D& meshTransform = scast<Transform2D&>(mesh->GetTransform());
+            meshTransform.setsize(finalSize);
+            meshTransform.update();
         }
 
         isTextDirty = false;

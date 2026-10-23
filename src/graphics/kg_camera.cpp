@@ -459,6 +459,7 @@ namespace KalaGraphics::Graphics
                 keyboard.y * speedMultiplier);
 
             transform.addpos(move);
+            transform.update();
 
             orthographicMatrix = ortho(
                 true,
@@ -494,6 +495,7 @@ namespace KalaGraphics::Graphics
             move *= speedMultiplier * deltaTime;
 
             transform.addpos(move);
+            transform.update();
 
             vec3 pos = transform.getpos(PosTarget::POS_WORLD);
 
@@ -525,6 +527,8 @@ namespace KalaGraphics::Graphics
 
             Log::Print(pmStr + ", " + tpos);
             */
+            
+            transform.update();
         }
     }
 

@@ -707,18 +707,30 @@ namespace KalaGraphics::Graphics
         switch (pos)
         {
         default:
-        case ViewportAnchorPosition::P_DEFAULT:
+        case ViewportAnchorPosition::P_NONE:
             return 0;
+
+        case ViewportAnchorPosition::P_CENTER:
+            return posCenter;
+
+        case ViewportAnchorPosition::P_LEFT_CENTER:
+            return posLeftCenter;
+        case ViewportAnchorPosition::P_RIGHT_CENTER:
+            return posRightCenter;
+        case ViewportAnchorPosition::P_TOP_CENTER:
+            return posTopCenter;
+        case ViewportAnchorPosition::P_BOTTOM_CENTER:
+            return posBottomCenter;
+
         case ViewportAnchorPosition::P_BOTTOM_LEFT:
             return posBottomLeft;
         case ViewportAnchorPosition::P_BOTTOM_RIGHT:
             return posBottomRight;
+
         case ViewportAnchorPosition::P_TOP_LEFT:
             return posTopLeft;
         case ViewportAnchorPosition::P_TOP_RIGHT:
             return posTopRight;
-        case ViewportAnchorPosition::P_CENTER:
-            return posCenter;
         }
     }
 
@@ -1831,7 +1843,9 @@ namespace KalaGraphics::Graphics
                 + "' because its graphics context was invalid! Reason: " + err);
         }
 
-        if (isDynamicResizeEnabled)
+        if (isDynamicResizeEnabled
+            && gctx->oldRenderSize.x > 0.0f
+            && gctx->oldRenderSize.y > 0.0f)
         {
             vec2 scaleFactor =
             {
@@ -1846,67 +1860,79 @@ namespace KalaGraphics::Graphics
             viewportOffset.y *= scaleFactor.y;
         }
 
-        viewportDynamicSize.x = min(
-            viewportDynamicSize.x,
-            gctx->renderSize.x 
-            - viewportOffset.x);
-
-        viewportDynamicSize.y = min(
-            viewportDynamicSize.y,
-            gctx->renderSize.y 
-            - viewportOffset.y);
-
         viewportOffset = kclamp(
             viewportOffset, 
             0.0f, 
             gctx->renderSize);
+
+        viewportDynamicSize = kclamp(
+            viewportDynamicSize,
+            0.0f,
+            gctx->renderSize - viewportOffset);
             
         vec2 viewportRealStaticSize = GetStaticValue(viewportStaticSize);
 
-        if (viewportType == ViewportType::VP_FIT
+        if (viewportType != ViewportType::VP_CUSTOM
+            && (viewportDynamicSize.x <= 0.0f
+            || viewportDynamicSize.y <= 0.0f))
+        {
+            scissorSize = {};
+            scissorOffset = {};
+        }
+        else if (viewportType == ViewportType::VP_FIT
             || viewportType == ViewportType::VP_CENTER)
         {
-            const f32 targetAspect = 
-                scast<f32>(viewportRealStaticSize.x) /
-                scast<f32>(viewportRealStaticSize.y);
-
-            const f32 viewportAspect = 
-                viewportDynamicSize.x /
-                viewportDynamicSize.y;
-
-            vec2 fittedSize{};
-
-            //viewport is wider than target aspect - pillarbox
-            if (viewportAspect > targetAspect)
+            if (viewportRealStaticSize.x <= 0.0f
+                || viewportRealStaticSize.y <= 0.0f)
             {
-                fittedSize.y = viewportDynamicSize.y;
-                fittedSize.x = floorf(viewportDynamicSize.y * targetAspect);
+                scissorSize = {};
+                scissorOffset = {};
             }
-            //viewport is taller than target aspect - letterbox
             else
             {
-                fittedSize.x = viewportDynamicSize.x;
-                fittedSize.y = floorf(viewportDynamicSize.x / targetAspect);
-            }
+                const f32 targetAspect = 
+                    scast<f32>(viewportRealStaticSize.x) /
+                    scast<f32>(viewportRealStaticSize.y);
 
-            if (viewportType == ViewportType::VP_CENTER)
-            {
-                //clamp to max static size
-                fittedSize.x = min(
-                    fittedSize.x, 
-                    viewportRealStaticSize.x);
-                fittedSize.y = min(
-                    fittedSize.y,
-                    viewportRealStaticSize.y);
-            }
+                
+                const f32 viewportAspect = 
+                    viewportDynamicSize.x /
+                    viewportDynamicSize.y;
 
-            //center within the current viewports coordinate space
-            scissorSize = fittedSize;
-            scissorOffset = 
-            {
-                floorf((viewportDynamicSize.x - fittedSize.x) * 0.5f),
-                floorf((viewportDynamicSize.y - fittedSize.y) * 0.5f)
-            };
+                vec2 fittedSize{};
+
+                //viewport is wider than target aspect - pillarbox
+                if (viewportAspect > targetAspect)
+                {
+                    fittedSize.y = viewportDynamicSize.y;
+                    fittedSize.x = floorf(viewportDynamicSize.y * targetAspect);
+                }
+                //viewport is taller than target aspect - letterbox
+                else
+                {
+                    fittedSize.x = viewportDynamicSize.x;
+                    fittedSize.y = floorf(viewportDynamicSize.x / targetAspect);
+                }
+
+                if (viewportType == ViewportType::VP_CENTER)
+                {
+                    //clamp to max static size
+                    fittedSize.x = min(
+                        fittedSize.x, 
+                        viewportRealStaticSize.x);
+                    fittedSize.y = min(
+                        fittedSize.y,
+                        viewportRealStaticSize.y);
+                }
+
+                //center within the current viewports coordinate space
+                scissorSize = fittedSize;
+                scissorOffset = 
+                {
+                    floorf((viewportDynamicSize.x - fittedSize.x) * 0.5f),
+                    floorf((viewportDynamicSize.y - fittedSize.y) * 0.5f)
+                };
+            }
         }
         else if (viewportType == ViewportType::VP_FILL)
         {
@@ -1916,32 +1942,55 @@ namespace KalaGraphics::Graphics
 
         posTopLeft =
         {
-            posBottomLeft.x,
-            posBottomLeft.y + scissorSize.y
+            viewportOffset.x + scissorOffset.x,
+            viewportOffset.y + scissorOffset.y,
         };
         posTopRight =
         {
-            posBottomLeft.x + scissorSize.x,
-            posBottomLeft.y + scissorSize.y
+            posTopLeft.x + scissorSize.x,
+            posTopLeft.y
         };
+
         posBottomLeft =
         {
-            viewportOffset.x + scissorOffset.x,
-            gctx->renderSize.y
-                - viewportOffset.y
-                - scissorOffset.y
-                - scissorSize.y
+            posTopLeft.x,
+            posTopLeft.y + scissorSize.y
         };
         posBottomRight =
         {
-            posBottomLeft.x + scissorSize.x,
+            posTopRight.x,
             posBottomLeft.y
         };
+        
         posCenter =
         {
-            posBottomLeft.x + scissorSize.x * 0.5f,
-            posBottomLeft.y + scissorSize.y * 0.5f
+            posTopLeft.x + scissorSize.x * 0.5f,
+            posTopLeft.y + scissorSize.y * 0.5f
         };
+
+        posLeftCenter = 
+        {
+            posBottomLeft.x,
+            posCenter.y
+        };
+        posRightCenter = 
+        {
+            posBottomRight.x,
+            posCenter.y
+        };
+        posTopCenter = 
+        {
+            posCenter.x,
+            posTopLeft.y
+        };
+        posBottomCenter = 
+        {
+            posCenter.x,
+            posBottomLeft.y
+        };
+
+        if (isnear(posCenter.x)) posCenter.x = 0;
+        if (isnear(posCenter.y)) posCenter.y = 0;
 
         if (isnear(posTopLeft.x)) posTopLeft.x = 0;
         if (isnear(posTopLeft.y)) posTopLeft.y = 0;
@@ -1955,8 +2004,17 @@ namespace KalaGraphics::Graphics
         if (isnear(posBottomRight.x)) posBottomRight.x = 0;
         if (isnear(posBottomRight.y)) posBottomRight.y = 0;
 
-        if (isnear(posCenter.x)) posCenter.x = 0;
-        if (isnear(posCenter.y)) posCenter.y = 0;
+        if (isnear(posLeftCenter.x)) posLeftCenter.x = 0;
+        if (isnear(posLeftCenter.y)) posLeftCenter.y = 0;
+
+        if (isnear(posRightCenter.x)) posRightCenter.x = 0;
+        if (isnear(posRightCenter.y)) posRightCenter.y = 0;
+
+        if (isnear(posTopCenter.x)) posTopCenter.x = 0;
+        if (isnear(posTopCenter.y)) posTopCenter.y = 0;
+
+        if (isnear(posBottomCenter.x)) posBottomCenter.x = 0;
+        if (isnear(posBottomCenter.y)) posBottomCenter.y = 0;
 
         /*
         Log::Print("@@@@@\n"
@@ -1969,6 +2027,21 @@ namespace KalaGraphics::Graphics
             + "\nvp static size: "
             + to_string(viewportRealStaticSize.x) + "x" 
             + to_string(viewportRealStaticSize.y)
+            + "\nvp center: " 
+            + to_string(posCenter.x) + "x" 
+            + to_string(posCenter.y)
+            + "\nvp left center: " 
+            + to_string(posLeftCenter.x) + "x" 
+            + to_string(posLeftCenter.y)
+            + "\nvp right center: " 
+            + to_string(posRightCenter.x) + "x" 
+            + to_string(posRightCenter.y)
+            + "\nvp top center: " 
+            + to_string(posTopCenter.x) + "x" 
+            + to_string(posTopCenter.y)
+            + "\nvp bottom center: " 
+            + to_string(posBottomCenter.x) + "x" 
+            + to_string(posBottomCenter.y)
             + "\nvp top left: " 
             + to_string(posTopLeft.x) + "x" 
             + to_string(posTopLeft.y)
@@ -1980,10 +2053,7 @@ namespace KalaGraphics::Graphics
             + to_string(posBottomLeft.y)
             + "\nvp bottom right: " 
             + to_string(posBottomRight.x) + "x" 
-            + to_string(posBottomRight.y)
-            + "\nvp center: " 
-            + to_string(posCenter.x) + "x" 
-            + to_string(posCenter.y));
+            + to_string(posBottomRight.y));
         */
 
         Camera* c3d{};
@@ -2022,22 +2092,10 @@ namespace KalaGraphics::Graphics
             return;
         }
 
-        HitTest* hitTest{};
-        string err = HitTest::GetRegistry().GetContent(hitTestID, hitTest);
-        if (!err.empty())
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics context error",
-                "Failed to destroy viewport '" + to_string(ID) + "' because "
-                "its hit test was invalid! Reason: " + err);
-        }
-        
-        hitTest->viewportID = 0;
-
         for (u32 sID : shader3DIDs)
         {
             Shader* s{};
-            err = Shader::GetRegistry().GetContent(sID, s);
+            string err = Shader::GetRegistry().GetContent(sID, s);
             if (!err.empty())
             {
                 KalaGraphicsCore::ForceClose(
@@ -2054,7 +2112,7 @@ namespace KalaGraphics::Graphics
         for (u32 sID : shader2DIDs)
         {
             Shader* s{};
-            err = Shader::GetRegistry().GetContent(sID, s);
+            string err = Shader::GetRegistry().GetContent(sID, s);
             if (!err.empty())
             {
                 KalaGraphicsCore::ForceClose(
@@ -2068,7 +2126,7 @@ namespace KalaGraphics::Graphics
             s->Destroy();
         }
 
-        err = registry.DestroyContent(ID);
+        string err = registry.DestroyContent(ID);
         if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(

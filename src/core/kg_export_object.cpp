@@ -15,6 +15,8 @@
 #include "graphics/kg_material.hpp"
 
 using KalaHeaders::KalaMath::vec4;
+using KalaHeaders::KalaMath::vec3;
+using KalaHeaders::KalaMath::quat;
 using KalaHeaders::KalaMath::Transform3D;
 using KalaHeaders::KalaMath::PosTarget;
 using KalaHeaders::KalaMath::RotTarget;
@@ -220,22 +222,25 @@ string GetNodeData(
 
         Transform transform{};
 
-        const Transform3D& transform3D = scast<Transform3D&>(m->GetTransform());
+        Transform3D& transform3D = scast<Transform3D&>(m->GetTransform());
+        const vec3 pos = transform3D.getpos(PosTarget::POS_WORLD);
+        const quat rot = transform3D.getrotquat(RotTarget::ROT_WORLD);
+        const vec3 size = transform3D.getsize(SizeTarget::SIZE_WORLD);
 
-        transform.position[0] = transform3D.getpos(PosTarget::POS_WORLD).x;
-        transform.position[1] = transform3D.getpos(PosTarget::POS_WORLD).y;
-        transform.position[2] = transform3D.getpos(PosTarget::POS_WORLD).z;
+        transform.position[0] = pos.x;
+        transform.position[1] = pos.y;
+        transform.position[2] = pos.z;
 
         //glb expects XYZW, math_utils quat is WXYZ
 
-        transform.rotation[0] = transform3D.getrotquat(RotTarget::ROT_WORLD).x;
-        transform.rotation[1] = transform3D.getrotquat(RotTarget::ROT_WORLD).y;
-        transform.rotation[2] = transform3D.getrotquat(RotTarget::ROT_WORLD).z;
-        transform.rotation[3] = transform3D.getrotquat(RotTarget::ROT_WORLD).w;
+        transform.rotation[0] = rot.x;
+        transform.rotation[1] = rot.y;
+        transform.rotation[2] = rot.z;
+        transform.rotation[3] = rot.w;
 
-        transform.size[0] = transform3D.getsize(SizeTarget::SIZE_WORLD).x;
-        transform.size[1] = transform3D.getsize(SizeTarget::SIZE_WORLD).y;
-        transform.size[2] = transform3D.getsize(SizeTarget::SIZE_WORLD).z;
+        transform.size[0] = size.x;
+        transform.size[1] = size.y;
+        transform.size[2] = size.z;
 
         const vector<Vertex>& meshVertices = m->GetVertices();
         const vector<u32>& meshIndices = m->GetIndices();

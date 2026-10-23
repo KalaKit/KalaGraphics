@@ -1357,6 +1357,19 @@ namespace KalaGraphics::Graphics
             val = "center";
             break;
 
+        case AnchorPosition::P_LEFT_CENTER:
+            val = "left center";
+            break;
+        case AnchorPosition::P_RIGHT_CENTER:
+            val = "right center";
+            break;
+        case AnchorPosition::P_TOP_CENTER:
+            val = "top center";
+            break;
+        case AnchorPosition::P_BOTTOM_CENTER:
+            val = "bottom center";
+            break;
+
         case AnchorPosition::P_BOTTOM_LEFT:
             val = "bottom left";
             break;
@@ -1484,6 +1497,19 @@ namespace KalaGraphics::Graphics
             val = "center";
             break;
 
+        case AnchorPosition::P_LEFT_CENTER:
+            val = "left center";
+            break;
+        case AnchorPosition::P_RIGHT_CENTER:
+            val = "right center";
+            break;
+        case AnchorPosition::P_TOP_CENTER:
+            val = "top center";
+            break;
+        case AnchorPosition::P_BOTTOM_CENTER:
+            val = "bottom center";
+            break;
+
         case AnchorPosition::P_BOTTOM_LEFT:
             val = "bottom left";
             break;
@@ -1542,6 +1568,19 @@ namespace KalaGraphics::Graphics
 
         case AnchorPosition::P_CENTER:
             val = "center";
+            break;
+
+        case AnchorPosition::P_LEFT_CENTER:
+            val = "left center";
+            break;
+        case AnchorPosition::P_RIGHT_CENTER:
+            val = "right center";
+            break;
+        case AnchorPosition::P_TOP_CENTER:
+            val = "top center";
+            break;
+        case AnchorPosition::P_BOTTOM_CENTER:
+            val = "bottom center";
             break;
 
         case AnchorPosition::P_BOTTOM_LEFT:
@@ -2044,20 +2083,31 @@ namespace KalaGraphics::Graphics
             case AnchorPosition::P_CENTER:
                 break;
 
-            case AnchorPosition::P_BOTTOM_LEFT:
-                selfAnchorPos = { -halfWidth, -halfHeight };
+            case AnchorPosition::P_LEFT_CENTER:
+                selfAnchorPos = { -halfWidth, 0.0f };
+                break;
+            case AnchorPosition::P_RIGHT_CENTER:
+                selfAnchorPos = { halfWidth, 0.0f };
+                break;
+            case AnchorPosition::P_TOP_CENTER:
+                selfAnchorPos = { 0.0f, -halfHeight };
+                break;
+            case AnchorPosition::P_BOTTOM_CENTER:
+                selfAnchorPos = { 0.0f, halfHeight };
                 break;
 
+            case AnchorPosition::P_BOTTOM_LEFT:
+                selfAnchorPos = { -halfWidth, halfHeight };
+                break;
             case AnchorPosition::P_BOTTOM_RIGHT:
-                selfAnchorPos = { halfWidth, -halfHeight };
+                selfAnchorPos = { halfWidth, halfHeight };
                 break;
 
             case AnchorPosition::P_TOP_LEFT:
-                selfAnchorPos = { -halfWidth, halfHeight };
+                selfAnchorPos = { -halfWidth, -halfHeight };
                 break;
-
             case AnchorPosition::P_TOP_RIGHT:
-                selfAnchorPos = { halfWidth, halfHeight };
+                selfAnchorPos = { halfWidth, -halfHeight };
                 break;
             }
 
@@ -2101,35 +2151,62 @@ namespace KalaGraphics::Graphics
                     targetAnchorPos = targetPos;
                     break;
 
+                case AnchorPosition::P_LEFT_CENTER:
+                    targetAnchorPos = targetPos + vec2
+                    {
+                        -targetHalfWidth,
+                        0.0f
+                    };
+                    break;
+                case AnchorPosition::P_RIGHT_CENTER:
+                    targetAnchorPos = targetPos + vec2
+                    {
+                        targetHalfWidth,
+                        0.0f
+                    };
+                    break;
+                case AnchorPosition::P_TOP_CENTER:
+                    targetAnchorPos = targetPos + vec2
+                    {
+                        0.0f,
+                        -targetHalfHeight
+                    };
+                    break;
+                case AnchorPosition::P_BOTTOM_CENTER:
+                    targetAnchorPos = targetPos + vec2
+                    {
+                        0.0f,
+                        targetHalfHeight
+                    };
+                    break;
+
                 case AnchorPosition::P_BOTTOM_LEFT:
                     targetAnchorPos = targetPos + vec2
                     {
                         -targetHalfWidth,
-                        -targetHalfHeight
+                        targetHalfHeight
                     };
                     break;
-
                 case AnchorPosition::P_BOTTOM_RIGHT:
                     targetAnchorPos = targetPos + vec2
                     {
                         targetHalfWidth,
-                        -targetHalfHeight
+                        targetHalfHeight
                     };
                     break;
-
+                    
                 case AnchorPosition::P_TOP_LEFT:
                     targetAnchorPos = targetPos + vec2
                     {
                         -targetHalfWidth,
-                        targetHalfHeight
+                        -targetHalfHeight
                     };
                     break;
-
                 case AnchorPosition::P_TOP_RIGHT:
                     targetAnchorPos = targetPos + vec2
                     {
                         targetHalfWidth,
-                        targetHalfHeight
+                        -targetHalfHeight
                     };
                     break;
                 }
@@ -2141,6 +2218,19 @@ namespace KalaGraphics::Graphics
                 default:
                 case AnchorPosition::P_NONE:
                     targetAnchorPos = 0;
+                    break;
+
+                case AnchorPosition::P_LEFT_CENTER:
+                    targetAnchorPos = vp->posLeftCenter;
+                    break;
+                case AnchorPosition::P_RIGHT_CENTER:
+                    targetAnchorPos = vp->posRightCenter;
+                    break;
+                case AnchorPosition::P_TOP_CENTER:
+                    targetAnchorPos = vp->posTopCenter;
+                    break;
+                case AnchorPosition::P_BOTTOM_CENTER:
+                    targetAnchorPos = vp->posBottomCenter;
                     break;
 
                 case AnchorPosition::P_BOTTOM_LEFT:

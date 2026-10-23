@@ -1183,9 +1183,9 @@ namespace KalaGraphics::Graphics
                     "KalaGraphics shader error",
                     "Failed to destroy shader '" + to_string(ID) 
                     + "' because its button widget was invalid! Reason: " + err);
-
-                b->Destroy();
             }
+
+            b->Destroy();
         }
 
         vector<u32> textWidgetIDsCopy = textWidgetIDs;
@@ -1199,9 +1199,9 @@ namespace KalaGraphics::Graphics
                     "KalaGraphics shader error",
                     "Failed to destroy shader '" + to_string(ID) 
                     + "' because its text widget was invalid! Reason: " + err);
-
-                t->Destroy();
             }
+
+            t->Destroy();
         }
 
         for (u32 cID : cameraIDs)
