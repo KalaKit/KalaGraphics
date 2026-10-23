@@ -7,7 +7,7 @@
 
 #include "log_utils.hpp"
 
-#include "widgets_primitive/kg_widget_cliparea.hpp"
+#include "widgets/kg_cliparea.hpp"
 #include "core/kg_core.hpp"
 
 using KalaHeaders::KalaLog::Log;
@@ -20,7 +20,7 @@ using std::to_string;
 using std::unique_ptr;
 using std::make_unique;
 
-namespace KalaGraphics::PrimitiveWidgets
+namespace KalaGraphics::Widgets
 {
     static KalaGraphicsRegistry<ClipArea> registry{};
 

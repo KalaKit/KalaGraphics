@@ -245,8 +245,7 @@ namespace KalaGraphics::Graphics
     u32 Texture::GetShaderID() const { return shaderID; }
     void Texture::SetShaderID(u32 newValue)
     {
-        if (textWidgetID != 0
-            || buttonWidgetID != 0)
+        if (textWidgetID != 0)
         {
             Log::Print(
                 "Failed to set texture '" + to_string(ID) 
@@ -325,8 +324,6 @@ namespace KalaGraphics::Graphics
     const vector<pair<u32, array<bool, 11>>>& Texture::GetMaterialIDs() const { return materialIDs; }
 
     u32 Texture::GetTextWidgetID() const { return textWidgetID; }
-
-    u32 Texture::GetButtonWidgetID() const { return buttonWidgetID; }
 
     void Texture::FillColor(vec4&& newValue)
     {
@@ -1705,8 +1702,7 @@ namespace KalaGraphics::Graphics
             return;
         }
 
-        if (textWidgetID != 0
-            || buttonWidgetID != 0)
+        if (textWidgetID != 0)
         {
             Log::Print(
                 "Failed to destroy texture '" + to_string(ID) 

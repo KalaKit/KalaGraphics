@@ -19,8 +19,7 @@
 #include "graphics/kg_camera.hpp"
 #include "graphics/kg_texture.hpp"
 #include "graphics/kg_material.hpp"
-#include "widgets_primitive/kg_widget_text.hpp"
-#include "widgets_composite/kg_widget_button.hpp"
+#include "widgets/kg_text.hpp"
 
 using KalaHeaders::KalaCore::EnumHash;
 using KalaHeaders::KalaCore::EnumToString;
@@ -42,8 +41,7 @@ using KalaGraphics::Graphics::AlphaMode;
 using KalaGraphics::Graphics::CameraType;
 using KalaGraphics::Graphics::MaterialType2D;
 using KalaGraphics::Graphics::MaterialType3D;
-using KalaGraphics::PrimitiveWidgets::Text;
-using KalaGraphics::CompositeWidgets::Button;
+using KalaGraphics::Widgets::Text;
 
 using std::string_view;
 using std::to_string;
@@ -1673,25 +1671,6 @@ namespace KalaGraphics::Graphics
                                 "draw index: " + to_string(m->drawOrderIndex));
                         }
                         */
-
-                        if (m->buttonWidgetID != 0)
-                        {
-                            Button* b{};
-                            err = Button::GetRegistry().GetContent(m->buttonWidgetID, b);
-                            if (!err.empty())
-                            {
-                                KalaGraphicsCore::ForceClose(
-                                    "KalaGraphics viewport error",
-                                    "Failed to update viewport '" + to_string(ID) + "' "
-                                    "because its mesh '" + to_string(m->ID) + "' button widget was invalid! Reason: " + err);
-                            }
-
-                            b->Update(
-                                cmdBuffer,
-                                KalaGraphicsCore::GetDeltaTime());
-
-                            return;
-                        }
 
                         if (m->textWidgetID != 0)
                         {

@@ -8,7 +8,7 @@
 #include "log_utils.hpp"
 #include "key_standards.hpp"
 
-#include "widgets_primitive/kg_widget_text.hpp"
+#include "widgets/kg_text.hpp"
 #include "import/kg_import_font.hpp"
 #include "graphics/kg_context.hpp"
 #include "graphics/kg_viewport.hpp"
@@ -122,7 +122,7 @@ static vector<u32> StringToUTF(string_view input)
     return convertedText;
 }
 
-namespace KalaGraphics::PrimitiveWidgets
+namespace KalaGraphics::Widgets
 {
     static KalaGraphicsRegistry<Text> registry{};
 
@@ -313,17 +313,6 @@ namespace KalaGraphics::PrimitiveWidgets
     bool Text::CanEdit() const { return canEdit; }
     void Text::SetEditState(bool newValue)
     {
-        if (buttonWidgetID != 0)
-        {
-            Log::Print(
-                "Failed to set text widget '" + to_string(ID) 
-                + "' edit state because it is used in a widget!",
-                "KG_WIDGET_TEXT",
-                LogType::LOG_WARNING);
-
-            return;
-        }
-
         canEdit = newValue;
 
         if (!canEdit)
@@ -2737,17 +2726,6 @@ namespace KalaGraphics::PrimitiveWidgets
 
     void Text::Destroy()
     {
-        if (buttonWidgetID != 0)
-        {
-            Log::Print(
-                "Failed to destroy text widget '" + to_string(ID) 
-                + "' because it is used in a widget!",
-                "KG_WIDGET_TEXT",
-                LogType::LOG_WARNING);
-
-            return;
-        }
-
         Texture* tex{};
         string err = Texture::GetRegistry().GetContent(textureID, tex);
         if (!err.empty())

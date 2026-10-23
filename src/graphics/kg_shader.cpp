@@ -21,8 +21,7 @@
 #include "graphics/kg_context.hpp"
 #include "graphics/kg_viewport.hpp"
 #include "core/kg_core.hpp"
-#include "widgets_primitive/kg_widget_text.hpp"
-#include "widgets_composite/kg_widget_button.hpp"
+#include "widgets/kg_text.hpp"
 
 using KalaHeaders::KalaCore::ToVar;
 using KalaHeaders::KalaCore::FromVar;
@@ -38,8 +37,7 @@ using KalaGraphics::Core::KalaGraphicsCore;
 using KalaGraphics::Graphics::Vertex;
 using KalaGraphics::Graphics::Vertex2D;
 using KalaGraphics::Graphics::TextureFilterMode;
-using KalaGraphics::PrimitiveWidgets::Text;
-using KalaGraphics::CompositeWidgets::Button;
+using KalaGraphics::Widgets::Text;
 
 using std::unique_ptr;
 using std::make_unique;
@@ -1070,8 +1068,6 @@ namespace KalaGraphics::Graphics
 
     const vector<u32>& Shader::GetTextWidgetIDs() const { return textWidgetIDs; }
 
-    const vector<u32>& Shader::GetButtonWidgetIDs() const { return buttonWidgetIDs; }
-
     u32 Shader::GetFallbackTextureID() const { return fallbackTextureID; }
     u32 Shader::GetRootTextureID() const { return rootTextureID; }
 
@@ -1170,22 +1166,6 @@ namespace KalaGraphics::Graphics
 
             if (vp->lastBoundShader3DID == ID) vp->lastBoundShader3DID = 0;
             if (vp->lastBoundShader2DID == ID) vp->lastBoundShader2DID = 0;
-        }
-
-        vector<u32> buttonWidgetIDsCopy = buttonWidgetIDs;
-        for (u32 button : buttonWidgetIDsCopy)
-        {
-            Button* b{};
-            string err = Button::GetRegistry().GetContent(button, b);
-            if (!err.empty())
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics shader error",
-                    "Failed to destroy shader '" + to_string(ID) 
-                    + "' because its button widget was invalid! Reason: " + err);
-            }
-
-            b->Destroy();
         }
 
         vector<u32> textWidgetIDsCopy = textWidgetIDs;

@@ -1202,8 +1202,6 @@ namespace KalaGraphics::Graphics
 
     u32 Mesh::GetTextWidgetID() const { return textWidgetID; }
 
-    u32 Mesh::GetButtonWidgetID() const { return buttonWidgetID; }
-
     bool Mesh::IsHovered() const { return hitTestID != 0; }
 
     bool Mesh::IsVisible() const { return isVisible; }
@@ -2676,8 +2674,7 @@ namespace KalaGraphics::Graphics
 
     void Mesh::Destroy()
     {
-        if (textWidgetID != 0
-            || buttonWidgetID != 0)
+        if (textWidgetID != 0)
         {
             Log::Print(
                 "Failed to destroy mesh '" + to_string(ID) 
