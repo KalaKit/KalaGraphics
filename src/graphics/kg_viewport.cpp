@@ -39,8 +39,6 @@ using KalaGraphics::Graphics::RootShaderType;
 using KalaGraphics::Graphics::RootShaderTarget;
 using KalaGraphics::Graphics::AlphaMode;
 using KalaGraphics::Graphics::CameraType;
-using KalaGraphics::Graphics::MaterialType2D;
-using KalaGraphics::Graphics::MaterialType3D;
 using KalaGraphics::Widgets::Text;
 
 using std::string_view;
@@ -1241,8 +1239,7 @@ namespace KalaGraphics::Graphics
     {
         if (!is2DMeshSortDirty) return;
 
-        vector<Mesh*> opaqueMeshes{};
-        vector<Mesh*> transparentMeshes{};
+        vector<Mesh*> meshes{};
 
         for (u32 shaderID : shader2DIDs)
         {
@@ -1271,62 +1268,30 @@ namespace KalaGraphics::Graphics
                 //ignore invisible meshes
                 if (!m->isVisible) continue;
 
-                Material* mat{};
-                err = Material::GetRegistry().GetContent(m->materialID, mat);
-                if (!err.empty())
-                {
-                    KalaGraphicsCore::ForceClose(
-                        "KalaGraphics viewport error", 
-                        "Failed to sort mesh '" + to_string(m->ID) 
-                        + "' in shader '" + to_string(m->shaderID) + "' because its material was invalid! Reason: " + err);
-                }
-
-                if (mat->GetMaterial2DType() == MaterialType2D::M_FONT
-                    || mat->GetAlphaMode() == AlphaMode::A_OPAQUE)
-                {
-                    opaqueMeshes.push_back(m);
-                }
-                else transparentMeshes.push_back(m);
+                meshes.push_back(m);
             }
         }
 
-        if (opaqueMeshes.size() > 1)
+        if (meshes.size() > 1)
         {
-            sort(opaqueMeshes.begin(), 
-                opaqueMeshes.end(),
+            sort(meshes.begin(), 
+                meshes.end(),
                 [](Mesh* a, Mesh* b)
             {
                 return a->drawOrderIndex < b->drawOrderIndex;
             });
         }
 
-        if (transparentMeshes.size() > 1)
+        sorted2DMeshes.clear();
+        for (Mesh* m : meshes)
         {
-            sort(transparentMeshes.begin(), 
-                transparentMeshes.end(),
-                [](Mesh* a, Mesh* b)
-            {
-                return a->drawOrderIndex < b->drawOrderIndex;
-            });
-        }
-
-        sorted2DOpaqueMeshes.clear();
-        for (Mesh* m : opaqueMeshes)
-        {
-            sorted2DOpaqueMeshes.push_back(m->ID);
-        }
-
-        sorted2DTransparentMeshes.clear();
-        for (Mesh* m : transparentMeshes)
-        {
-            sorted2DTransparentMeshes.push_back(m->ID);
+            sorted2DMeshes.push_back(m->ID);
         }
 
         /*
         Log::Print(
             "@@@@@\n"
-            "sorted '" + to_string(sorted2DOpaqueMeshes.size()) + "' 2D opaque meshes "
-            "and '" + to_string(sorted2DTransparentMeshes.size()) + "' 2D transparent meshes "
+            "sorted '" + to_string(sorted2DMeshes.size()) + "' 2D meshes "
             "for viewport '" + to_string(ID) + "'");
         */
 
@@ -1713,8 +1678,7 @@ namespace KalaGraphics::Graphics
                 }
                 else
                 {
-                    for (u32 meshID : sorted2DOpaqueMeshes) render_mesh(meshID);
-                    for (u32 meshID : sorted2DTransparentMeshes) render_mesh(meshID);
+                    for (u32 meshID : sorted2DMeshes) render_mesh(meshID);
                 }
             };
 
