@@ -1515,6 +1515,7 @@ namespace KalaGraphics::Graphics
         // CREATE SWAPCHAIN
         //
 
+        bool supportsImmediate = ContainsValue(presentModes, VK_PRESENT_MODE_IMMEDIATE_KHR);
         bool supportsMailbox = ContainsValue(presentModes, VK_PRESENT_MODE_MAILBOX_KHR);
         bool supportsFifoRelaxed = ContainsValue(presentModes, VK_PRESENT_MODE_FIFO_RELAXED_KHR);
 
@@ -1524,7 +1525,19 @@ namespace KalaGraphics::Graphics
         default:
         case VSyncState::VSYNC_OFF:
         {
-            chosenPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+            if (supportsImmediate) chosenPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+            else
+            {
+                if (isVerboseLoggingEnabled)
+                {
+                    Log::Print(
+                        "Tried to use IMMEDIATE but device does not support it, falling back to FIFO.",
+                        "KG_CONTEXT",
+                        LogType::LOG_VERBOSE);
+                }
+
+                chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+            }
             break;
         }
         case VSyncState::VSYNC_ON_TRIPLE_BUFFERED:
