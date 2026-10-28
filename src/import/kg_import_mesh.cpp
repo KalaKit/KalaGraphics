@@ -154,7 +154,7 @@ namespace KalaGraphics::Import
             || ext == EXT_GLB)
         {
             errMsg = Init_GLTF_GLB(
-                absolute(meshPath),
+                absolute(meshPath).lexically_normal(),
                 std::move(outData),
                 nodeData);
         }

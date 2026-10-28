@@ -402,8 +402,8 @@ namespace KalaGraphics::Graphics
 
         vector<const RootShader*> rootShaders = vp->GetAllRootShaders();
 
-        path absVert = absolute(vertPath);
-        path absFrag = absolute(fragPath);
+        path absVert = absolute(vertPath).lexically_normal();
+        path absFrag = absolute(fragPath).lexically_normal();
 
         for (const RootShader* rs : rootShaders)
         {
