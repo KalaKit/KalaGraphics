@@ -21,6 +21,7 @@ using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
 
 using KalaHeaders::KalaFile::ReadBinaryDataFromFile;
+using KalaHeaders::KalaFile::GetCleanPath;
 
 using KalaHeaders::KalaMath::PosTarget;
 using KalaHeaders::KalaMath::RotTarget;
@@ -154,7 +155,7 @@ namespace KalaGraphics::Import
             || ext == EXT_GLB)
         {
             errMsg = Init_GLTF_GLB(
-                absolute(meshPath).lexically_normal(),
+                GetCleanPath(meshPath),
                 std::move(outData),
                 nodeData);
         }

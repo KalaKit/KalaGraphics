@@ -23,6 +23,7 @@ using KalaHeaders::KalaLog::DateFormat;
 
 using std::function;
 using std::string;
+using std::to_string;
 using std::filesystem::path;
 using std::source_location;
 #if defined(KLIN_ANY)
@@ -98,11 +99,11 @@ namespace KalaGraphics::Core
 	}
 
     void KalaGraphicsCore::ForceClose(
-		string_view target,
+		string_view title,
 		string_view reason,
 		const source_location& location)
 	{
-		if (externalHandler) externalHandler(string(target), string(reason), location);
+		if (externalHandler) externalHandler(string(title), string(reason), location);
 		else
 		{
 			Log::Print(
@@ -111,9 +112,16 @@ namespace KalaGraphics::Core
 				"\n================\n",
 				true);
 
+            string reasonStr = string(reason);
+            reasonStr 
+                += "\n\nfile: " + string(location.file_name())
+                + "\nfunction: " + string(location.function_name())
+                + "\nline: " + to_string(location.line())
+                + "\ncolumn: " + to_string(location.column());
+
 			Log::Print(
-				reason,
-				target,
+				reasonStr,
+				title,
 				LogType::LOG_ERROR,
 				2,
 				true,
@@ -127,6 +135,6 @@ namespace KalaGraphics::Core
 #endif
 		}
 
-		_Exit(1);
+        _Exit(1);
 	}
 }

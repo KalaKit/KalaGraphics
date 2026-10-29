@@ -30,6 +30,7 @@ using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
 
 using KalaHeaders::KalaFile::ReadBinaryDataFromFile;
+using KalaHeaders::KalaFile::GetCleanPath;
 
 using KalaHeaders::KalaMath::vec4;
 
@@ -402,8 +403,8 @@ namespace KalaGraphics::Graphics
 
         vector<const RootShader*> rootShaders = vp->GetAllRootShaders();
 
-        path absVert = absolute(vertPath).lexically_normal();
-        path absFrag = absolute(fragPath).lexically_normal();
+        path absVert = GetCleanPath(vertPath);
+        path absFrag = GetCleanPath(fragPath);
 
         for (const RootShader* rs : rootShaders)
         {
