@@ -2776,16 +2776,17 @@ namespace KalaGraphics::Graphics
 				"KG_CONTEXT",
 				LogType::LOG_INFO);
                
-            Shader::GetRegistry().DestroyAllContent();
-            Texture::GetRegistry().DestroyAllContent();
-            Camera::GetRegistry().DestroyAllContent();
-            Mesh::GetRegistry().DestroyAllContent();
-            Material::GetRegistry().DestroyAllContent();
+            string _{};
+            _ = Shader::GetRegistry().DestroyAllContent();
+            _ = Texture::GetRegistry().DestroyAllContent();
+            _ = Camera::GetRegistry().DestroyAllContent();
+            _ = Mesh::GetRegistry().DestroyAllContent();
+            _ = Material::GetRegistry().DestroyAllContent();
 
-            ImportShader::GetRegistry().DestroyAllContent();
-            ImportTexture::GetRegistry().DestroyAllContent();
-            ImportMesh::GetRegistry().DestroyAllContent();
-            ImportFont::GetRegistry().DestroyAllContent();
+            _ = ImportShader::GetRegistry().DestroyAllContent();
+            _ = ImportTexture::GetRegistry().DestroyAllContent();
+            _ = ImportMesh::GetRegistry().DestroyAllContent();
+            _ = ImportFont::GetRegistry().DestroyAllContent();
 
             if (descriptorPool != VK_NULL_HANDLE)
             {
