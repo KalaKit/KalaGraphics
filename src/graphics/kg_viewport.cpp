@@ -373,7 +373,7 @@ namespace KalaGraphics::Graphics
                     RootShaderType fragType,
                     Shader* shader) -> void
                     {
-                        RootShader* rs = find_if(
+                        auto rs = find_if(
                             vpPtr->rootShaderTable.begin(),
                             vpPtr->rootShaderTable.end(),
                             [vertType, fragType](const RootShader& entry)
@@ -383,7 +383,7 @@ namespace KalaGraphics::Graphics
                                     && entry.fragShader.shaderType == fragType;
                             });
 
-                        if (!rs)
+                        if (rs == vpPtr->rootShaderTable.end())
                         {
                             KalaGraphicsCore::ForceClose(
                                 "KalaGraphics viewport error",
@@ -512,7 +512,7 @@ namespace KalaGraphics::Graphics
 
     u32 Viewport::GetRootShaderID(RootShaderTarget target)
     {
-        RootShader* rs = find_if(
+        auto rs = find_if(
             rootShaderTable.begin(),
             rootShaderTable.end(),
             [target](const RootShader& entry)
@@ -520,7 +520,7 @@ namespace KalaGraphics::Graphics
                 return entry.shaderTarget == target;
             });
 
-        if (!rs)
+        if (rs == rootShaderTable.end())
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics viewport error",

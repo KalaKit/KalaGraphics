@@ -8,6 +8,8 @@ dir_release: "build/temp/release-"
 dir_debug: "build/temp/debug-"
 def_win: "WIN32_LEAN_AND_MEAN", "NOMINMAX", "UNICODE", "_UNICODE"
 
+win-headers: "${VULKAN_SDK}/Include", "${VULKAN_SDK}/Include/vma"
+
 #global
 compilerlauncher: "ccache"
 compiler: "clang++"
@@ -30,12 +32,14 @@ binaryname: "${name_bin}d"
 buildtype: "debug"
 buildpath: "${dir_debug}windows"
 defines: "${def_win}"
+headers: "${win-headers}"
 
 #profile release-windows
 binaryname: "${name_bin}"
 buildtype: "minsizerel"
 buildpath: "${dir_release}windows"
 defines: "${def_win}"
+headers: "${win-headers}"
 
 #profile debug-linux
 binaryname: "lib${name_bin}d"
