@@ -139,12 +139,12 @@ namespace KalaGraphics::Import
         return texPtr;
     }
 
-    ImportTexture* ImportTexture::Initialize(vector<u8>&& imageData)
+    ImportTexture* ImportTexture::Initialize(vector<u8>&& newValue)
     {
-        if (imageData.empty())
+        if (newValue.empty())
         {
             Log::Print(
-                "Failed to import texture from image data because no image data was provided!",
+                "Failed to import texture because it was empty!",
                 "KG_IMPORT_TEXTURE",
                 LogType::LOG_WARNING);
 
@@ -153,13 +153,13 @@ namespace KalaGraphics::Import
 
         ImportTextureData textureData{};
         string errMsg = Init_PNG(
-            std::move(imageData),
+            std::move(newValue),
             textureData);
 
         if (!errMsg.empty())
         {
             Log::Print(
-                "Failed to import texture from image data! Reason: " + errMsg,
+                "Failed to import texture! Reason: " + errMsg,
                 "KG_IMPORT_TEXTURE",
                 LogType::LOG_ERROR,
                 2);

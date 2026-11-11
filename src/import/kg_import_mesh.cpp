@@ -151,14 +151,10 @@ namespace KalaGraphics::Import
         }
 
         vector<ImportNodeData> nodeData{};
-        if (ext == EXT_GLTF
-            || ext == EXT_GLB)
-        {
-            errMsg = Init_GLTF_GLB(
-                GetCleanPath(meshPath),
-                std::move(outData),
-                nodeData);
-        }
+        errMsg = Init_GLTF_GLB(
+            GetCleanPath(meshPath),
+            std::move(outData),
+            nodeData);
 
         if (!errMsg.empty())
         {
@@ -222,6 +218,85 @@ namespace KalaGraphics::Import
         return meshPtr;
     }
 
+    ImportMesh* ImportMesh::Initialize(vector<u8>&& meshData)
+    {
+        if (meshData.empty())
+        {
+            Log::Print(
+                "Failed to import mesh because it was empty!",
+                "KG_IMPORT_MESH",
+                LogType::LOG_WARNING);
+
+            return nullptr;
+        }
+
+        vector<ImportNodeData> nodeData{};
+
+        string errMsg = Init_GLTF_GLB(
+            "",
+            std::move(meshData),
+            nodeData);
+
+        if (!errMsg.empty())
+        {
+            Log::Print(
+                "Failed to import mesh! Reason: " + errMsg,
+                "KG_IMPORT_MESH",
+                LogType::LOG_ERROR,
+                2);
+
+            return nullptr;
+        }
+
+        unique_ptr<ImportMesh> newMesh = make_unique<ImportMesh>();
+        ImportMesh* meshPtr = newMesh.get();
+
+        u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
+        KalaGraphicsCore::SetGlobalID(newID);
+
+        meshPtr->ID = newID;
+        meshPtr->nodeData = std::move(nodeData);
+
+        /*
+        for (const ImportNodeData& thisNodeData : meshPtr->nodeData)
+        {
+            const Transform3D& mt = thisNodeData.transform;
+
+            Log::Print(
+                "@@@@@\n"
+                "IMPORT TRANSFORM\n"
+                "pos: "
+                + to_string(mt.getpos(PosTarget::POS_LOCAL).x) + ", "
+                + to_string(mt.getpos(PosTarget::POS_LOCAL).y) + ", "
+                + to_string(mt.getpos(PosTarget::POS_LOCAL).z) + "\n"
+                "rot: "
+                + to_string(mt.getrotquat(RotTarget::ROT_LOCAL).w) + ", "
+                + to_string(mt.getrotquat(RotTarget::ROT_LOCAL).x) + ", "
+                + to_string(mt.getrotquat(RotTarget::ROT_LOCAL).y) + ", "
+                + to_string(mt.getrotquat(RotTarget::ROT_LOCAL).z) + "\n"
+                "size: "
+                + to_string(mt.getsize(SizeTarget::SIZE_LOCAL).x) + ", "
+                + to_string(mt.getsize(SizeTarget::SIZE_LOCAL).y) + ", "
+                + to_string(mt.getsize(SizeTarget::SIZE_LOCAL).z));
+        }
+        */
+
+        string err = registry.AddContent(newID, std::move(newMesh));
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics import mesh error",
+				"Failed to initialize import mesh! Reason: " + err);
+        }
+
+        Log::Print(
+			"Created new import mesh '" + to_string(newID) + "' from binary data!",
+			"KG_IMPORT_MESH",
+			LogType::LOG_SUCCESS);
+
+        return meshPtr;
+    }
+
     u32 ImportMesh::GetID() const { return ID; }
 
     const path& ImportMesh::GetMeshPath() const { return meshPath; }
@@ -266,10 +341,21 @@ string Init_GLTF_GLB(
         return "Failed to parse GLTF/GLB data! Reason: " + CGLTFErrorToString(result);
     }
 
-    result = cgltf_load_buffers(
-        &options,
-        data,
-        meshPath.string().c_str());
+    if (!meshPath.empty()
+        && meshPath.extension() == ".gltf")
+    {
+        result = cgltf_load_buffers(
+            &options,
+            data,
+            meshPath.string().c_str());
+    }
+    else
+    {
+        result = cgltf_load_buffers(
+            &options,
+            data,
+            nullptr);
+    }
 
     if (result != cgltf_result_success)
     {

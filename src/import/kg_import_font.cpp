@@ -206,6 +206,71 @@ namespace KalaGraphics::Import
         return fontPtr;
     }
 
+    ImportFont* ImportFont::Initialize(
+        vector<u8>&& newValue,
+        u8 fontScale)
+    {
+        if (fontScale == 0)
+        {
+            Log::Print(
+                "Failed to import font because its font scale was set to 0!",
+                "KG_IMPORT_FONT",
+                LogType::LOG_WARNING);
+
+            return nullptr;
+        }
+
+        if (newValue.empty())
+        {
+            Log::Print(
+                "Failed to import font because its data was empty!",
+                "KG_IMPORT_FONT",
+                LogType::LOG_WARNING);
+
+            return nullptr;
+        }
+
+        unique_ptr<ImportFont> newFont = make_unique<ImportFont>();
+        ImportFont* fontPtr = newFont.get();
+
+        FontData fontData{ .fontScale = fontScale };
+        string errMsg = fontPtr->Initialize_HarfBuzz(
+            std::move(newValue),
+            fontData);
+
+        if (!errMsg.empty())
+        {
+            Log::Print(
+                "Failed to import font! Reason: " + errMsg,
+                "KG_IMPORT_FONT",
+                LogType::LOG_ERROR,
+                2);
+
+            return nullptr;
+        }
+
+        u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
+        KalaGraphicsCore::SetGlobalID(newID);
+
+        fontPtr->ID = newID;
+        fontPtr->fontData = std::move(fontData);
+
+        string err = registry.AddContent(newID, std::move(newFont));
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics import font error",
+				"Failed to initialize import font! Reason: " + err);
+        }
+
+        Log::Print(
+			"Created new import font '" + to_string(newID) + "' from binary data!",
+			"KG_IMPORT_FONT",
+			LogType::LOG_SUCCESS);
+
+        return fontPtr;
+    }
+
     u32 ImportFont::GetID() const { return ID; }
 
     const path& ImportFont::GetFontPath() const { return fontPath; }

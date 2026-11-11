@@ -236,12 +236,9 @@ namespace KalaGraphics::Import
         }
 
         ImportShaderData shaderData{};
-        if (ext == EXT_SPV)
-        {
-            errMsg = Init_SPV(
-                std::move(outData),
-                shaderData);
-        }
+        errMsg = Init_SPV(
+            std::move(outData),
+            shaderData);
 
         if (!errMsg.empty())
         {
@@ -274,6 +271,59 @@ namespace KalaGraphics::Import
 
         Log::Print(
 			"Created new import shader '" + to_string(newID) + "'!",
+			"KG_IMPORT_SHADER",
+			LogType::LOG_SUCCESS);
+
+        return shaderPtr;
+    }
+
+    ImportShader* ImportShader::Initialize(vector<u8>&& newValue)
+    {
+        if (newValue.empty())
+        {
+            Log::Print(
+                "Failed to import shader because it is empty!",
+                "KG_IMPORT_SHADER",
+                LogType::LOG_WARNING);
+
+            return nullptr;
+        }
+
+        ImportShaderData shaderData{};
+        string errMsg = Init_SPV(
+            std::move(newValue),
+            shaderData);
+
+        if (!errMsg.empty())
+        {
+            Log::Print(
+                "Failed to import shader! Reason: " + errMsg,
+                "KG_IMPORT_SHADER",
+                LogType::LOG_ERROR,
+                2);
+
+            return nullptr;
+        }
+
+        unique_ptr<ImportShader> newShader = make_unique<ImportShader>();
+        ImportShader* shaderPtr = newShader.get();
+
+        u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
+        KalaGraphicsCore::SetGlobalID(newID);
+
+        shaderPtr->ID = newID;
+        shaderPtr->shaderData = std::move(shaderData);
+
+        string err = registry.AddContent(newID, std::move(newShader));
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics import shader error",
+				"Failed to initialize import shader! Reason: " + err);
+        }
+
+        Log::Print(
+			"Created new import shader '" + to_string(newID) + "' from binary data!",
 			"KG_IMPORT_SHADER",
 			LogType::LOG_SUCCESS);
 
