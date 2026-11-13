@@ -5,6 +5,7 @@
 
 #include <memory>
 
+#include "core_utils.hpp"
 #include "log_utils.hpp"
 #include "key_standards.hpp"
 

@@ -11,6 +11,7 @@
 #include "vulkan/vulkan_core.h"
 #include "spirv_reflect.h"
 
+#include "core_utils.hpp"
 #include "log_utils.hpp"
 #include "file_utils.hpp"
 

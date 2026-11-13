@@ -9,6 +9,7 @@
 #include "hb-ot.h"
 #include "hb-raster.h"
 
+#include "core_utils.hpp"
 #include "log_utils.hpp"
 #include "file_utils.hpp"
 
