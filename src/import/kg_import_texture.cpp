@@ -51,7 +51,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import texture '" + texturePath.string() + "' because it was not found!",
                 "KG_IMPORT_TEXTURE",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return nullptr;
         }
@@ -61,7 +61,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import texture '" + texturePath.string() + "' because it is not a regular file!",
                 "KG_IMPORT_TEXTURE",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return nullptr;
         }
@@ -72,7 +72,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import texture '" + texturePath.string() + "' because its extension is not supported!",
                 "KG_IMPORT_TEXTURE",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return nullptr;
         }
@@ -87,7 +87,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import texture '" + texturePath.string() + "'! Reason: " + errMsg,
                 "KG_IMPORT_TEXTURE",
-                LogType::LOG_ERROR,
+                LogType::ERROR,
                 2);
 
             return nullptr;
@@ -106,7 +106,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import texture '" + texturePath.string() + "'! Reason: " + errMsg,
                 "KG_IMPORT_TEXTURE",
-                LogType::LOG_ERROR,
+                LogType::ERROR,
                 2);
 
             return nullptr;
@@ -134,7 +134,7 @@ namespace KalaGraphics::Import
 			"Created new import texture '" + to_string(newID) 
             + "' from path '" + texPtr->texturePath.string() + "'!",
 			"KG_IMPORT_TEXTURE",
-			LogType::LOG_SUCCESS);
+			LogType::SUCCESS);
 
         return texPtr;
     }
@@ -146,7 +146,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import texture because it was empty!",
                 "KG_IMPORT_TEXTURE",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return nullptr;
         }
@@ -161,7 +161,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import texture! Reason: " + errMsg,
                 "KG_IMPORT_TEXTURE",
-                LogType::LOG_ERROR,
+                LogType::ERROR,
                 2);
 
             return nullptr;
@@ -187,7 +187,7 @@ namespace KalaGraphics::Import
         Log::Print(
 			"Created new import texture '" + to_string(newID) + "' from binary data!",
 			"KG_IMPORT_TEXTURE",
-			LogType::LOG_SUCCESS);
+			LogType::SUCCESS);
 
         return texPtr;
     }
@@ -213,7 +213,7 @@ namespace KalaGraphics::Import
         Log::Print(
             "Destroying import texture data '" + to_string(ID) + "'.",
             "KG_IMPORT_TEXTURE",
-            LogType::LOG_INFO);
+            LogType::INFO);
     }
 }
 
@@ -246,14 +246,14 @@ string Init_PNG(
         case LCT_GREY:
         {
             state.info_raw.colortype = LCT_GREY;
-            outData.pixelFormat = TexturePixelFormat::FORMAT_BASIC_R8;
+            outData.pixelFormat = TexturePixelFormat::BASIC_R8;
 
             break;
         }
         case LCT_GREY_ALPHA:
         {
             state.info_raw.colortype = LCT_GREY_ALPHA;
-            outData.pixelFormat = TexturePixelFormat::FORMAT_BASIC_R8G8;
+            outData.pixelFormat = TexturePixelFormat::BASIC_R8G8;
 
             break;
         }
@@ -261,8 +261,8 @@ string Init_PNG(
         {
             state.info_raw.colortype = LCT_RGBA;
             outData.pixelFormat = isSRGB
-                ? TexturePixelFormat::FORMAT_SRGB_R8G8B8A8
-                : TexturePixelFormat::FORMAT_BASIC_R8G8B8A8;
+                ? TexturePixelFormat::SRGB_R8G8B8A8
+                : TexturePixelFormat::BASIC_R8G8B8A8;
 
             break;
         }
@@ -270,8 +270,8 @@ string Init_PNG(
         {
             state.info_raw.colortype = LCT_RGBA;
             outData.pixelFormat = isSRGB
-                ? TexturePixelFormat::FORMAT_SRGB_R8G8B8A8
-                : TexturePixelFormat::FORMAT_BASIC_R8G8B8A8;
+                ? TexturePixelFormat::SRGB_R8G8B8A8
+                : TexturePixelFormat::BASIC_R8G8B8A8;
 
             break;
         }
@@ -280,8 +280,8 @@ string Init_PNG(
             state.info_raw.colortype = LCT_RGBA;
 
             outData.pixelFormat = isSRGB
-                ? TexturePixelFormat::FORMAT_SRGB_R8G8B8A8
-                : TexturePixelFormat::FORMAT_BASIC_R8G8B8A8;
+                ? TexturePixelFormat::SRGB_R8G8B8A8
+                : TexturePixelFormat::BASIC_R8G8B8A8;
 
             break;
         }

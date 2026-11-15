@@ -85,7 +85,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Created new material '" + to_string(newID) + "'!",
             "KG_MATERIAL",
-            LogType::LOG_SUCCESS);
+            LogType::SUCCESS);
 
         return matPtr;
     }
@@ -112,10 +112,10 @@ namespace KalaGraphics::Graphics
         switch (material2DType)
         {
         default:
-        case MaterialType2D::M_RECT:
+        case MaterialType2D::RECT:
             typeStr = "rect";
             break;
-        case MaterialType2D::M_FONT:
+        case MaterialType2D::FONT:
             typeStr = "font";
             break;
         }
@@ -123,7 +123,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set 2D material '" + to_string(ID) + "' type to '" + typeStr + "'!",
             "KG_MATERIAL",
-            LogType::LOG_SUCCESS);
+            LogType::SUCCESS);
     }
 
     MaterialType3D Material::GetMaterial3DType() const { return material3DType; }
@@ -145,13 +145,13 @@ namespace KalaGraphics::Graphics
         switch (material3DType)
         {
         default:
-        case MaterialType3D::M_UNLIT:
+        case MaterialType3D::UNLIT:
             typeStr = "unlit";
             break;
-        case MaterialType3D::M_BLINN_PHONG:
+        case MaterialType3D::BLINN_PHONG:
             typeStr = "blinn-phong";
             break;
-        case MaterialType3D::M_PBR:
+        case MaterialType3D::PBR:
             typeStr = "pbr";
             break;
         }
@@ -159,7 +159,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set 3D material '" + to_string(ID) + "' type to '" + typeStr + "'!",
             "KG_MATERIAL",
-            LogType::LOG_SUCCESS);
+            LogType::SUCCESS);
     }
 
     const vec4& Material::GetBaseColor() const
@@ -179,11 +179,11 @@ namespace KalaGraphics::Graphics
             switch (material3DType)
             {
             default:
-            case MaterialType3D::M_UNLIT:
+            case MaterialType3D::UNLIT:
                 return unlitData.baseColor;
-            case MaterialType3D::M_BLINN_PHONG:
+            case MaterialType3D::BLINN_PHONG:
                 return blinnPhongData.baseColor;
-            case MaterialType3D::M_PBR:
+            case MaterialType3D::PBR:
                 return pbrData.baseColor;
             }
         }
@@ -192,9 +192,9 @@ namespace KalaGraphics::Graphics
             switch (material2DType)
             {
             default:
-            case MaterialType2D::M_RECT:
+            case MaterialType2D::RECT:
                 return rectData.baseColor;
-            case MaterialType2D::M_FONT:
+            case MaterialType2D::FONT:
                 return fontData.baseColor;
             }
         }
@@ -217,13 +217,13 @@ namespace KalaGraphics::Graphics
             switch (material3DType)
             {
             default:
-            case MaterialType3D::M_UNLIT:
+            case MaterialType3D::UNLIT:
                 baseColor = &unlitData.baseColor;
                 break;
-            case MaterialType3D::M_BLINN_PHONG:
+            case MaterialType3D::BLINN_PHONG:
                 baseColor = &blinnPhongData.baseColor;
                 break;
-            case MaterialType3D::M_PBR:
+            case MaterialType3D::PBR:
                 baseColor = &pbrData.baseColor;
                 break;
             }
@@ -233,10 +233,10 @@ namespace KalaGraphics::Graphics
             switch (material2DType)
             {
             default:
-            case MaterialType2D::M_RECT:
+            case MaterialType2D::RECT:
                 baseColor = &rectData.baseColor;
                 break;
-            case MaterialType2D::M_FONT:
+            case MaterialType2D::FONT:
                 baseColor = &fontData.baseColor;
                 break;
             }
@@ -248,7 +248,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set material '" + to_string(ID) + "' "
                 "base color because it already is the same!",
                 "KG_MATERIAL",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -264,7 +264,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set material '" + to_string(ID) + "' color to '" + colorStr + "'!",
             "KG_MATERIAL",
-            LogType::LOG_SUCCESS);
+            LogType::SUCCESS);
     }
 
     AlphaMode Material::GetAlphaMode() const
@@ -280,13 +280,13 @@ namespace KalaGraphics::Graphics
         }
 
         if (m->is2D
-            && material2DType == MaterialType2D::M_FONT)
+            && material2DType == MaterialType2D::FONT)
         {
             Log::Print(
                 "Failed to get material '" + to_string(ID) + "' "
                 "alpha mode because font material does not support it!",
                 "KG_MATERIAL",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return {};
         }
@@ -296,11 +296,11 @@ namespace KalaGraphics::Graphics
             switch (material3DType)
             {
             default:
-            case MaterialType3D::M_UNLIT:
+            case MaterialType3D::UNLIT:
                 return unlitData.alphaMode;
-            case MaterialType3D::M_BLINN_PHONG:
+            case MaterialType3D::BLINN_PHONG:
                 return blinnPhongData.alphaMode;
-            case MaterialType3D::M_PBR:
+            case MaterialType3D::PBR:
                 return pbrData.alphaMode;
             }
         }
@@ -309,7 +309,7 @@ namespace KalaGraphics::Graphics
             switch (material2DType)
             {
             default:
-            case MaterialType2D::M_RECT:
+            case MaterialType2D::RECT:
                 return rectData.alphaMode;
             }
         }
@@ -327,13 +327,13 @@ namespace KalaGraphics::Graphics
         }
 
         if (m->is2D
-            && material2DType == MaterialType2D::M_FONT)
+            && material2DType == MaterialType2D::FONT)
         {
             Log::Print(
                 "Failed to set material '" + to_string(ID) + "' "
                 "alpha mode because font material does not support it!",
                 "KG_MATERIAL",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -344,13 +344,13 @@ namespace KalaGraphics::Graphics
             switch (material3DType)
             {
             default:
-            case MaterialType3D::M_UNLIT:
+            case MaterialType3D::UNLIT:
                 alphaMode = &unlitData.alphaMode;
                 break;
-            case MaterialType3D::M_BLINN_PHONG:
+            case MaterialType3D::BLINN_PHONG:
                 alphaMode = &blinnPhongData.alphaMode;
                 break;
-            case MaterialType3D::M_PBR:
+            case MaterialType3D::PBR:
                 alphaMode = &pbrData.alphaMode;
                 break;
             }
@@ -360,7 +360,7 @@ namespace KalaGraphics::Graphics
             switch (material2DType)
             {
             default:
-            case MaterialType2D::M_RECT:
+            case MaterialType2D::RECT:
                 alphaMode = &rectData.alphaMode;
                 break;
             }
@@ -372,7 +372,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set material '" + to_string(ID) + "' "
                 "alpha mode because it already is the same!",
                 "KG_MATERIAL",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -404,16 +404,16 @@ namespace KalaGraphics::Graphics
         }
 
         *alphaMode = newValue;
-        string alphaModeString = *alphaMode == AlphaMode::A_OPAQUE 
+        string alphaModeString = *alphaMode == AlphaMode::OPAQUE 
             ? "opaque" 
-            : (*alphaMode == AlphaMode::A_BLEND 
+            : (*alphaMode == AlphaMode::BLEND 
                 ? "blend" 
                 : "mask");
 
         Log::Print(
             "Set material '" + to_string(ID) + "' alpha mode to '" + alphaModeString + "'!",
             "KG_MATERIAL",
-            LogType::LOG_SUCCESS);
+            LogType::SUCCESS);
     }
 
     f32 Material::GetAlphaCutoff() const
@@ -429,13 +429,13 @@ namespace KalaGraphics::Graphics
         }
 
         if (m->is2D
-            && material2DType == MaterialType2D::M_FONT)
+            && material2DType == MaterialType2D::FONT)
         {
             Log::Print(
                 "Failed to get material '" + to_string(ID) + "' "
                 "alpha cutoff because font material does not support it!",
                 "KG_MATERIAL",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return {};
         }
@@ -445,11 +445,11 @@ namespace KalaGraphics::Graphics
             switch (material3DType)
             {
             default:
-            case MaterialType3D::M_UNLIT:
+            case MaterialType3D::UNLIT:
                 return unlitData.alphaCutoff;
-            case MaterialType3D::M_BLINN_PHONG:
+            case MaterialType3D::BLINN_PHONG:
                 return blinnPhongData.alphaCutoff;
-            case MaterialType3D::M_PBR:
+            case MaterialType3D::PBR:
                 return pbrData.alphaCutoff;
             }
         }
@@ -458,7 +458,7 @@ namespace KalaGraphics::Graphics
             switch (material2DType)
             {
             default:
-            case MaterialType2D::M_RECT:
+            case MaterialType2D::RECT:
                 return rectData.alphaCutoff;
             }
         }
@@ -476,24 +476,24 @@ namespace KalaGraphics::Graphics
         }
 
         if (m->is2D
-            && material2DType == MaterialType2D::M_FONT)
+            && material2DType == MaterialType2D::FONT)
         {
             Log::Print(
                 "Failed to set material '" + to_string(ID) + "' "
                 "alpha cutoff because font material does not support it!",
                 "KG_MATERIAL",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
 
-        if (GetAlphaMode() != AlphaMode::A_MASK)
+        if (GetAlphaMode() != AlphaMode::MASK)
         {
             Log::Print(
                 "Failed to set material '" + to_string(ID) + "' "
                 "alpha cutoff because alpha mode is not set to mask!",
                 "KG_MATERIAL",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -504,13 +504,13 @@ namespace KalaGraphics::Graphics
             switch (material3DType)
             {
             default:
-            case MaterialType3D::M_UNLIT:
+            case MaterialType3D::UNLIT:
                 alphaCutoff = &unlitData.alphaCutoff;
                 break;
-            case MaterialType3D::M_BLINN_PHONG:
+            case MaterialType3D::BLINN_PHONG:
                 alphaCutoff = &blinnPhongData.alphaCutoff;
                 break;
-            case MaterialType3D::M_PBR:
+            case MaterialType3D::PBR:
                 alphaCutoff = &pbrData.alphaCutoff;
                 break;
             }
@@ -520,7 +520,7 @@ namespace KalaGraphics::Graphics
             switch (material2DType)
             {
             default:
-            case MaterialType2D::M_RECT:
+            case MaterialType2D::RECT:
                 alphaCutoff = &rectData.alphaCutoff;
                 break;
             }
@@ -534,7 +534,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set material '" + to_string(ID) + "' "
                 "alpha cutoff because it already is the same!",
                 "KG_MATERIAL",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -544,7 +544,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set material '" + to_string(ID) + "' alpha cutoff to '" + to_string(*alphaCutoff) + "'!",
             "KG_MATERIAL",
-            LogType::LOG_SUCCESS);
+            LogType::SUCCESS);
     }
 
     u32 Material::GetBaseColorTextureID() const
@@ -564,11 +564,11 @@ namespace KalaGraphics::Graphics
             switch (material3DType)
             {
             default:
-            case MaterialType3D::M_UNLIT:
+            case MaterialType3D::UNLIT:
                 return unlitData.baseColorTextureID;
-            case MaterialType3D::M_BLINN_PHONG:
+            case MaterialType3D::BLINN_PHONG:
                 return blinnPhongData.baseColorTextureID;
-            case MaterialType3D::M_PBR:
+            case MaterialType3D::PBR:
                 return pbrData.baseColorTextureID;
             }
         }
@@ -577,9 +577,9 @@ namespace KalaGraphics::Graphics
             switch (material2DType)
             {
             default:
-            case MaterialType2D::M_RECT:
+            case MaterialType2D::RECT:
                 return rectData.baseColorTextureID;
-            case MaterialType2D::M_FONT:
+            case MaterialType2D::FONT:
                 return fontData.baseColorTextureID;
             }
         }
@@ -604,15 +604,15 @@ namespace KalaGraphics::Graphics
             switch (material3DType)
             {
             default:
-            case MaterialType3D::M_UNLIT:
+            case MaterialType3D::UNLIT:
                 textureID = &unlitData.baseColorTextureID;
                 textureSlot = 2;
                 break;
-            case MaterialType3D::M_BLINN_PHONG:
+            case MaterialType3D::BLINN_PHONG:
                 textureID = &blinnPhongData.baseColorTextureID;
                 textureSlot = 3;
                 break;
-            case MaterialType3D::M_PBR:
+            case MaterialType3D::PBR:
                 textureID = &pbrData.baseColorTextureID;
                 textureSlot = 6;
                 break;
@@ -623,11 +623,11 @@ namespace KalaGraphics::Graphics
             switch (material2DType)
             {
             default:
-            case MaterialType2D::M_RECT:
+            case MaterialType2D::RECT:
                 textureID = &rectData.baseColorTextureID;
                 textureSlot = 0;
                 break;
-            case MaterialType2D::M_FONT:
+            case MaterialType2D::FONT:
                 textureID = &fontData.baseColorTextureID;
                 textureSlot = 1;
                 break;
@@ -641,7 +641,7 @@ namespace KalaGraphics::Graphics
                 + "' base color texture ID to '" + to_string(newValue) 
                 + "' because it already is the same!",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -667,7 +667,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set material '" + to_string(ID) 
                 + "' base color texture ID because it was invalid! Reason: " + err,
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -724,7 +724,7 @@ namespace KalaGraphics::Graphics
             "Set material '" + to_string(ID) 
             + "' base color texture ID to '" + to_string(*textureID) + "'!",
             "KG_MESH",
-            LogType::LOG_SUCCESS);
+            LogType::SUCCESS);
     }
 
     void Material::Update(VkCommandBuffer buffer)
@@ -768,7 +768,7 @@ namespace KalaGraphics::Graphics
             sizeof(GetBaseColor()),
             &GetBaseColor());
 
-        if (material2DType != MaterialType2D::M_FONT)
+        if (material2DType != MaterialType2D::FONT)
         {
             u32 alphaModeValue = scast<u32>(GetAlphaMode());
             vkCmdPushConstants(
@@ -871,6 +871,6 @@ namespace KalaGraphics::Graphics
 		Log::Print(
 			"Destroying material '" + to_string(ID) + "'.",
 			"KG_MATERIAL",
-			LogType::LOG_INFO);
+			LogType::INFO);
     }
 }

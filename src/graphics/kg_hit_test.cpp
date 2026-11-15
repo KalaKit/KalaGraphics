@@ -58,7 +58,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Created new hit test '" + to_string(newID) + "'!",
             "KG_HIT_TEST",
-            LogType::LOG_SUCCESS);
+            LogType::SUCCESS);
 
         return htPtr;
     }
@@ -142,7 +142,7 @@ namespace KalaGraphics::Graphics
                 vec2 local = mousePosYReversed - pos;
 
                 f32 rotation = radians(scast<Transform2D&>(m->GetTransform())
-                    .getrot(RotTarget::ROT_WORLD));
+                    .getrot(RotTarget::WORLD));
 
                 //inverse-rotate mouse around rectangle center
                 const f32 c = cos(-rotation);
@@ -245,7 +245,7 @@ namespace KalaGraphics::Graphics
                     }
 
                     Transform2D& t = m->GetTransform();
-                    vec2 pos = t.getpos(PosTarget::POS_WORLD);
+                    vec2 pos = t.getpos(PosTarget::WORLD);
 
                     string mpos = 
                         to_string(pos.x) + "x" 
@@ -263,7 +263,7 @@ namespace KalaGraphics::Graphics
 
                     if (hit_2d_mesh(
                         m->finalAnchorPos, //mesh resolved anchor position for correct hit testing
-                        t.getsize(SizeTarget::SIZE_WORLD), 
+                        t.getsize(SizeTarget::WORLD), 
                         m))
                     {
                         hitMeshes.push_back(m);
@@ -381,6 +381,6 @@ namespace KalaGraphics::Graphics
 		Log::Print(
 			"Destroying hit test '" + to_string(ID) + "'.",
 			"KG_HIT_TEST",
-			LogType::LOG_INFO);
+			LogType::INFO);
     }
 }

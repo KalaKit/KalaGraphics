@@ -299,7 +299,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to initialize shader because its viewport was invalid! Reason: " + err,
                 "KG_SHADER",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return nullptr;
         }
@@ -311,7 +311,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to initialize shader because its viewports graphics context was invalid! Reason: " + err,
                 "KG_SHADER",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return nullptr;
         }
@@ -322,7 +322,7 @@ namespace KalaGraphics::Graphics
                     "Failed to initialize shader because it did not contain a " 
                     + string(shaderType) + " shader file!", 
                     "KG_SHADER",
-                    LogType::LOG_WARNING);
+                    LogType::WARNING);
             };
         auto bad_ext = [](string_view shaderType) -> void
             {
@@ -330,7 +330,7 @@ namespace KalaGraphics::Graphics
                     "Failed to initialize shader because its " + string(shaderType) 
                     + " shader had a missing or incorrect extension!", 
                     "KG_SHADER",
-                    LogType::LOG_WARNING);
+                    LogType::WARNING);
             };
         auto invalid_path = [](
             string_view shaderType,
@@ -340,7 +340,7 @@ namespace KalaGraphics::Graphics
                     "Failed to initialize shader because its " + string(shaderType) 
                     + " shader path '" + string(shaderPath) + "' was invalid!", 
                     "KG_SHADER",
-                    LogType::LOG_WARNING);
+                    LogType::WARNING);
             };
         auto root_shader = [viewportID](const pair<path, path>& shaders) -> void
             {
@@ -350,7 +350,7 @@ namespace KalaGraphics::Graphics
                     "frag shader '" + shaders.second.string() + "' "
                     "are already used in an existing root shader in viewport '" + to_string(viewportID) + "'!", 
                     "KG_SHADER",
-                    LogType::LOG_WARNING);
+                    LogType::WARNING);
             };
 
         if (vertPath.empty())
@@ -458,7 +458,7 @@ namespace KalaGraphics::Graphics
                 Log::Print(
                     "Failed to initialize shader because " + shaderStage + " was the same as " + it->second + "!", 
                     "KG_SHADER",
-                    LogType::LOG_WARNING);
+                    LogType::WARNING);
 
                 return nullptr;
             }
@@ -477,7 +477,7 @@ namespace KalaGraphics::Graphics
                         "Failed to initialize shader because binary data "
                         "couldn't be read from shader type " + string(shaderType) + "! Reason : " + errMsg,
                         "KG_SHADER",
-                        LogType::LOG_ERROR,
+                        LogType::ERROR,
                         2);
 
                     return { false };
@@ -502,7 +502,7 @@ namespace KalaGraphics::Graphics
                         + string(shaderType) + "' creation failed! Reason: " 
                         + GraphicsContext::GetVkResultMessage(vkResult);
 
-                    if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::SEVERITY_FATAL)
+                    if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::FATAL)
                     {
                         KalaGraphicsCore::ForceClose(
                             "KalaGraphics shader error",
@@ -513,7 +513,7 @@ namespace KalaGraphics::Graphics
                         Log::Print(
                             message,
                             "KG_SHADER",
-                            LogType::LOG_ERROR,
+                            LogType::ERROR,
                             2);
                     }
 
@@ -533,7 +533,7 @@ namespace KalaGraphics::Graphics
                         + string(shaderType) + "' failed! Reflect result error code: " 
                         + to_string(static_cast<int>(reflResult)),
                         "KG_SHADER",
-                        LogType::LOG_ERROR,
+                        LogType::ERROR,
                         2);
 
                     delete spvShaderModule;
@@ -663,7 +663,7 @@ namespace KalaGraphics::Graphics
                         + " when initializing shader!"
                         "SpvReflectResult: " + to_string(scast<int>(result)),
                         "KG_SHADER",
-                        LogType::LOG_WARNING);
+                        LogType::WARNING);
 
                     continue;
                 }
@@ -785,7 +785,7 @@ namespace KalaGraphics::Graphics
                     "Failed to initialize shader because descriptor set layout creation for set " + to_string(set)
                     + " failed! Reason: " + GraphicsContext::GetVkResultMessage(vkResult);
 
-                if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::SEVERITY_FATAL)
+                if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::FATAL)
                 {
                     KalaGraphicsCore::ForceClose(
                         "KalaGraphics shader error", 
@@ -796,7 +796,7 @@ namespace KalaGraphics::Graphics
                     Log::Print(
                         message, 
                         "KG_SHADER", 
-                        LogType::LOG_ERROR, 
+                        LogType::ERROR, 
                         2);
                 }
 
@@ -860,7 +860,7 @@ namespace KalaGraphics::Graphics
                 "Failed to initialize shader because pipeline layout creation failed! Reason: " 
                 + GraphicsContext::GetVkResultMessage(vkResult);
 
-            if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::SEVERITY_FATAL)
+            if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::FATAL)
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics shader error",
@@ -871,7 +871,7 @@ namespace KalaGraphics::Graphics
                 Log::Print(
                     message,
                     "KG_SHADER",
-                    LogType::LOG_ERROR,
+                    LogType::ERROR,
                     2);
             }
 
@@ -971,7 +971,7 @@ namespace KalaGraphics::Graphics
                 "Failed to initialize shader because pipeline creation failed! Reason: " 
                 + GraphicsContext::GetVkResultMessage(vkResult);
 
-            if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::SEVERITY_FATAL)
+            if (GraphicsContext::GetVkResultSeverity(vkResult) == Severity::FATAL)
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics shader error",
@@ -982,7 +982,7 @@ namespace KalaGraphics::Graphics
                 Log::Print(
                     message,
                     "KG_SHADER",
-                    LogType::LOG_ERROR,
+                    LogType::ERROR,
                     2);
             }
 
@@ -1026,7 +1026,7 @@ namespace KalaGraphics::Graphics
                 .pixelData = vector<u8>(
                     FALLBACK_TEXTURE.begin(), 
                     FALLBACK_TEXTURE.end()),
-                .filterMode = TextureFilterMode::FILTER_NEAREST,
+                .filterMode = TextureFilterMode::NEAREST,
                 .size = 16
             });
 
@@ -1057,7 +1057,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
 			"Created new shader '" + to_string(newID) + "'!",
 			"KG_SHADER",
-			LogType::LOG_SUCCESS);
+			LogType::SUCCESS);
 
         return shaderPtr;
     }
@@ -1098,7 +1098,7 @@ namespace KalaGraphics::Graphics
                 + "' because it is a root shader and it is required "
                 "for normal operation of KalaGraphics!",
                 "KG_SHADER",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -1128,7 +1128,7 @@ namespace KalaGraphics::Graphics
                         "Failed to delete shader '" + to_string(ID) 
                         + "' because it belongs to the primary 3D camera of viewport '" + to_string(viewportID) + "'!",
                         "KG_SHADER",
-                        LogType::LOG_WARNING);
+                        LogType::WARNING);
 
                     return;
                 }
@@ -1156,7 +1156,7 @@ namespace KalaGraphics::Graphics
                         "Failed to delete shader '" + to_string(ID) 
                         + "' because it belongs to the primary 2D camera of viewport '" + to_string(viewportID) + "'!",
                         "KG_SHADER",
-                        LogType::LOG_WARNING);
+                        LogType::WARNING);
 
                     return;
                 }
@@ -1224,7 +1224,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
 			"Destroying shader '" + to_string(ID) + "'.",
 			"KG_SHADER",
-			LogType::LOG_INFO);
+			LogType::INFO);
 
         VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
         if (logicalDevice == VK_NULL_HANDLE) 

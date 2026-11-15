@@ -155,117 +155,117 @@ struct VkResultData
 
 static unordered_map<VkResult, VkResultData, EnumHash<VkResult>> vkResultData
 {
-    { VK_SUCCESS,                     { "Operation successful",           Severity::SEVERITY_INFO } },
+    { VK_SUCCESS,                     { "Operation successful",           Severity::INFO } },
     //instead of closing - wait or retry operation
-    { VK_NOT_READY,                   { "Resource not ready",             Severity::SEVERITY_WARNING } },
+    { VK_NOT_READY,                   { "Resource not ready",             Severity::WARNING } },
     //instead of closing - wait or retry operation
-    { VK_TIMEOUT,                     { "Operation timed out",            Severity::SEVERITY_WARNING } },
-    { VK_EVENT_SET,                   { "Event signaled",                 Severity::SEVERITY_INFO } },
-    { VK_EVENT_RESET,                 { "Event reset",                    Severity::SEVERITY_INFO } },
+    { VK_TIMEOUT,                     { "Operation timed out",            Severity::WARNING } },
+    { VK_EVENT_SET,                   { "Event signaled",                 Severity::INFO } },
+    { VK_EVENT_RESET,                 { "Event reset",                    Severity::INFO } },
     //instead of closing - ignore or retry operation
-    { VK_INCOMPLETE,                  { "Operation incomplete",           Severity::SEVERITY_WARNING } },
+    { VK_INCOMPLETE,                  { "Operation incomplete",           Severity::WARNING } },
     //close reason - no recovery possible
-    { VK_ERROR_OUT_OF_HOST_MEMORY,    { "System memory exhausted",        Severity::SEVERITY_FATAL } },
+    { VK_ERROR_OUT_OF_HOST_MEMORY,    { "System memory exhausted",        Severity::FATAL } },
     //close reason - no recovery possible
-    { VK_ERROR_OUT_OF_DEVICE_MEMORY,  { "Device memory (VRAM) exhausted", Severity::SEVERITY_FATAL } },
+    { VK_ERROR_OUT_OF_DEVICE_MEMORY,  { "Device memory (VRAM) exhausted", Severity::FATAL } },
     //close reason - driver crash or corrupted system files
-    { VK_ERROR_INITIALIZATION_FAILED, { "Initialization failed",          Severity::SEVERITY_FATAL } },
+    { VK_ERROR_INITIALIZATION_FAILED, { "Initialization failed",          Severity::FATAL } },
     //close reason - hardware connection is severed or unstable, cannot render anymore
-    { VK_ERROR_DEVICE_LOST,           { "Device lost",                    Severity::SEVERITY_FATAL } },
+    { VK_ERROR_DEVICE_LOST,           { "Device lost",                    Severity::FATAL } },
     //instead of closing - retry mapping or switch to a different memory type
-    { VK_ERROR_MEMORY_MAP_FAILED,     { "Memory mapping failed",          Severity::SEVERITY_WARNING } },
+    { VK_ERROR_MEMORY_MAP_FAILED,     { "Memory mapping failed",          Severity::WARNING } },
     //close reason - critical logic error
-    { VK_ERROR_LAYER_NOT_PRESENT,     { "Required layer missing",         Severity::SEVERITY_FATAL } },
+    { VK_ERROR_LAYER_NOT_PRESENT,     { "Required layer missing",         Severity::FATAL } },
     //close reason - critical logic error
-    { VK_ERROR_EXTENSION_NOT_PRESENT, { "Required extension missing",     Severity::SEVERITY_FATAL } },
+    { VK_ERROR_EXTENSION_NOT_PRESENT, { "Required extension missing",     Severity::FATAL } },
     //close reason - critical logic error
-    { VK_ERROR_FEATURE_NOT_PRESENT,   { "Required feature unsupported",   Severity::SEVERITY_FATAL } },
+    { VK_ERROR_FEATURE_NOT_PRESENT,   { "Required feature unsupported",   Severity::FATAL } },
     //close reason - critical logic error
-    { VK_ERROR_INCOMPATIBLE_DRIVER,   { "Incompatible driver version",    Severity::SEVERITY_FATAL } },
+    { VK_ERROR_INCOMPATIBLE_DRIVER,   { "Incompatible driver version",    Severity::FATAL } },
     //instead of closing - prevent creating new objects
-    { VK_ERROR_TOO_MANY_OBJECTS,      { "Too many resources created",     Severity::SEVERITY_WARNING } },
+    { VK_ERROR_TOO_MANY_OBJECTS,      { "Too many resources created",     Severity::WARNING } },
     //instead of closing - try an alternative or fallback format
-    { VK_ERROR_FORMAT_NOT_SUPPORTED,  { "Texture/format not supported",   Severity::SEVERITY_WARNING } },
+    { VK_ERROR_FORMAT_NOT_SUPPORTED,  { "Texture/format not supported",   Severity::WARNING } },
     //instead of closing - try to shrink the pool, migrate memory or reallocate
-    { VK_ERROR_FRAGMENTED_POOL,       { "Fragmented memory pool",         Severity::SEVERITY_WARNING } },
+    { VK_ERROR_FRAGMENTED_POOL,       { "Fragmented memory pool",         Severity::WARNING } },
     //close reason - unknown and potentially fatal internal Vulkan error
-    { VK_ERROR_UNKNOWN,               { "Unknown error",                  Severity::SEVERITY_FATAL } },
+    { VK_ERROR_UNKNOWN,               { "Unknown error",                  Severity::FATAL } },
     
     //close reason - the validation layers found a bug, can lead to corrupted graphics and crashes
-    { VK_ERROR_VALIDATION_FAILED,                            { "Validation failed (layer error)",                        Severity::SEVERITY_FATAL } },
+    { VK_ERROR_VALIDATION_FAILED,                            { "Validation failed (layer error)",                        Severity::FATAL } },
     //close reason - applications managed memory is drained, cannot allocate any more objects
-    { VK_ERROR_OUT_OF_POOL_MEMORY,                           { "Allocation pool exhausted",                              Severity::SEVERITY_FATAL } },
+    { VK_ERROR_OUT_OF_POOL_MEMORY,                           { "Allocation pool exhausted",                              Severity::FATAL } },
     //close reason - OS/driver received garbage data, continuing will cause immediate instability
-    { VK_ERROR_INVALID_EXTERNAL_HANDLE,                      { "Invalid external handle passed",                         Severity::SEVERITY_FATAL } },
+    { VK_ERROR_INVALID_EXTERNAL_HANDLE,                      { "Invalid external handle passed",                         Severity::FATAL } },
     //close reason - invalid capture data, you can't capture that frame
-    { VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS,               { "Invalid opaque capture address",                         Severity::SEVERITY_FATAL } },
+    { VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS,               { "Invalid opaque capture address",                         Severity::FATAL } },
     //instead of closing - try to migrate existing memory to a new pool or shrink/expand pools
-    { VK_ERROR_FRAGMENTATION,                                { "Memory pool too fragmented to allocate",                 Severity::SEVERITY_WARNING } },
-    { VK_PIPELINE_COMPILE_REQUIRED,                          { "Shader requires recompilation",                          Severity::SEVERITY_INFO } },
+    { VK_ERROR_FRAGMENTATION,                                { "Memory pool too fragmented to allocate",                 Severity::WARNING } },
+    { VK_PIPELINE_COMPILE_REQUIRED,                          { "Shader requires recompilation",                          Severity::INFO } },
     //close reason - the driver forbade the operation
-    { VK_ERROR_NOT_PERMITTED,                                { "Operation not permitted by driver",                      Severity::SEVERITY_FATAL } },
-    { VK_ERROR_SURFACE_LOST_KHR,                             { "Surface lost (window closed/minimized) (KHR)",           Severity::SEVERITY_WARNING } },
-    { VK_ERROR_NATIVE_WINDOW_IN_USE_KHR,                     { "Native window still in use (KHR)",                       Severity::SEVERITY_INFO } },
-    { VK_SUBOPTIMAL_KHR,                                     { "Image suboptimal (re-acquire swapchain required) (KHR)", Severity::SEVERITY_WARNING } },
-    { VK_ERROR_OUT_OF_DATE_KHR,                              { "Surface out of date (window resized) (KHR)",             Severity::SEVERITY_WARNING } },
+    { VK_ERROR_NOT_PERMITTED,                                { "Operation not permitted by driver",                      Severity::FATAL } },
+    { VK_ERROR_SURFACE_LOST_KHR,                             { "Surface lost (window closed/minimized) (KHR)",           Severity::WARNING } },
+    { VK_ERROR_NATIVE_WINDOW_IN_USE_KHR,                     { "Native window still in use (KHR)",                       Severity::INFO } },
+    { VK_SUBOPTIMAL_KHR,                                     { "Image suboptimal (re-acquire swapchain required) (KHR)", Severity::WARNING } },
+    { VK_ERROR_OUT_OF_DATE_KHR,                              { "Surface out of date (window resized) (KHR)",             Severity::WARNING } },
     //instead of closing - ignore or retry on different monitor, treat as fatal at initialization
-    { VK_ERROR_INCOMPATIBLE_DISPLAY_KHR,                     { "Display incompatible with requested config (KHR)",       Severity::SEVERITY_WARNING } },
+    { VK_ERROR_INCOMPATIBLE_DISPLAY_KHR,                     { "Display incompatible with requested config (KHR)",       Severity::WARNING } },
     //close reason - the shader binary is bad, the driver won't let it run
-    { VK_ERROR_INVALID_SHADER_NV,                            { "Invalid NVidia shader program",                          Severity::SEVERITY_FATAL } },
+    { VK_ERROR_INVALID_SHADER_NV,                            { "Invalid NVidia shader program",                          Severity::FATAL } },
     //close reason - texture format or usage is impossible, rendering will likely crash on the next draw call
-    { VK_ERROR_IMAGE_USAGE_NOT_SUPPORTED_KHR,                { "Image usage not supported (KHR)",                        Severity::SEVERITY_FATAL } },
+    { VK_ERROR_IMAGE_USAGE_NOT_SUPPORTED_KHR,                { "Image usage not supported (KHR)",                        Severity::FATAL } },
     //instead of closing - switch plane layout
-    { VK_ERROR_VIDEO_PICTURE_LAYOUT_NOT_SUPPORTED_KHR,       { "Video picture layout unsupported (KHR)",                 Severity::SEVERITY_WARNING } },
+    { VK_ERROR_VIDEO_PICTURE_LAYOUT_NOT_SUPPORTED_KHR,       { "Video picture layout unsupported (KHR)",                 Severity::WARNING } },
     //instead of closing - switch to different operation
-    { VK_ERROR_VIDEO_PROFILE_OPERATION_NOT_SUPPORTED_KHR,    { "Video profile operation not supported (KHR)",            Severity::SEVERITY_WARNING } },
+    { VK_ERROR_VIDEO_PROFILE_OPERATION_NOT_SUPPORTED_KHR,    { "Video profile operation not supported (KHR)",            Severity::WARNING } },
     //instead of closing - change the container/profile
-    { VK_ERROR_VIDEO_PROFILE_FORMAT_NOT_SUPPORTED_KHR,       { "Video profile format unsupported (KHR)",                 Severity::SEVERITY_WARNING } },
+    { VK_ERROR_VIDEO_PROFILE_FORMAT_NOT_SUPPORTED_KHR,       { "Video profile format unsupported (KHR)",                 Severity::WARNING } },
     //instead of closing - skip the file or use software decode
-    { VK_ERROR_VIDEO_PROFILE_CODEC_NOT_SUPPORTED_KHR,        { "Video profile codec unsupported (KHR)",                  Severity::SEVERITY_WARNING } },
+    { VK_ERROR_VIDEO_PROFILE_CODEC_NOT_SUPPORTED_KHR,        { "Video profile codec unsupported (KHR)",                  Severity::WARNING } },
     //instead of closing - fall back to a lower profile
-    { VK_ERROR_VIDEO_STD_VERSION_NOT_SUPPORTED_KHR,          { "Video standard version unsupported (KHR)",               Severity::SEVERITY_WARNING } },
+    { VK_ERROR_VIDEO_STD_VERSION_NOT_SUPPORTED_KHR,          { "Video standard version unsupported (KHR)",               Severity::WARNING } },
     //instead of closing - reset to default DRM layout
-    { VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT, { "Invalid DRM plane layout (EXT)",                         Severity::SEVERITY_WARNING } },
+    { VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT, { "Invalid DRM plane layout (EXT)",                         Severity::WARNING } },
     //instead of closing - try to wait or retry the operation
-    { VK_ERROR_PRESENT_TIMING_QUEUE_FULL_EXT,                { "Presentation timing queue full (EXT)",                   Severity::SEVERITY_WARNING } },
+    { VK_ERROR_PRESENT_TIMING_QUEUE_FULL_EXT,                { "Presentation timing queue full (EXT)",                   Severity::WARNING } },
     //close reason - the app has lost control of the display surface
-    { VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT,          { "Fullscreen exclusive mode lost (EXT)",                   Severity::SEVERITY_FATAL } },
-    { VK_THREAD_IDLE_KHR,                                    { "Thread idle (KHR)",                                      Severity::SEVERITY_INFO } },
-    { VK_THREAD_DONE_KHR,                                    { "Thread completed (KHR)",                                 Severity::SEVERITY_INFO } },
-    { VK_OPERATION_DEFERRED_KHR,                             { "Operation deferred (KHR)",                               Severity::SEVERITY_INFO } },
-    { VK_OPERATION_NOT_DEFERRED_KHR,                         { "Operation not deferred (KHR)",                           Severity::SEVERITY_INFO } },
+    { VK_ERROR_FULL_SCREEN_EXCLUSIVE_MODE_LOST_EXT,          { "Fullscreen exclusive mode lost (EXT)",                   Severity::FATAL } },
+    { VK_THREAD_IDLE_KHR,                                    { "Thread idle (KHR)",                                      Severity::INFO } },
+    { VK_THREAD_DONE_KHR,                                    { "Thread completed (KHR)",                                 Severity::INFO } },
+    { VK_OPERATION_DEFERRED_KHR,                             { "Operation deferred (KHR)",                               Severity::INFO } },
+    { VK_OPERATION_NOT_DEFERRED_KHR,                         { "Operation not deferred (KHR)",                           Severity::INFO } },
     //instead of closing - resize the stream
-    { VK_ERROR_INVALID_VIDEO_STD_PARAMETERS_KHR,             { "Invalid video standard parameters (KHR)",                Severity::SEVERITY_WARNING } },
+    { VK_ERROR_INVALID_VIDEO_STD_PARAMETERS_KHR,             { "Invalid video standard parameters (KHR)",                Severity::WARNING } },
     //close reason - compression buffer is exhausted because of severe memory pressure, can lead to texture corruption
-    { VK_ERROR_COMPRESSION_EXHAUSTED_EXT,                    { "Compression memory exhausted (EXT)",                     Severity::SEVERITY_FATAL } },
+    { VK_ERROR_COMPRESSION_EXHAUSTED_EXT,                    { "Compression memory exhausted (EXT)",                     Severity::FATAL } },
     //close reason - the shader binary is bad, the driver won't let it run
-    { VK_INCOMPATIBLE_SHADER_BINARY_EXT,                     { "Incompatible shader binary (EXT)",                       Severity::SEVERITY_FATAL } },
-    { VK_PIPELINE_BINARY_MISSING_KHR,                        { "Missing pipeline binary (KHR)",                          Severity::SEVERITY_INFO } },
+    { VK_INCOMPATIBLE_SHADER_BINARY_EXT,                     { "Incompatible shader binary (EXT)",                       Severity::FATAL } },
+    { VK_PIPELINE_BINARY_MISSING_KHR,                        { "Missing pipeline binary (KHR)",                          Severity::INFO } },
     //close reason - no space left in virtual/disk memory for this operation
-    { VK_ERROR_NOT_ENOUGH_SPACE_KHR,                         { "Insufficient space for operation (KHR)",                 Severity::SEVERITY_FATAL } },
+    { VK_ERROR_NOT_ENOUGH_SPACE_KHR,                         { "Insufficient space for operation (KHR)",                 Severity::FATAL } },
 
     //duplicates
 
     //close reason - the validation layers found a bug, can lead to corrupted graphics and crashes
-    { VK_ERROR_VALIDATION_FAILED_EXT,              { "Validation failed (layer error) (EXT)",        Severity::SEVERITY_FATAL } },
+    { VK_ERROR_VALIDATION_FAILED_EXT,              { "Validation failed (layer error) (EXT)",        Severity::FATAL } },
     //close reason - applications managed memory is drained, cannot allocate any more objects
-    { VK_ERROR_OUT_OF_POOL_MEMORY_KHR,             { "Allocation pool exhausted (KHR)",              Severity::SEVERITY_FATAL } },
+    { VK_ERROR_OUT_OF_POOL_MEMORY_KHR,             { "Allocation pool exhausted (KHR)",              Severity::FATAL } },
     //close reason - OS/driver received garbage data, continuing will cause immediate instability
-    { VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR,        { "Invalid external handle passed (EXT)",         Severity::SEVERITY_FATAL } },
+    { VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR,        { "Invalid external handle passed (EXT)",         Severity::FATAL } },
     //instead of closing - try to migrate existing memory to a new pool or shrink/expand pools
-    { VK_ERROR_FRAGMENTATION_EXT,                  { "Memory pool too fragmented to allocate (EXT)", Severity::SEVERITY_WARNING } },
+    { VK_ERROR_FRAGMENTATION_EXT,                  { "Memory pool too fragmented to allocate (EXT)", Severity::WARNING } },
     //close reason - the driver forbade the operation
-    { VK_ERROR_NOT_PERMITTED_EXT,                  { "Operation not permitted by driver (EXT)",      Severity::SEVERITY_FATAL } },
+    { VK_ERROR_NOT_PERMITTED_EXT,                  { "Operation not permitted by driver (EXT)",      Severity::FATAL } },
     //close reason - the driver forbade the operation
-    { VK_ERROR_NOT_PERMITTED_KHR,                  { "Operation not permitted by driver (KHR)",      Severity::SEVERITY_FATAL } },
+    { VK_ERROR_NOT_PERMITTED_KHR,                  { "Operation not permitted by driver (KHR)",      Severity::FATAL } },
     //close reason - invalid capture data, you can't capture that frame
-    { VK_ERROR_INVALID_DEVICE_ADDRESS_EXT,         { "Invalid opaque capture address (EXT)",         Severity::SEVERITY_FATAL } },
+    { VK_ERROR_INVALID_DEVICE_ADDRESS_EXT,         { "Invalid opaque capture address (EXT)",         Severity::FATAL } },
     //close reason - invalid capture data, you can't capture that frame
-    { VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS_KHR, { "Invalid opaque capture address (KHR)",         Severity::SEVERITY_FATAL } },
-    { VK_PIPELINE_COMPILE_REQUIRED_EXT,            { "Shader requires recompilation (EXT)",          Severity::SEVERITY_INFO } },
-    { VK_ERROR_PIPELINE_COMPILE_REQUIRED_EXT,      { "Shader requires recompilation (EXT)",          Severity::SEVERITY_INFO } },
+    { VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS_KHR, { "Invalid opaque capture address (KHR)",         Severity::FATAL } },
+    { VK_PIPELINE_COMPILE_REQUIRED_EXT,            { "Shader requires recompilation (EXT)",          Severity::INFO } },
+    { VK_ERROR_PIPELINE_COMPILE_REQUIRED_EXT,      { "Shader requires recompilation (EXT)",          Severity::INFO } },
     //close reason - the shader binary is bad, the driver won't let it run
-    { VK_ERROR_INCOMPATIBLE_SHADER_BINARY_EXT,     { "Incompatible shader binary (EXT)",             Severity::SEVERITY_FATAL } }
+    { VK_ERROR_INCOMPATIBLE_SHADER_BINARY_EXT,     { "Incompatible shader binary (EXT)",             Severity::FATAL } }
 };
 
 namespace KalaGraphics::Graphics
@@ -284,7 +284,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Vulkan result code '" + to_string(result) + "' is invalid!",
                 "KG_CONTEXT",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
         }
 
         if (result == VK_SUCCESS)
@@ -311,7 +311,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Vulkan result code '" + to_string(result) + "' is invalid!",
                 "KG_CONTEXT",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return {};
         }
@@ -325,7 +325,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Vulkan result code '" + to_string(result) + "' is invalid!",
                 "KG_CONTEXT",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return {};
         }
@@ -413,7 +413,7 @@ namespace KalaGraphics::Graphics
                 "Failed to initialize global graphics context because "
                 "VkInstance has not been assigned!",
                 "KG_CONTEXT",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -423,7 +423,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to initialize global Vulkan because it is already initialized!",
                 "KG_CONTEXT",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -765,7 +765,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Initialized Vulkan Core!",
             "KG_CONTEXT",
-            LogType::LOG_SUCCESS);
+            LogType::SUCCESS);
     }
 
     bool GraphicsContext::IsInitialized() { return isInitialized; }
@@ -886,7 +886,7 @@ namespace KalaGraphics::Graphics
                 "Failed to initialize graphics context because "
                 "VkInstance has not been assigned!",
                 "KG_CONTEXT",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return nullptr;
         }
@@ -897,7 +897,7 @@ namespace KalaGraphics::Graphics
                 "Failed to initialize graphics context because "
                 "global graphics context has not yet been initialized!",
                 "KG_CONTEXT",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return nullptr;
         }
@@ -907,7 +907,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to initialize graphics context because no window ID was passed!",
                 "KG_CONTEXT",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return nullptr;
         }
@@ -918,7 +918,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to initialize graphics context because no window was passed!",
                 "KG_CONTEXT",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return nullptr;
         }
@@ -937,7 +937,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to initialize graphics context because no window or display was passed!",
                 "KG_CONTEXT",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return nullptr;
         }
@@ -985,7 +985,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Created new graphics context '" + idStr + "'!",
             "KG_CONTEXT",
-            LogType::LOG_SUCCESS);
+            LogType::SUCCESS);
 
         return contextPtr;
     }
@@ -1004,7 +1004,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to set vsync state because it already is the same!",
                 "KG_CONTEXT",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -1095,7 +1095,7 @@ namespace KalaGraphics::Graphics
                 Log::Print(
                     "Recreating swapchain because of 'vkAcquireNextImageKHR'!",
                     "KG_CONTEXT",
-                    LogType::LOG_VERBOSE);
+                    LogType::VERBOSE);
             }
 
             //Log::Print("@@@@@ vk triggered recreateswapchain");
@@ -1337,7 +1337,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to recreate swapchain because Vulkan was not initialized!",
                 "KG_CONTEXT",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -1523,7 +1523,7 @@ namespace KalaGraphics::Graphics
         switch (vsyncState)
         {
         default:
-        case VSyncState::VSYNC_OFF:
+        case VSyncState::OFF:
         {
             if (supportsImmediate) chosenPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
             else
@@ -1533,14 +1533,31 @@ namespace KalaGraphics::Graphics
                     Log::Print(
                         "Tried to use IMMEDIATE but device does not support it, falling back to FIFO.",
                         "KG_CONTEXT",
-                        LogType::LOG_VERBOSE);
+                        LogType::VERBOSE);
                 }
 
                 chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
             }
             break;
         }
-        case VSyncState::VSYNC_ON_TRIPLE_BUFFERED:
+        case VSyncState::ADAPTIVE:
+        {
+            if (supportsFifoRelaxed) chosenPresentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
+            else
+            {
+                if (isVerboseLoggingEnabled)
+                {
+                    Log::Print(
+                        "Tried to use FIFO_RELAXED but device does not support it, falling back to FIFO.",
+                        "KG_CONTEXT",
+                        LogType::VERBOSE);
+                }
+
+                chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+            }
+            break;
+        }
+        case VSyncState::TRIPLE_BUFFERED:
         {
             if (supportsMailbox) chosenPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
             else if (supportsFifoRelaxed)
@@ -1550,7 +1567,7 @@ namespace KalaGraphics::Graphics
                     Log::Print(
                         "Tried to use MAILBOX but device does not support it, falling back to FIFO_RELAXED.",
                         "KG_CONTEXT",
-                        LogType::LOG_VERBOSE);
+                        LogType::VERBOSE);
                 }
 
                 chosenPresentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
@@ -1562,24 +1579,7 @@ namespace KalaGraphics::Graphics
                     Log::Print(
                         "Tried to use MAILBOX and FIFO_RELAXED but device does not support them, falling back to FIFO.",
                         "KG_CONTEXT",
-                        LogType::LOG_VERBOSE);
-                }
-
-                chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
-            }
-            break;
-        }
-        case VSyncState::VSYNC_ON_ADAPTIVE:
-        {
-            if (supportsFifoRelaxed) chosenPresentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
-            else
-            {
-                if (isVerboseLoggingEnabled)
-                {
-                    Log::Print(
-                        "Tried to use FIFO_RELAXED but device does not support it, falling back to FIFO.",
-                        "KG_CONTEXT",
-                        LogType::LOG_VERBOSE);
+                        LogType::VERBOSE);
                 }
 
                 chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
@@ -1857,7 +1857,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Finished recreating Vulkan swapchain.",
                 "KG_CONTEXT",
-                LogType::LOG_VERBOSE);
+                LogType::VERBOSE);
         }
     }
 
@@ -1868,7 +1868,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to get instance because it was not assigned!", 
                 "KG_CONTEXT",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return {};
         }
@@ -1883,7 +1883,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to get physical device because Vulkan has not been initialized!",
                 "KG_CONTEXT",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return nullptr;
         }
@@ -1897,7 +1897,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to get logical device because Vulkan has not been initialized!",
                 "KG_CONTEXT",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return nullptr;
         }
@@ -1911,7 +1911,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to get vma allocator because Vulkan has not been initialized!",
                 "KG_CONTEXT",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return nullptr;
         }
@@ -1925,7 +1925,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to get descriptor pool because Vulkan has not been initialized!",
                 "KG_CONTEXT",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return nullptr;
         }
@@ -2103,12 +2103,29 @@ namespace KalaGraphics::Graphics
         switch (vsyncState)
         {
         default:
-        case VSyncState::VSYNC_OFF:
+        case VSyncState::OFF:
         {
             chosenPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
             break;
         }
-        case VSyncState::VSYNC_ON_TRIPLE_BUFFERED:
+        case VSyncState::ADAPTIVE:
+        {
+            if (supportsFifoRelaxed) chosenPresentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
+            else
+            {
+                if (isVerboseLoggingEnabled)
+                {
+                    Log::Print(
+                        "Tried to use FIFO_RELAXED but device does not support it, falling back to FIFO.",
+                        "KG_CONTEXT",
+                        LogType::VERBOSE);
+                }
+
+                chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+            }
+            break;
+        }
+        case VSyncState::TRIPLE_BUFFERED:
         {
             if (supportsMailbox) chosenPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
             else if (supportsFifoRelaxed)
@@ -2118,7 +2135,7 @@ namespace KalaGraphics::Graphics
                     Log::Print(
                         "Tried to use MAILBOX but device does not support it, falling back to FIFO_RELAXED.",
                         "KG_CONTEXT",
-                        LogType::LOG_VERBOSE);
+                        LogType::VERBOSE);
                 }
 
                 chosenPresentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
@@ -2130,24 +2147,7 @@ namespace KalaGraphics::Graphics
                     Log::Print(
                         "Tried to use MAILBOX and FIFO_RELAXED but device does not support them, falling back to FIFO.",
                         "KG_CONTEXT",
-                        LogType::LOG_VERBOSE);
-                }
-
-                chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
-            }
-            break;
-        }
-        case VSyncState::VSYNC_ON_ADAPTIVE:
-        {
-            if (supportsFifoRelaxed) chosenPresentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
-            else
-            {
-                if (isVerboseLoggingEnabled)
-                {
-                    Log::Print(
-                        "Tried to use FIFO_RELAXED but device does not support it, falling back to FIFO.",
-                        "KG_CONTEXT",
-                        LogType::LOG_VERBOSE);
+                        LogType::VERBOSE);
                 }
 
                 chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
@@ -2502,7 +2502,7 @@ namespace KalaGraphics::Graphics
                 "Failed to end single time commands "
                 "because the passed command buffer was invalid!",
                 "KG_CONTEXT",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -2569,20 +2569,20 @@ namespace KalaGraphics::Graphics
     {
         if (result == VK_SUCCESS) return;
 
-        if (GetVkResultSeverity(result) == Severity::SEVERITY_FATAL)
+        if (GetVkResultSeverity(result) == Severity::FATAL)
         {
             ForceClose(
                 "KalaGraphics context error", 
                 "Encountered a fatal error because of '" + reason + "'!",
                 result);
         }
-        else if (GetVkResultSeverity(result) == Severity::SEVERITY_WARNING)
+        else if (GetVkResultSeverity(result) == Severity::WARNING)
         {
 #ifdef KDEBUG
             Log::Print(
                 "Encountered a warning because of '" + reason + "'!\n" + GetVkResultMessage(result),
                 "KG_CONTEXT",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 #endif
         }
         else
@@ -2593,7 +2593,7 @@ namespace KalaGraphics::Graphics
                 Log::Print(
                     "Encountered a message because of '" + reason + "'.\n" + GetVkResultMessage(result),
                     "KG_CONTEXT",
-                    LogType::LOG_VERBOSE);
+                    LogType::VERBOSE);
             }
         }
     }
@@ -2657,7 +2657,7 @@ namespace KalaGraphics::Graphics
 		Log::Print(
 			"Destroying graphics context '" + to_string(ID) + "'.",
 			"KG_CONTEXT",
-			LogType::LOG_INFO);
+			LogType::INFO);
 
         if (logicalDevice == VK_NULL_HANDLE)
         {
@@ -2774,7 +2774,7 @@ namespace KalaGraphics::Graphics
 				"Destroying global Vulkan and all remaining resources "
                 "because all graphics contexts were destroyed.",
 				"KG_CONTEXT",
-				LogType::LOG_INFO);
+				LogType::INFO);
                
             string _{};
             _ = Shader::GetRegistry().DestroyAllContent();

@@ -107,7 +107,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import mesh '" + meshPath.string() + "' because it was not found!",
                 "KG_IMPORT_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return nullptr;
         }
@@ -117,7 +117,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import mesh '" + meshPath.string() + "' because it is not a regular file!",
                 "KG_IMPORT_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return nullptr;
         }
@@ -129,7 +129,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import mesh '" + meshPath.string() + "' because its extension is not supported!",
                 "KG_IMPORT_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return nullptr;
         }
@@ -144,7 +144,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import mesh '" + meshPath.string() + "'! Reason: " + errMsg,
                 "KG_IMPORT_MESH",
-                LogType::LOG_ERROR,
+                LogType::ERROR,
                 2);
 
             return nullptr;
@@ -161,7 +161,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import mesh '" + meshPath.string() + "'! Reason: " + errMsg,
                 "KG_IMPORT_MESH",
-                LogType::LOG_ERROR,
+                LogType::ERROR,
                 2);
 
             return nullptr;
@@ -213,7 +213,7 @@ namespace KalaGraphics::Import
 			"Created new import mesh '" + to_string(newID) 
             + "' from path '" + meshPtr->meshPath.string() + "'!",
 			"KG_IMPORT_MESH",
-			LogType::LOG_SUCCESS);
+			LogType::SUCCESS);
 
         return meshPtr;
     }
@@ -225,7 +225,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import mesh because it was empty!",
                 "KG_IMPORT_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return nullptr;
         }
@@ -242,7 +242,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import mesh! Reason: " + errMsg,
                 "KG_IMPORT_MESH",
-                LogType::LOG_ERROR,
+                LogType::ERROR,
                 2);
 
             return nullptr;
@@ -292,7 +292,7 @@ namespace KalaGraphics::Import
         Log::Print(
 			"Created new import mesh '" + to_string(newID) + "' from binary data!",
 			"KG_IMPORT_MESH",
-			LogType::LOG_SUCCESS);
+			LogType::SUCCESS);
 
         return meshPtr;
     }
@@ -318,7 +318,7 @@ namespace KalaGraphics::Import
         Log::Print(
             "Destroying import mesh data '" + to_string(ID) + "'.",
             "KG_IMPORT_MESH",
-            LogType::LOG_INFO);
+            LogType::INFO);
     }
 }
 
@@ -386,7 +386,7 @@ string Init_GLTF_GLB(
             Log::Print(
                 "Skipped importing node '" + to_string(nodeIndex) + "' because it had no geometry!",
                 "KG_IMPORT_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             continue;
         }
@@ -400,7 +400,7 @@ string Init_GLTF_GLB(
                 "Skipped importing node '" + to_string(nodeIndex) 
                 + "' with name '" + nodeName + "' because it had no primitives!",
                 "KG_IMPORT_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             continue;
         }
@@ -420,7 +420,7 @@ string Init_GLTF_GLB(
                     + "' in node '" + to_string(nodeIndex) 
                     + "' with name '" + nodeName + "' because it has unsupported primitive topology!",
                     "KG_IMPORT_MESH",
-                    LogType::LOG_WARNING);
+                    LogType::WARNING);
 
                 continue;
             }
@@ -464,7 +464,7 @@ string Init_GLTF_GLB(
                     + "' under node '" + to_string(nodeIndex) 
                     + "' with name '" + nodeName + "' because the primitive has no vertex positions!",
                     "KG_IMPORT_MESH",
-                    LogType::LOG_WARNING);
+                    LogType::WARNING);
 
                 continue;
             }
@@ -478,7 +478,7 @@ string Init_GLTF_GLB(
                     + "' under node '" + to_string(nodeIndex) 
                     + "' with name '" + nodeName + "' because the mesh color type is unsupported!",
                     "KG_IMPORT_MESH",
-                    LogType::LOG_WARNING);
+                    LogType::WARNING);
 
                 continue;
             }
@@ -597,7 +597,7 @@ string Init_GLTF_GLB(
                 "Skipped importing node '" + to_string(nodeIndex) 
                 + "' with name '" + nodeName + "' because it had no valid primitives!",
                 "KG_IMPORT_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             continue;
         }
@@ -651,13 +651,13 @@ string Init_GLTF_GLB(
                 {
                     default:
                     case cgltf_alpha_mode_opaque:
-                        matData.alphaMode = AlphaMode::A_OPAQUE;
+                        matData.alphaMode = AlphaMode::OPAQUE;
                         break;
                     case cgltf_alpha_mode_blend:
-                        matData.alphaMode = AlphaMode::A_BLEND;
+                        matData.alphaMode = AlphaMode::BLEND;
                         break;
                     case cgltf_alpha_mode_mask:
-                        matData.alphaMode = AlphaMode::A_MASK;
+                        matData.alphaMode = AlphaMode::MASK;
                         break;
                 }
 
@@ -800,7 +800,7 @@ bool GetPixelData(
                     + "' texture '" + path(image.uri).string() + "' extension '" + ext + "' is unsupported! "
                     "Assigning fallback texture '" + to_string(fallbackID) + "'.",
                     "KG_MESH",
-                    LogType::LOG_WARNING);
+                    LogType::WARNING);
 
                 return;
             }
@@ -823,7 +823,7 @@ bool GetPixelData(
                 + "' texture '" + path(image.uri).string() + "' was invalid! "
                 "Assigning fallback texture '" + to_string(fallbackID) + "'.",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
         };
 
     auto verify_image_buffer_view = [
@@ -845,7 +845,7 @@ bool GetPixelData(
                     + "' embedded texture has invalid mime type! "
                     "Assigning fallback texture '" + to_string(fallbackID) + "'.",
                     "KG_MESH",
-                    LogType::LOG_WARNING);
+                    LogType::WARNING);
 
                 return;
             }
@@ -860,7 +860,7 @@ bool GetPixelData(
                     + "' embedded texture mime type '" + image.mime_type + "' is not supported! "
                     "Assigning fallback texture '" + to_string(fallbackID) + "'.",
                     "KG_MESH",
-                    LogType::LOG_WARNING);
+                    LogType::WARNING);
 
                 return;
             }
@@ -874,7 +874,7 @@ bool GetPixelData(
                     "Skipped importing node '" + to_string(nodeIndex) 
                     + "' with name '" + nodeName + "' because its buffer was invalid!",
                     "KG_IMPORT_MESH",
-                    LogType::LOG_WARNING);
+                    LogType::WARNING);
 
                 outResult = false;
                 return;
@@ -906,7 +906,7 @@ bool GetPixelData(
                 + "' embedded texture was invalid! "
                 "Assigning fallback texture '" + to_string(fallbackID) + "'.",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
         };
 
     if (!texture.image)
@@ -919,7 +919,7 @@ bool GetPixelData(
             + "' texture was invalid! "
             "Assigning fallback texture '" + to_string(fallbackID) + "'.",
             "KG_MESH",
-            LogType::LOG_WARNING);
+            LogType::WARNING);
 
         return true;
     }
@@ -947,7 +947,7 @@ bool GetPixelData(
             + "' texture had no URI or buffer view! "
             "Assigning fallback texture '" + to_string(fallbackID) + "'.",
             "KG_MESH",
-            LogType::LOG_WARNING);
+            LogType::WARNING);
 
         return true;
     }

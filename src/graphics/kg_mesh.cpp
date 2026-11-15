@@ -59,7 +59,7 @@ namespace KalaGraphics::Graphics
                 "Cube or cylinder edge count cannot be less than " 
                 + to_string(MIN_CUBE_EDGE_COUNT) + "! Value was clamped.",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             cubeData.edgeCount = MIN_CUBE_EDGE_COUNT;
         }
@@ -69,7 +69,7 @@ namespace KalaGraphics::Graphics
                 "Cube or cylinder edge count cannot be more than " 
                 + to_string(MAX_CUBE_EDGE_COUNT) + "! Value was clamped.",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             cubeData.edgeCount = MAX_CUBE_EDGE_COUNT;
         }
@@ -98,7 +98,7 @@ namespace KalaGraphics::Graphics
 
         //each side needs its own vertices
         //because adjacent faces have different normals
-        if (cubeData.normalType == NormalType::N_FLAT)
+        if (cubeData.normalType == NormalType::FLAT)
         {
             for (u32 i = 0; i < cubeData.edgeCount; ++i)
             {
@@ -379,7 +379,7 @@ namespace KalaGraphics::Graphics
                 "Pyramid or cone edge count cannot be less than " 
                 + to_string(MIN_PYRAMID_EDGE_COUNT) + "! Value was clamped.",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             pyramidData.edgeCount = MIN_PYRAMID_EDGE_COUNT;
         }
@@ -389,7 +389,7 @@ namespace KalaGraphics::Graphics
                 "Pyramid or cone edge count cannot be more than " 
                 + to_string(MAX_PYRAMID_EDGE_COUNT) + "! Value was clamped.",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             pyramidData.edgeCount = MAX_PYRAMID_EDGE_COUNT;
         }
@@ -419,7 +419,7 @@ namespace KalaGraphics::Graphics
 
         //each side needs its own vertices
         //because adjacent faces have different normals
-        if (pyramidData.normalType == NormalType::N_FLAT)
+        if (pyramidData.normalType == NormalType::FLAT)
         {
             const f64 apothem = radius * cos(angleStep * 0.5);
 
@@ -640,7 +640,7 @@ namespace KalaGraphics::Graphics
                 "Sphere detail level cannot be less than " 
                 + to_string(MIN_SPHERE_DETAIL_LEVEL) + "! Value was clamped.",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             sphereData.detailLevel = MIN_SPHERE_DETAIL_LEVEL;
         }
@@ -650,7 +650,7 @@ namespace KalaGraphics::Graphics
                 "Sphere detail level cannot be more than " 
                 + to_string(MAX_SPHERE_DETAIL_LEVEL) + "! Value was clamped.",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             sphereData.detailLevel = MAX_SPHERE_DETAIL_LEVEL;
         }
@@ -667,7 +667,7 @@ namespace KalaGraphics::Graphics
             (2.0 * PI64)
             / scast<f64>(longitudeCount);
 
-        if (sphereData.normalType == NormalType::N_FLAT)
+        if (sphereData.normalType == NormalType::FLAT)
         {
             auto get_position = [&](u32 latitude, u32 longitude) -> vec3
                 {
@@ -903,7 +903,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to create mesh because the shader was invalid! Reason: " + err,
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return nullptr;
         }
@@ -915,7 +915,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to create mesh because the shader '" + to_string(shader->ID) + "' viewport was invalid! Reason: " + err,
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return nullptr;
         }
@@ -927,7 +927,7 @@ namespace KalaGraphics::Graphics
                 "Failed to create mesh because the shader '" 
                 + to_string(shaderID) + "' had no shader data!",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return nullptr;
         }
@@ -1030,7 +1030,7 @@ namespace KalaGraphics::Graphics
 			"Created new mesh '" + to_string(newID) 
             + "' for shader '" + to_string(shaderID) + "'!",
 			"KG_MESH",
-			LogType::LOG_SUCCESS);
+			LogType::SUCCESS);
 
         return meshPtr;
     }
@@ -1046,7 +1046,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set mesh '" + to_string(ID) 
                 + "' shader ID because it is used in text widget '" + to_string(textWidgetID) + "'!",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -1057,7 +1057,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set mesh '" + to_string(ID) 
                 + "' shader ID because it was empty!",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -1069,7 +1069,7 @@ namespace KalaGraphics::Graphics
                 + "' shader ID to '" + to_string(newValue) 
                 + "' because it already is the same!",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -1082,7 +1082,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set mesh '" + to_string(ID) 
                 + "' shader ID because its material was invalid! Reason: " + err,
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -1105,7 +1105,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set mesh '" + to_string(ID) 
                 + "' shader ID because it was invalid! Reason: " + err,
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -1117,7 +1117,7 @@ namespace KalaGraphics::Graphics
                 + "' shader because new shader '" + to_string(shader->ID) 
                 + "' 2D state does not match old shader '" + to_string(oldShader->ID) + "' 2D state!",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -1194,7 +1194,7 @@ namespace KalaGraphics::Graphics
             "Set mesh '" + to_string(ID) 
             + "' shader ID to '" + to_string(shaderID) + "'!",
             "KG_MESH",
-            LogType::LOG_SUCCESS);
+            LogType::SUCCESS);
     }
 
     u32 Mesh::GetCameraID() const { return cameraID; }
@@ -1213,7 +1213,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set mesh '" + to_string(ID) + "' "
                 "visible state because it already is the same!",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -1251,7 +1251,7 @@ namespace KalaGraphics::Graphics
             "Set mesh '" + to_string(ID) + "' "
             "visible state to " + val + "!", 
             "KG_MESH",
-            LogType::LOG_SUCCESS);
+            LogType::SUCCESS);
     }
 
     bool Mesh::IgnoreHover() const { return ignoreHover; }
@@ -1264,7 +1264,7 @@ namespace KalaGraphics::Graphics
             "Set mesh '" + to_string(ID) + "' "
             "ignore hover state to " + val + "!", 
             "KG_MESH",
-            LogType::LOG_SUCCESS);
+            LogType::SUCCESS);
     }
 
     bool Mesh::Is2D() const { return is2D; }
@@ -1278,7 +1278,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set mesh '" + to_string(ID) 
                 + "' draw order index because it is a 3D mesh!",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -1313,7 +1313,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set mesh '" + to_string(ID) + "' draw order index to '" + to_string(drawOrderIndex) + "'.",
             "KG_MESH",
-            LogType::LOG_SUCCESS);
+            LogType::SUCCESS);
     }
 
     Transform Mesh::GetTransform()
@@ -1336,7 +1336,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set mesh '" + to_string(ID) 
                 + "' self anchor position because it is a 3D mesh!",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -1347,38 +1347,38 @@ namespace KalaGraphics::Graphics
         switch (newValue)
         {
         default:
-        case AnchorPosition::P_NONE:
+        case AnchorPosition::NONE:
             val = "none";
             break;
 
-        case AnchorPosition::P_CENTER:
+        case AnchorPosition::CENTER:
             val = "center";
             break;
 
-        case AnchorPosition::P_LEFT_CENTER:
+        case AnchorPosition::LEFT_CENTER:
             val = "left center";
             break;
-        case AnchorPosition::P_RIGHT_CENTER:
+        case AnchorPosition::RIGHT_CENTER:
             val = "right center";
             break;
-        case AnchorPosition::P_TOP_CENTER:
+        case AnchorPosition::TOP_CENTER:
             val = "top center";
             break;
-        case AnchorPosition::P_BOTTOM_CENTER:
+        case AnchorPosition::BOTTOM_CENTER:
             val = "bottom center";
             break;
 
-        case AnchorPosition::P_BOTTOM_LEFT:
+        case AnchorPosition::BOTTOM_LEFT:
             val = "bottom left";
             break;
-        case AnchorPosition::P_BOTTOM_RIGHT:
+        case AnchorPosition::BOTTOM_RIGHT:
             val = "bottom right";
             break;
 
-        case AnchorPosition::P_TOP_LEFT:
+        case AnchorPosition::TOP_LEFT:
             val = "top left";
             break;
-        case AnchorPosition::P_TOP_RIGHT:
+        case AnchorPosition::TOP_RIGHT:
             val = "top right";
             break;
         }
@@ -1386,7 +1386,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set mesh '" + to_string(ID) + "' self anchor position to '" + val + "'!",
             "KG_MESH",
-            LogType::LOG_SUCCESS);
+            LogType::SUCCESS);
     }
 
     AnchorPosition Mesh::GetTargetAnchorPosition() const { return targetAnchor; }
@@ -1400,7 +1400,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set mesh '" + to_string(ID) 
                 + "' target anchor position because it is a 3D mesh!",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -1413,7 +1413,7 @@ namespace KalaGraphics::Graphics
                 + "' target anchor position because ID '0' was passed "
                 "even though target mesh has already been detached!",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -1427,18 +1427,18 @@ namespace KalaGraphics::Graphics
                 + "' target anchor position because ID 'UINT32_MAX' was passed "
                 "even though no prior mesh was assigned!",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
 
-        if (viewportAnchor != AnchorPosition::P_NONE)
+        if (viewportAnchor != AnchorPosition::NONE)
         {
             Log::Print(
                 "Failed to set mesh '" + to_string(ID) 
                 + "' target anchor position because viewport anchor position has already been assigned!",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return; 
         }
@@ -1447,7 +1447,7 @@ namespace KalaGraphics::Graphics
         if (newTargetAnchorID == 0)
         {
             targetAnchorID = 0;
-            targetAnchor = AnchorPosition::P_NONE;
+            targetAnchor = AnchorPosition::NONE;
 
             return;
         }
@@ -1462,7 +1462,7 @@ namespace KalaGraphics::Graphics
                     "Failed to set mesh '" + to_string(ID) + "' target anchor position "
                     "because target anchor ID was invalid! Reason: " + err,
                     "KG_MESH",
-                    LogType::LOG_WARNING);
+                    LogType::WARNING);
 
                 return;
             }
@@ -1473,7 +1473,7 @@ namespace KalaGraphics::Graphics
                     "Failed to set mesh '" + to_string(ID) + "' target anchor position "
                     "because target anchor mesh '" + to_string(newTargetAnchorID) + "' was 3D!",
                     "KG_MESH",
-                    LogType::LOG_WARNING);
+                    LogType::WARNING);
 
                 return;
             }
@@ -1487,38 +1487,38 @@ namespace KalaGraphics::Graphics
         switch (newValue)
         {
         default:
-        case AnchorPosition::P_NONE:
+        case AnchorPosition::NONE:
             val = "none";
             break;
 
-        case AnchorPosition::P_CENTER:
+        case AnchorPosition::CENTER:
             val = "center";
             break;
 
-        case AnchorPosition::P_LEFT_CENTER:
+        case AnchorPosition::LEFT_CENTER:
             val = "left center";
             break;
-        case AnchorPosition::P_RIGHT_CENTER:
+        case AnchorPosition::RIGHT_CENTER:
             val = "right center";
             break;
-        case AnchorPosition::P_TOP_CENTER:
+        case AnchorPosition::TOP_CENTER:
             val = "top center";
             break;
-        case AnchorPosition::P_BOTTOM_CENTER:
+        case AnchorPosition::BOTTOM_CENTER:
             val = "bottom center";
             break;
 
-        case AnchorPosition::P_BOTTOM_LEFT:
+        case AnchorPosition::BOTTOM_LEFT:
             val = "bottom left";
             break;
-        case AnchorPosition::P_BOTTOM_RIGHT:
+        case AnchorPosition::BOTTOM_RIGHT:
             val = "bottom right";
             break;
 
-        case AnchorPosition::P_TOP_LEFT:
+        case AnchorPosition::TOP_LEFT:
             val = "top left";
             break;
-        case AnchorPosition::P_TOP_RIGHT:
+        case AnchorPosition::TOP_RIGHT:
             val = "top right";
             break;
         }
@@ -1526,7 +1526,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set mesh '" + to_string(ID) + "' target anchor position to '" + val + "'!",
             "KG_MESH",
-            LogType::LOG_SUCCESS);
+            LogType::SUCCESS);
     }
 
     AnchorPosition Mesh::GetViewportAnchorPosition() const { return viewportAnchor; }
@@ -1538,18 +1538,18 @@ namespace KalaGraphics::Graphics
                 "Failed to set mesh '" + to_string(ID) 
                 + "' viewport anchor position because it is a 3D mesh!",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
 
-        if (targetAnchor != AnchorPosition::P_NONE)
+        if (targetAnchor != AnchorPosition::NONE)
         {
             Log::Print(
                 "Failed to set mesh '" + to_string(ID) 
                 + "' viewport anchor position because target anchor position has already been assigned!",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return; 
         }
@@ -1560,38 +1560,38 @@ namespace KalaGraphics::Graphics
         switch (newValue)
         {
         default:
-        case AnchorPosition::P_NONE:
+        case AnchorPosition::NONE:
             val = "none";
             break;
 
-        case AnchorPosition::P_CENTER:
+        case AnchorPosition::CENTER:
             val = "center";
             break;
 
-        case AnchorPosition::P_LEFT_CENTER:
+        case AnchorPosition::LEFT_CENTER:
             val = "left center";
             break;
-        case AnchorPosition::P_RIGHT_CENTER:
+        case AnchorPosition::RIGHT_CENTER:
             val = "right center";
             break;
-        case AnchorPosition::P_TOP_CENTER:
+        case AnchorPosition::TOP_CENTER:
             val = "top center";
             break;
-        case AnchorPosition::P_BOTTOM_CENTER:
+        case AnchorPosition::BOTTOM_CENTER:
             val = "bottom center";
             break;
 
-        case AnchorPosition::P_BOTTOM_LEFT:
+        case AnchorPosition::BOTTOM_LEFT:
             val = "bottom left";
             break;
-        case AnchorPosition::P_BOTTOM_RIGHT:
+        case AnchorPosition::BOTTOM_RIGHT:
             val = "bottom right";
             break;
 
-        case AnchorPosition::P_TOP_LEFT:
+        case AnchorPosition::TOP_LEFT:
             val = "top left";
             break;
-        case AnchorPosition::P_TOP_RIGHT:
+        case AnchorPosition::TOP_RIGHT:
             val = "top right";
             break;
         }
@@ -1599,7 +1599,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set mesh '" + to_string(ID) + "' viewport anchor position to '" + val + "'!",
             "KG_MESH",
-            LogType::LOG_SUCCESS);
+            LogType::SUCCESS);
     }
 
     const vector<Vertex>& Mesh::GetVertices() const { return vertices; }
@@ -1614,7 +1614,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set mesh '" + to_string(ID) + "' data "
                 "because 2D mesh data cannot be updated!",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -1626,7 +1626,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set mesh '" + to_string(ID) + "' data "
                 "because it is already the same!",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -1637,7 +1637,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set mesh '" + to_string(ID) + "' vertices "
                 "because no 3D vertex data was passed!",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -1675,7 +1675,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Updated mesh data for mesh '" + to_string(ID) + "'!",
             "KG_MESH",
-            LogType::LOG_SUCCESS);
+            LogType::SUCCESS);
     }
 
     const mat4& Mesh::GetMatrix() const { return meshMatrix; }
@@ -1688,7 +1688,7 @@ namespace KalaGraphics::Graphics
                 "Failed to flip mesh '" + to_string(ID) 
                 + "' face direction because it is a 2D mesh!",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -1738,7 +1738,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Flipped mesh '" + to_string(ID) + "' face directions!",
             "KG_MESH",
-            LogType::LOG_SUCCESS);
+            LogType::SUCCESS);
     }
 
     void Mesh::SetHoverCallback(function<void()>&& newValue)
@@ -2064,9 +2064,9 @@ namespace KalaGraphics::Graphics
     
         if (is2D)
         {
-            vec2 pos_world = transform2D.getpos(PosTarget::POS_WORLD);
-            f32 rot_world = transform2D.getrot(RotTarget::ROT_WORLD);
-            vec2 size_world = transform2D.getsize(SizeTarget::SIZE_WORLD);
+            vec2 pos_world = transform2D.getpos(PosTarget::WORLD);
+            f32 rot_world = transform2D.getrot(RotTarget::WORLD);
+            vec2 size_world = transform2D.getsize(SizeTarget::WORLD);
 
             f32 fullWidth = isnear(size_world.x) ? 0 : size_world.x;
             f32 fullHeight = isnear(size_world.y) ? 0 : size_world.y;
@@ -2078,41 +2078,41 @@ namespace KalaGraphics::Graphics
             switch (selfAnchor)
             {
             default:
-            case AnchorPosition::P_CENTER:
+            case AnchorPosition::CENTER:
                 break;
 
-            case AnchorPosition::P_LEFT_CENTER:
+            case AnchorPosition::LEFT_CENTER:
                 selfAnchorPos = { -halfWidth, 0.0f };
                 break;
-            case AnchorPosition::P_RIGHT_CENTER:
+            case AnchorPosition::RIGHT_CENTER:
                 selfAnchorPos = { halfWidth, 0.0f };
                 break;
-            case AnchorPosition::P_TOP_CENTER:
+            case AnchorPosition::TOP_CENTER:
                 selfAnchorPos = { 0.0f, halfHeight };
                 break;
-            case AnchorPosition::P_BOTTOM_CENTER:
+            case AnchorPosition::BOTTOM_CENTER:
                 selfAnchorPos = { 0.0f, -halfHeight };
                 break;
 
-            case AnchorPosition::P_BOTTOM_LEFT:
+            case AnchorPosition::BOTTOM_LEFT:
                 selfAnchorPos = { -halfWidth, -halfHeight };
                 break;
-            case AnchorPosition::P_BOTTOM_RIGHT:
+            case AnchorPosition::BOTTOM_RIGHT:
                 selfAnchorPos = { halfWidth, -halfHeight };
                 break;
 
-            case AnchorPosition::P_TOP_LEFT:
+            case AnchorPosition::TOP_LEFT:
                 selfAnchorPos = { -halfWidth, halfHeight };
                 break;
-            case AnchorPosition::P_TOP_RIGHT:
+            case AnchorPosition::TOP_RIGHT:
                 selfAnchorPos = { halfWidth, halfHeight };
                 break;
             }
 
             if (targetAnchorID != 0
                 && targetAnchorID != UINT32_MAX
-                && targetAnchor != AnchorPosition::P_NONE
-                && viewportAnchor != AnchorPosition::P_NONE)
+                && targetAnchor != AnchorPosition::NONE
+                && viewportAnchor != AnchorPosition::NONE)
             {
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics mesh error",
@@ -2136,7 +2136,7 @@ namespace KalaGraphics::Graphics
                 }
 
                 const vec2 targetPos = targetMesh->finalAnchorPos;
-                const vec2 targetSize = targetMesh->transform2D.getsize(SizeTarget::SIZE_WORLD);
+                const vec2 targetSize = targetMesh->transform2D.getsize(SizeTarget::WORLD);
 
                 f32 targetHalfWidth = targetSize.x * 0.5f;
                 f32 targetHalfHeight = targetSize.y * 0.5f;
@@ -2144,33 +2144,33 @@ namespace KalaGraphics::Graphics
                 switch (targetAnchor)
                 {
                 default:
-                case AnchorPosition::P_NONE:
-                case AnchorPosition::P_CENTER:
+                case AnchorPosition::NONE:
+                case AnchorPosition::CENTER:
                     targetAnchorPos = targetPos;
                     break;
 
-                case AnchorPosition::P_LEFT_CENTER:
+                case AnchorPosition::LEFT_CENTER:
                     targetAnchorPos = targetPos + vec2
                     {
                         targetHalfWidth,
                         0.0f
                     };
                     break;
-                case AnchorPosition::P_RIGHT_CENTER:
+                case AnchorPosition::RIGHT_CENTER:
                     targetAnchorPos = targetPos + vec2
                     {
                         -targetHalfWidth,
                         0.0f
                     };
                     break;
-                case AnchorPosition::P_TOP_CENTER:
+                case AnchorPosition::TOP_CENTER:
                     targetAnchorPos = targetPos + vec2
                     {
                         0.0f,
                         -targetHalfHeight
                     };
                     break;
-                case AnchorPosition::P_BOTTOM_CENTER:
+                case AnchorPosition::BOTTOM_CENTER:
                     targetAnchorPos = targetPos + vec2
                     {
                         0.0f,
@@ -2178,14 +2178,14 @@ namespace KalaGraphics::Graphics
                     };
                     break;
 
-                case AnchorPosition::P_BOTTOM_LEFT:
+                case AnchorPosition::BOTTOM_LEFT:
                     targetAnchorPos = targetPos + vec2
                     {
                         targetHalfWidth,
                         targetHalfHeight
                     };
                     break;
-                case AnchorPosition::P_BOTTOM_RIGHT:
+                case AnchorPosition::BOTTOM_RIGHT:
                     targetAnchorPos = targetPos + vec2
                     {
                         -targetHalfWidth,
@@ -2193,14 +2193,14 @@ namespace KalaGraphics::Graphics
                     };
                     break;
                     
-                case AnchorPosition::P_TOP_LEFT:
+                case AnchorPosition::TOP_LEFT:
                     targetAnchorPos = targetPos + vec2
                     {
                         targetHalfWidth,
                         -targetHalfHeight
                     };
                     break;
-                case AnchorPosition::P_TOP_RIGHT:
+                case AnchorPosition::TOP_RIGHT:
                     targetAnchorPos = targetPos + vec2
                     {
                         -targetHalfWidth,
@@ -2214,38 +2214,38 @@ namespace KalaGraphics::Graphics
                 switch (viewportAnchor)
                 {
                 default:
-                case AnchorPosition::P_NONE:
+                case AnchorPosition::NONE:
                     targetAnchorPos = 0;
                     break;
 
-                case AnchorPosition::P_LEFT_CENTER:
+                case AnchorPosition::LEFT_CENTER:
                     targetAnchorPos = vp->posLeftCenter;
                     break;
-                case AnchorPosition::P_RIGHT_CENTER:
+                case AnchorPosition::RIGHT_CENTER:
                     targetAnchorPos = vp->posRightCenter;
                     break;
-                case AnchorPosition::P_TOP_CENTER:
+                case AnchorPosition::TOP_CENTER:
                     targetAnchorPos = vp->posTopCenter;
                     break;
-                case AnchorPosition::P_BOTTOM_CENTER:
+                case AnchorPosition::BOTTOM_CENTER:
                     targetAnchorPos = vp->posBottomCenter;
                     break;
 
-                case AnchorPosition::P_BOTTOM_LEFT:
+                case AnchorPosition::BOTTOM_LEFT:
                     targetAnchorPos = vp->posBottomLeft;
                     break;
-                case AnchorPosition::P_BOTTOM_RIGHT:
+                case AnchorPosition::BOTTOM_RIGHT:
                     targetAnchorPos = vp->posBottomRight;
                     break;
 
-                case AnchorPosition::P_TOP_LEFT:
+                case AnchorPosition::TOP_LEFT:
                     targetAnchorPos = vp->posTopLeft;
                     break;
-                case AnchorPosition::P_TOP_RIGHT:
+                case AnchorPosition::TOP_RIGHT:
                     targetAnchorPos = vp->posTopRight;
                     break;
 
-                case AnchorPosition::P_CENTER:
+                case AnchorPosition::CENTER:
                     targetAnchorPos = vp->posCenter;
                     break;
                 }
@@ -2262,9 +2262,9 @@ namespace KalaGraphics::Graphics
         else
         {
             meshMatrix = createmodelmatrix3d(
-                transform3D.getpos(PosTarget::POS_WORLD),
-                transform3D.getrotquat(RotTarget::ROT_WORLD), 
-                transform3D.getsize(SizeTarget::SIZE_WORLD));
+                transform3D.getpos(PosTarget::WORLD),
+                transform3D.getrotquat(RotTarget::WORLD), 
+                transform3D.getsize(SizeTarget::WORLD));
         }
 
         memcpy(
@@ -2308,7 +2308,7 @@ namespace KalaGraphics::Graphics
                     Log::Print(
                         "Failed to update vertices for mesh '" + to_string(ID) + "' because no vertex data was passed!",
                         "KG_MESH",
-                        LogType::LOG_WARNING);
+                        LogType::WARNING);
 
                     return;
                 }
@@ -2348,7 +2348,7 @@ namespace KalaGraphics::Graphics
                         Log::Print(
                             "Failed to update vertices for mesh '" + to_string(ID) + "' because vertex vk buffer creation failed!",
                             "KG_MESH",
-                            LogType::LOG_ERROR,
+                            LogType::ERROR,
                             2);
 
                         return;
@@ -2360,7 +2360,7 @@ namespace KalaGraphics::Graphics
                             "Recreating vertex buffer during mesh '" + to_string(ID) 
                             + "' update because old buffer size did not match new buffer size.",
                             "KG_MESH",
-                            LogType::LOG_INFO);
+                            LogType::INFO);
 
                         vkDeviceWaitIdle(logicalDevice);
 
@@ -2444,7 +2444,7 @@ namespace KalaGraphics::Graphics
                         Log::Print(
                             "Failed to update indices for mesh '" + to_string(ID) + "' because index vk buffer creation failed!",
                             "KG_MESH",
-                            LogType::LOG_ERROR,
+                            LogType::ERROR,
                             2);
 
                         return;
@@ -2456,7 +2456,7 @@ namespace KalaGraphics::Graphics
                             "Recreating index buffer during mesh '" + to_string(ID) 
                             + "' update because old buffer size did not match new buffer size.",
                             "KG_MESH",
-                            LogType::LOG_INFO);
+                            LogType::INFO);
 
                         vkDeviceWaitIdle(logicalDevice);
 
@@ -2680,7 +2680,7 @@ namespace KalaGraphics::Graphics
                 "Failed to destroy mesh '" + to_string(ID) 
                 + "' because it is used in a widget!",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             return;
         }
@@ -2739,7 +2739,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Destroying mesh '" + to_string(ID) + "'.",
             "KG_MESH",
-            LogType::LOG_INFO);
+            LogType::INFO);
 
         VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
         if (logicalDevice == VK_NULL_HANDLE)
@@ -2791,7 +2791,7 @@ namespace KalaGraphics::Graphics
                 "Detached mesh '" + to_string(ID) 
                 + "' from camera '" + to_string(cameraID) + "' because mesh data was cleared!",
                 "KG_MESH",
-                LogType::LOG_WARNING);
+                LogType::WARNING);
 
             cameraID = 0;
         }

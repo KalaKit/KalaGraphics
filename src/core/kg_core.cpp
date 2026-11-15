@@ -122,7 +122,7 @@ namespace KalaGraphics::Core
 			Log::Print(
 				reasonStr,
 				title,
-				LogType::LOG_ERROR,
+				LogType::ERROR,
 				2,
 				true,
 				TimeFormat::TIME_NONE,
