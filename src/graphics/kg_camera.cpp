@@ -52,7 +52,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to create camera because of invalid shader! Reason: " + err,
                 "KG_CAMERA",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -62,7 +62,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to create camera because camera type is not compatible with shader 2D state!",
                 "KG_CAMERA",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -93,7 +93,7 @@ namespace KalaGraphics::Graphics
                 "Failed to create camera because the shader '" 
                 + to_string(shaderID) + "' had no shader data!",
                 "KG_CAMERA",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -150,7 +150,7 @@ namespace KalaGraphics::Graphics
 			"Created new camera '" + to_string(newID) 
             + "' for shader '" + to_string(shaderID) + "'!",
 			"KG_CAMERA",
-			LogType::SUCCESS);
+			LogType::LOG_SUCCESS);
 
         return cameraPtr;
     }
@@ -167,7 +167,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set camera '" + to_string(ID) 
                 + "' shader ID because it was empty!",
                 "KG_CAMERA",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -178,7 +178,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set camera '" + to_string(ID) + "' shader ID to '" 
                 + to_string(newValue) + "' because it is already the same!",
                 "KG_CAMERA",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -191,7 +191,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set camera '" + to_string(ID) 
                 + "' shader ID to '" + to_string(newValue) + "' because it was invalid! Reason: " + err,
                 "KG_CAMERA",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -232,7 +232,7 @@ namespace KalaGraphics::Graphics
                         + "' because its viewport '" + to_string(vp->ID) 
                         + "' uses this camera as its primary camera!",
                         "KG_CAMERA",
-                        LogType::WARNING);
+                        LogType::LOG_WARNING);
 
                     return;
                 }
@@ -265,7 +265,7 @@ namespace KalaGraphics::Graphics
             "Set camera '" + to_string(ID) 
             + "' shader ID to '" + to_string(shaderID) + "'!",
             "KG_SHADER",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
     
     u32 Camera::GetMeshID() const { return meshID; }
@@ -296,7 +296,7 @@ namespace KalaGraphics::Graphics
                 + "' mesh ID to '" + to_string(newValue) 
                 + "' because it already is the same!",
                 "KG_CAMERA",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -320,7 +320,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set camera '" + to_string(ID) 
                 + "' mesh ID because it was invalid! Reason: " + err,
                 "KG_CAMERA",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -332,7 +332,7 @@ namespace KalaGraphics::Graphics
                 + "' mesh ID to '" + to_string(newValue) 
                 + "' because 2D meshes cannot be added to any cameras!",
                 "KG_CAMERA",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -343,7 +343,7 @@ namespace KalaGraphics::Graphics
                 + "' mesh ID to '" + to_string(newValue) 
                 + "' because 2D cameras cannot be given a mesh!",
                 "KG_CAMERA",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -420,14 +420,14 @@ namespace KalaGraphics::Graphics
                 "Set camera '" + to_string(ID) 
                 + "' mesh ID to '" + to_string(meshID) + "'!",
                 "KG_CAMERA",
-                LogType::SUCCESS);
+                LogType::LOG_SUCCESS);
         }
         else
         {
             Log::Print(
                 "Cleared camera '" + to_string(ID) + "' mesh ID.",
                 "KG_CAMERA",
-                LogType::INFO);
+                LogType::LOG_INFO);
         }
     }
 
@@ -546,7 +546,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set camera '" + to_string(ID) + "' speed multiplier to '" + to_string(speedMultiplier) + "'.",
             "KG_CAMERA",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     f32 Camera::GetSensitivityMultiplier() const { return sensitivityMultiplier; }
@@ -557,7 +557,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set camera '" + to_string(ID) + "' sensitivity multiplier to '" + to_string(sensitivityMultiplier) + "'.",
             "KG_CAMERA",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     f32 Camera::GetFOV() const { return fov; }
@@ -568,7 +568,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set camera '" + to_string(ID) + "' fov to '" + to_string(fov) + "'.",
             "KG_CAMERA",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     vec2 Camera::GetDrawDistance() const { return drawDistance; }
@@ -580,7 +580,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set camera '" + to_string(ID) 
                 + "' draw distance because it is an orthographic camera!",
                 "KG_CAMERA",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -591,7 +591,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set camera '" + to_string(ID) 
                 + "' draw distance because near distance cannot be equal to or more than far distance!",
                 "KG_CAMERA",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -601,7 +601,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set camera '" + to_string(ID) + "' draw distance to '" + to_string(drawDistance.x) + ", " + to_string(drawDistance.y) + "'.",
             "KG_CAMERA",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     const mat4& Camera::GetMatrix() const
@@ -826,7 +826,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Destroying camera '" + to_string(ID) + "'.",
             "KG_CAMERA",
-            LogType::INFO);
+            LogType::LOG_INFO);
 
         ClearAllData();
     }

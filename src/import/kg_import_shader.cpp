@@ -53,7 +53,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to compile shader because in path was empty!",
                 "KG_IMPORT_SHADER",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -62,7 +62,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to compile shader because out path was empty!",
                 "KG_IMPORT_SHADER",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -72,7 +72,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to compile shader '" + inPath.string() + "' because it was the same as out path!",
                 "KG_IMPORT_SHADER",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -82,7 +82,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to compile shader '" + inPath.string() + "' because it does not exist!",
                 "KG_IMPORT_SHADER",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -92,7 +92,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to compile shader '" + inPath.string() + "' because out path '" + outPath.string() + "' already exists!",
                 "KG_IMPORT_SHADER",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -102,7 +102,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to compile shader '" + inPath.string() + "' because it is not a regular file!",
                 "KG_IMPORT_SHADER",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -115,7 +115,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to compile shader '" + inPath.string() + "' because its extension is not supported!",
                 "KG_IMPORT_SHADER",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -131,7 +131,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to compile shader '" + inPath.string() + "' because glslc was not found or could not be executed!",
                 "KG_IMPORT_SHADER",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -150,7 +150,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to compile shader '" + inPath.string() + "' because _popen failed!",
                 "KG_IMPORT_SHADER",
-                LogType::ERROR,
+                LogType::LOG_ERROR,
                 2);
 
             return;
@@ -166,7 +166,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to compile shader '" + inPath.string() + "' because popen failed!",
                 "KG_IMPORT_SHADER",
-                LogType::ERROR,
+                LogType::LOG_ERROR,
                 2);
 
             return;
@@ -184,7 +184,7 @@ namespace KalaGraphics::Import
                 + "' to target '" + outPath.string() 
                 + "'! Reason: [" + to_string(exitCode) + "] " + errMsg,
                 "KG_IMPORT_SHADER",
-                LogType::ERROR,
+                LogType::LOG_ERROR,
                 2);
 
             return;
@@ -193,7 +193,7 @@ namespace KalaGraphics::Import
         Log::Print(
             "Compiled shader '" + inPath.string() + "' to output '" + outPath.string() + "'!",
             "KG_IMPORT_SHADER",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     ImportShader* ImportShader::Initialize(path&& shaderPath)
@@ -203,7 +203,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import shader '" + shaderPath.string() + "' because it is not a regular file!",
                 "KG_IMPORT_SHADER",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -214,7 +214,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import shader '" + shaderPath.string() + "' because its extension is not supported!",
                 "KG_IMPORT_SHADER",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -229,7 +229,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import shader '" + shaderPath.string() + "'! Reason: " + errMsg,
                 "KG_IMPORT_SHADER",
-                LogType::ERROR,
+                LogType::LOG_ERROR,
                 2);
 
             return nullptr;
@@ -245,7 +245,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import shader '" + shaderPath.string() + "'! Reason: " + errMsg,
                 "KG_IMPORT_SHADER",
-                LogType::ERROR,
+                LogType::LOG_ERROR,
                 2);
 
             return nullptr;
@@ -272,7 +272,7 @@ namespace KalaGraphics::Import
         Log::Print(
 			"Created new import shader '" + to_string(newID) + "'!",
 			"KG_IMPORT_SHADER",
-			LogType::SUCCESS);
+			LogType::LOG_SUCCESS);
 
         return shaderPtr;
     }
@@ -284,7 +284,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import shader because it is empty!",
                 "KG_IMPORT_SHADER",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -299,7 +299,7 @@ namespace KalaGraphics::Import
             Log::Print(
                 "Failed to import shader! Reason: " + errMsg,
                 "KG_IMPORT_SHADER",
-                LogType::ERROR,
+                LogType::LOG_ERROR,
                 2);
 
             return nullptr;
@@ -325,7 +325,7 @@ namespace KalaGraphics::Import
         Log::Print(
 			"Created new import shader '" + to_string(newID) + "' from binary data!",
 			"KG_IMPORT_SHADER",
-			LogType::SUCCESS);
+			LogType::LOG_SUCCESS);
 
         return shaderPtr;
     }
@@ -348,7 +348,7 @@ namespace KalaGraphics::Import
         Log::Print(
             "Destroying import shader data '" + to_string(ID) + "'.",
             "KG_IMPORT_SHADER",
-            LogType::INFO);
+            LogType::LOG_INFO);
     }
 }
 

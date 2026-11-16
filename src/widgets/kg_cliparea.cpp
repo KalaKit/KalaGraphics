@@ -47,7 +47,7 @@ namespace KalaGraphics::Widgets
         Log::Print(
 			"Created new clip area '" + to_string(newID) + "'!",
 			"KG_WIDGET_CLIP_AREA",
-			LogType::SUCCESS);
+			LogType::LOG_SUCCESS);
 
         return textPtr;
     }
@@ -70,6 +70,6 @@ namespace KalaGraphics::Widgets
         Log::Print(
             "Destroying clip area '" + to_string(ID) + "'.",
             "KG_WIDGET_CLIP_AREA",
-            LogType::INFO);
+            LogType::LOG_INFO);
     }
 }

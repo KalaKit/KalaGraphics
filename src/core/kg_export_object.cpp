@@ -68,7 +68,7 @@ namespace KalaGraphics::Core
                 "Failed to export texture '" + to_string(textureID) 
                 + "' to '" + exportPath.string() + "'! Reason: " + err,
                 "KG_EXPORT",
-                LogType::ERROR,
+                LogType::LOG_ERROR,
                 2);
 
             return;
@@ -94,7 +94,7 @@ namespace KalaGraphics::Core
                 "Failed to export texture '" + to_string(textureID) 
                 + "' to '" + exportPath.string() + "'! Reason: " + err,
                 "KG_EXPORT",
-                LogType::ERROR,
+                LogType::LOG_ERROR,
                 2);
 
             return;
@@ -103,7 +103,7 @@ namespace KalaGraphics::Core
         Log::Print(
             "Finished exporting texture '" + to_string(textureID) + "' to '" + exportPath.string() + "'!",
             "KG_EXPORT",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     void Export::ExportMeshes(
@@ -122,7 +122,7 @@ namespace KalaGraphics::Core
             Log::Print(
                 "Failed to export meshes to '" + exportPath.string() + "'! Reason: " + err,
                 "KG_EXPORT",
-                LogType::ERROR,
+                LogType::LOG_ERROR,
                 2);
 
             return;
@@ -138,7 +138,7 @@ namespace KalaGraphics::Core
             Log::Print(
                 "Failed to export meshes to '" + exportPath.string() + "'! Reason: " + err,
                 "KG_EXPORT",
-                LogType::ERROR,
+                LogType::LOG_ERROR,
                 2);
 
             return;
@@ -147,7 +147,7 @@ namespace KalaGraphics::Core
         Log::Print(
             "Finished exporting meshes to '" + exportPath.string() + "'!",
             "KG_EXPORT",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     string Export::GetMeshJsonData(const vector<u32> &meshIDs)
@@ -163,7 +163,7 @@ namespace KalaGraphics::Core
             Log::Print(
                 "Failed to get json data from meshes! Reason: " + err,
                 "KG_EXPORT",
-                LogType::ERROR,
+                LogType::LOG_ERROR,
                 2);
 
             return "";
@@ -180,7 +180,7 @@ namespace KalaGraphics::Core
             Log::Print(
                 "Failed to get json data from meshes! Reason: " + err,
                 "KG_EXPORT",
-                LogType::ERROR,
+                LogType::LOG_ERROR,
                 2);
 
             return "";
@@ -291,14 +291,14 @@ string GetNodeData(
         switch (alphaType)
         {
         default:
-        case AlphaMode::OPAQUE:
-            matData.alphaMode = KalaHeaders::KalaExportGLB::AlphaMode::OPAQUE;
+        case AlphaMode::TYPE_OPAQUE:
+            matData.alphaMode = KalaHeaders::KalaExportGLB::AlphaMode::TYPE_OPAQUE;
             break;
-        case AlphaMode::BLEND:
-            matData.alphaMode = KalaHeaders::KalaExportGLB::AlphaMode::BLEND;
+        case AlphaMode::TYPE_BLEND:
+            matData.alphaMode = KalaHeaders::KalaExportGLB::AlphaMode::TYPE_BLEND;
             break;
-        case AlphaMode::MASK:
-            matData.alphaMode = KalaHeaders::KalaExportGLB::AlphaMode::MASK;
+        case AlphaMode::TYPE_MASK:
+            matData.alphaMode = KalaHeaders::KalaExportGLB::AlphaMode::TYPE_MASK;
             break;
         }
 
@@ -324,7 +324,7 @@ string GetNodeData(
             Log::Print(
                 "Failed to apply texture to exported mesh, applying fallback texture. Reason: " + err,
                 "KG_EXPORT",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             Shader* shader = Shader::GetRegistry().GetAllContent().front();
 

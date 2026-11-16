@@ -85,7 +85,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Created new material '" + to_string(newID) + "'!",
             "KG_MATERIAL",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
 
         return matPtr;
     }
@@ -123,7 +123,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set 2D material '" + to_string(ID) + "' type to '" + typeStr + "'!",
             "KG_MATERIAL",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     MaterialType3D Material::GetMaterial3DType() const { return material3DType; }
@@ -159,7 +159,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set 3D material '" + to_string(ID) + "' type to '" + typeStr + "'!",
             "KG_MATERIAL",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     const vec4& Material::GetBaseColor() const
@@ -248,7 +248,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set material '" + to_string(ID) + "' "
                 "base color because it already is the same!",
                 "KG_MATERIAL",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -264,7 +264,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set material '" + to_string(ID) + "' color to '" + colorStr + "'!",
             "KG_MATERIAL",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     AlphaMode Material::GetAlphaMode() const
@@ -286,7 +286,7 @@ namespace KalaGraphics::Graphics
                 "Failed to get material '" + to_string(ID) + "' "
                 "alpha mode because font material does not support it!",
                 "KG_MATERIAL",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return {};
         }
@@ -333,7 +333,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set material '" + to_string(ID) + "' "
                 "alpha mode because font material does not support it!",
                 "KG_MATERIAL",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -372,7 +372,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set material '" + to_string(ID) + "' "
                 "alpha mode because it already is the same!",
                 "KG_MATERIAL",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -404,16 +404,16 @@ namespace KalaGraphics::Graphics
         }
 
         *alphaMode = newValue;
-        string alphaModeString = *alphaMode == AlphaMode::OPAQUE 
+        string alphaModeString = *alphaMode == AlphaMode::TYPE_OPAQUE 
             ? "opaque" 
-            : (*alphaMode == AlphaMode::BLEND 
+            : (*alphaMode == AlphaMode::TYPE_BLEND 
                 ? "blend" 
                 : "mask");
 
         Log::Print(
             "Set material '" + to_string(ID) + "' alpha mode to '" + alphaModeString + "'!",
             "KG_MATERIAL",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     f32 Material::GetAlphaCutoff() const
@@ -435,7 +435,7 @@ namespace KalaGraphics::Graphics
                 "Failed to get material '" + to_string(ID) + "' "
                 "alpha cutoff because font material does not support it!",
                 "KG_MATERIAL",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return {};
         }
@@ -482,18 +482,18 @@ namespace KalaGraphics::Graphics
                 "Failed to set material '" + to_string(ID) + "' "
                 "alpha cutoff because font material does not support it!",
                 "KG_MATERIAL",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
 
-        if (GetAlphaMode() != AlphaMode::MASK)
+        if (GetAlphaMode() != AlphaMode::TYPE_MASK)
         {
             Log::Print(
                 "Failed to set material '" + to_string(ID) + "' "
                 "alpha cutoff because alpha mode is not set to mask!",
                 "KG_MATERIAL",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -534,7 +534,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set material '" + to_string(ID) + "' "
                 "alpha cutoff because it already is the same!",
                 "KG_MATERIAL",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -544,7 +544,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set material '" + to_string(ID) + "' alpha cutoff to '" + to_string(*alphaCutoff) + "'!",
             "KG_MATERIAL",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     u32 Material::GetBaseColorTextureID() const
@@ -641,7 +641,7 @@ namespace KalaGraphics::Graphics
                 + "' base color texture ID to '" + to_string(newValue) 
                 + "' because it already is the same!",
                 "KG_MESH",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -667,7 +667,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set material '" + to_string(ID) 
                 + "' base color texture ID because it was invalid! Reason: " + err,
                 "KG_MESH",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -724,7 +724,7 @@ namespace KalaGraphics::Graphics
             "Set material '" + to_string(ID) 
             + "' base color texture ID to '" + to_string(*textureID) + "'!",
             "KG_MESH",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     void Material::Update(VkCommandBuffer buffer)
@@ -871,6 +871,6 @@ namespace KalaGraphics::Graphics
 		Log::Print(
 			"Destroying material '" + to_string(ID) + "'.",
 			"KG_MATERIAL",
-			LogType::INFO);
+			LogType::LOG_INFO);
     }
 }

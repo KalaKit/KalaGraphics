@@ -58,7 +58,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Created new hit test '" + to_string(newID) + "'!",
             "KG_HIT_TEST",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
 
         return htPtr;
     }
@@ -381,6 +381,6 @@ namespace KalaGraphics::Graphics
 		Log::Print(
 			"Destroying hit test '" + to_string(ID) + "'.",
 			"KG_HIT_TEST",
-			LogType::INFO);
+			LogType::LOG_INFO);
     }
 }

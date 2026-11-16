@@ -168,7 +168,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to create texture because the shader was invalid! Reason: " + err,
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -180,7 +180,7 @@ namespace KalaGraphics::Graphics
                 "Failed to create texture because the shader '" 
                 + to_string(shaderID) + "' had no shader data!",
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -190,7 +190,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to create texture because pixel data was empty!",
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -235,7 +235,7 @@ namespace KalaGraphics::Graphics
 			"Created new texture '" + to_string(newID) 
             + "' for shader '" + to_string(shaderID) + "'!",
 			"KG_TEXTURE",
-			LogType::SUCCESS);
+			LogType::LOG_SUCCESS);
 
         return texPtr;
     }
@@ -251,7 +251,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set texture '" + to_string(ID) 
                 + "' shader ID because it is used in a widget!",
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -262,7 +262,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set texture '" + to_string(ID) 
                 + "' shader ID because it was empty!",
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -274,7 +274,7 @@ namespace KalaGraphics::Graphics
                 + "' shader ID to '" + to_string(newValue) 
                 + "' because it already is the same!",
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -297,7 +297,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set texture '" + to_string(ID) 
                 + "' shader ID because it was invalid! Reason: " + err,
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -318,7 +318,7 @@ namespace KalaGraphics::Graphics
             "Set texture '" + to_string(ID) 
             + "' shader ID to '" + to_string(shaderID) + "'!",
             "KG_TEXTURE",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     const vector<pair<u32, array<bool, 11>>>& Texture::GetMaterialIDs() const { return materialIDs; }
@@ -399,7 +399,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Filled texture '" + to_string(ID) + "' with color '" + color + "'!",
                 "KG_TEXTURE",
-                LogType::VERBOSE);
+                LogType::LOG_VERBOSE);
         }
     }
 
@@ -412,7 +412,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set texture '" + to_string(ID) 
                 + "' pixel data because it cannot be empty!",
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -426,7 +426,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Updated texture '" + to_string(ID) + "' pixel data!",
                 "KG_TEXTURE",
-                LogType::VERBOSE);
+                LogType::LOG_VERBOSE);
         }
     }
 
@@ -462,7 +462,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set texture '" + to_string(ID) + "' format to '" + texFormat + "'.",
             "KG_TEXTURE",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     TextureType Texture::GetType() const { return type; }
@@ -479,7 +479,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set texture '" + to_string(ID) + "' type to "
                 "'cubemap' or 'cubemap array' because its width and height are not equal!",
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -519,7 +519,7 @@ namespace KalaGraphics::Graphics
                 "Updated texture '" + to_string(ID) + "' layer count to '1' "
                 "because the texture type '" + texType + "' requires a layer count of '1'.",
                 "KG_TEXTURE",
-                LogType::INFO);
+                LogType::LOG_INFO);
         }
         if (type == TextureType::TYPE_CUBEMAP
             && layerCount != 6)
@@ -530,7 +530,7 @@ namespace KalaGraphics::Graphics
                 "Updated texture '" + to_string(ID) + "' layer count to '6' "
                 "because the texture type '" + texType + "' requires a layer count of '6'.",
                 "KG_TEXTURE",
-                LogType::INFO);
+                LogType::LOG_INFO);
         }
         if (type == TextureType::TYPE_CUBEMAP_ARRAY
             && layerCount % 6 != 0)
@@ -541,7 +541,7 @@ namespace KalaGraphics::Graphics
                 "Updated texture '" + to_string(ID) + "' layer count to '6' "
                 "because the texture type '" + texType + "' layer count must be a multiple of '6'.",
                 "KG_TEXTURE",
-                LogType::INFO);
+                LogType::LOG_INFO);
         }
         if (type == TextureType::TYPE_2D_ARRAY
             && layerCount != 1)
@@ -552,13 +552,13 @@ namespace KalaGraphics::Graphics
                 "Updated texture '" + to_string(ID) + "' layer count to '1' "
                 "because the texture type '" + texType + "' default should be '1'.",
                 "KG_TEXTURE",
-                LogType::INFO);
+                LogType::LOG_INFO);
         }
 
         Log::Print(
             "Set texture '" + to_string(ID) + "' type to '" + texType + "'.",
             "KG_TEXTURE",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     TextureFilterMode Texture::GetFilterMode() const { return filterMode; }
@@ -586,7 +586,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set texture '" + to_string(ID) + "' filter mode to '" + fmode + "'.",
             "KG_TEXTURE",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     TextureShadowMapMode Texture::GetShadowMapMode() const { return shadowMode; }
@@ -617,7 +617,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set texture '" + to_string(ID) + "' shadow map mode to '" + smode + "'.",
             "KG_TEXTURE",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     TextureWrapMode Texture::GetWrapMode() const { return wrapMode; }
@@ -651,7 +651,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set texture '" + to_string(ID) + "' wrap map mode to '" + wmode + "'.",
             "KG_TEXTURE",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     TextureBorderColor Texture::GetBorderColor() const { return borderColor; }
@@ -682,7 +682,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set texture '" + to_string(ID) + "' border color to '" + bcol + "'.",
             "KG_TEXTURE",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     bool Texture::IsAnisotropyEnabled() const { return useAnisotropy; }
@@ -700,7 +700,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set texture '" + to_string(ID) + "' anisotropy state to '" + state + "'.",
             "KG_TEXTURE",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     vec2 Texture::GetSize() const { return size; }
@@ -713,7 +713,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set texture '" + to_string(ID) 
                 + "' size because it cannot be less than 1x1!",
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -752,7 +752,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set texture '" + to_string(ID) + "' size "
                 "because its width or height exceeded max allowed value '" + to_string(maxDimension) + "'!",
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -765,7 +765,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set texture '" + to_string(ID) + "' size "
                 "because its width and height are not equal while using a 'cubemap' or 'cubemap array' texture type!",
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -780,7 +780,7 @@ namespace KalaGraphics::Graphics
                 "Set texture '" + to_string(ID) 
                 + "' size to '" + to_string(size.x) + ", " + to_string(size.y) + "'.",
                 "KG_TEXTURE",
-                LogType::VERBOSE);
+                LogType::LOG_VERBOSE);
         }
     }
 
@@ -795,7 +795,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to set texture '" + to_string(ID) + "' depth because it cannot be 0!",
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -810,7 +810,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set texture '" + to_string(ID) + "' depth "
                 "because its texture type is only allowed to have a depth of '1'!",
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -831,7 +831,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set texture '" + to_string(ID) + "' depth "
                 "because it exceeded max allowed value '" + to_string(maxDepth) + "'!",
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -843,7 +843,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set texture '" + to_string(ID) + "' depth to '" + to_string(depth) + "'.",
             "KG_TEXTURE",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     u32 Texture::GetLayerCount() const { return layerCount; }
@@ -857,7 +857,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to set texture '" + to_string(ID) + "' layer count because it cannot be 0!",
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -870,7 +870,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set texture '" + to_string(ID) + "' layer count "
                 "because its texture type is only allowed to have a layer count of '1'!",
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -881,7 +881,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set texture '" + to_string(ID) + "' layer count "
                 "because its texture type is only allowed to have a layer count of '6'!",
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -892,7 +892,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set texture '" + to_string(ID) + "' layer count "
                 "because its texture type is only allowed to be a multiple of '6'!",
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -913,7 +913,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set texture '" + to_string(ID) + "' layer count "
                 "because it exceeded max allowed value '" + to_string(maxLayers) + "'!",
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -925,7 +925,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set texture '" + to_string(ID) + "' layer count to '" + to_string(layerCount) + "'.",
             "KG_TEXTURE",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     u8 Texture::GetMipMapCount() const { return mipMapCount; }
@@ -939,7 +939,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to set texture '" + to_string(ID) + "' mipmap count because it cannot be 0!",
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -952,7 +952,7 @@ namespace KalaGraphics::Graphics
                 "Failed to set texture '" + to_string(ID) + "' mipmap count because it is bigger than max allowed '" 
                 + to_string(maxMipMap) + "' for this texture size '" + to_string(size.x) + ", " + to_string(size.y) + "'!",
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -964,7 +964,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Set texture '" + to_string(ID) + "' mipmap count to '" + to_string(mipMapCount) + "'.",
             "KG_TEXTURE",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     void Texture::UpdateTextureData()
@@ -1144,7 +1144,7 @@ namespace KalaGraphics::Graphics
                     "Failed to update texture '" + to_string(ID) + "' data "
                     "because vk image init failed! Reason: " + GraphicsContext::GetVkResultMessage(result),
                     "KG_TEXTURE",
-                    LogType::ERROR,
+                    LogType::LOG_ERROR,
                     2);
 
                 isDirty = false;
@@ -1186,7 +1186,7 @@ namespace KalaGraphics::Graphics
                     "Failed to update texture '" + to_string(ID) + "' data "
                     "because vk image view init failed! Reason: " + GraphicsContext::GetVkResultMessage(result),
                     "KG_TEXTURE",
-                    LogType::ERROR,
+                    LogType::LOG_ERROR,
                     2);
 
                 return;
@@ -1259,7 +1259,7 @@ namespace KalaGraphics::Graphics
                     "Failed to update texture '" + to_string(ID) + "' data "
                     "because vk sampler init failed! Reason: " + GraphicsContext::GetVkResultMessage(result),
                     "KG_TEXTURE",
-                    LogType::ERROR,
+                    LogType::LOG_ERROR,
                     2);
 
                 return;
@@ -1303,7 +1303,7 @@ namespace KalaGraphics::Graphics
                     "Failed to update texture '" + to_string(ID) + "' data "
                     "because vk descriptor set allocation failed! Reason: " + GraphicsContext::GetVkResultMessage(result),
                     "KG_TEXTURE",
-                    LogType::ERROR,
+                    LogType::LOG_ERROR,
                     2);
 
                 return;
@@ -1697,7 +1697,7 @@ namespace KalaGraphics::Graphics
                 + "' because it is a root texture and it is required "
                 "for normal operation of KalaGraphics!",
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1708,7 +1708,7 @@ namespace KalaGraphics::Graphics
                 "Failed to destroy texture '" + to_string(ID) 
                 + "' because it is used in a widget!",
                 "KG_TEXTURE",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1740,7 +1740,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Destroying texture '" + to_string(ID) + "'.",
             "KG_TEXTURE",
-            LogType::INFO);
+            LogType::LOG_INFO);
 
         VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
         if (logicalDevice == VK_NULL_HANDLE) 

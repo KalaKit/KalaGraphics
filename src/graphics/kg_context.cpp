@@ -284,7 +284,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Vulkan result code '" + to_string(result) + "' is invalid!",
                 "KG_CONTEXT",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
         }
 
         if (result == VK_SUCCESS)
@@ -311,7 +311,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Vulkan result code '" + to_string(result) + "' is invalid!",
                 "KG_CONTEXT",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return {};
         }
@@ -325,7 +325,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Vulkan result code '" + to_string(result) + "' is invalid!",
                 "KG_CONTEXT",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return {};
         }
@@ -413,7 +413,7 @@ namespace KalaGraphics::Graphics
                 "Failed to initialize global graphics context because "
                 "VkInstance has not been assigned!",
                 "KG_CONTEXT",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -423,7 +423,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to initialize global Vulkan because it is already initialized!",
                 "KG_CONTEXT",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -765,7 +765,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Initialized Vulkan Core!",
             "KG_CONTEXT",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
     }
 
     bool GraphicsContext::IsInitialized() { return isInitialized; }
@@ -886,7 +886,7 @@ namespace KalaGraphics::Graphics
                 "Failed to initialize graphics context because "
                 "VkInstance has not been assigned!",
                 "KG_CONTEXT",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -897,7 +897,7 @@ namespace KalaGraphics::Graphics
                 "Failed to initialize graphics context because "
                 "global graphics context has not yet been initialized!",
                 "KG_CONTEXT",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -907,7 +907,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to initialize graphics context because no window ID was passed!",
                 "KG_CONTEXT",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -918,7 +918,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to initialize graphics context because no window was passed!",
                 "KG_CONTEXT",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -937,7 +937,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to initialize graphics context because no window or display was passed!",
                 "KG_CONTEXT",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -985,7 +985,7 @@ namespace KalaGraphics::Graphics
         Log::Print(
             "Created new graphics context '" + idStr + "'!",
             "KG_CONTEXT",
-            LogType::SUCCESS);
+            LogType::LOG_SUCCESS);
 
         return contextPtr;
     }
@@ -1004,7 +1004,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to set vsync state because it already is the same!",
                 "KG_CONTEXT",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1095,7 +1095,7 @@ namespace KalaGraphics::Graphics
                 Log::Print(
                     "Recreating swapchain because of 'vkAcquireNextImageKHR'!",
                     "KG_CONTEXT",
-                    LogType::VERBOSE);
+                    LogType::LOG_VERBOSE);
             }
 
             //Log::Print("@@@@@ vk triggered recreateswapchain");
@@ -1337,7 +1337,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to recreate swapchain because Vulkan was not initialized!",
                 "KG_CONTEXT",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -1533,7 +1533,7 @@ namespace KalaGraphics::Graphics
                     Log::Print(
                         "Tried to use IMMEDIATE but device does not support it, falling back to FIFO.",
                         "KG_CONTEXT",
-                        LogType::VERBOSE);
+                        LogType::LOG_VERBOSE);
                 }
 
                 chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
@@ -1550,7 +1550,7 @@ namespace KalaGraphics::Graphics
                     Log::Print(
                         "Tried to use FIFO_RELAXED but device does not support it, falling back to FIFO.",
                         "KG_CONTEXT",
-                        LogType::VERBOSE);
+                        LogType::LOG_VERBOSE);
                 }
 
                 chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
@@ -1567,7 +1567,7 @@ namespace KalaGraphics::Graphics
                     Log::Print(
                         "Tried to use MAILBOX but device does not support it, falling back to FIFO_RELAXED.",
                         "KG_CONTEXT",
-                        LogType::VERBOSE);
+                        LogType::LOG_VERBOSE);
                 }
 
                 chosenPresentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
@@ -1579,7 +1579,7 @@ namespace KalaGraphics::Graphics
                     Log::Print(
                         "Tried to use MAILBOX and FIFO_RELAXED but device does not support them, falling back to FIFO.",
                         "KG_CONTEXT",
-                        LogType::VERBOSE);
+                        LogType::LOG_VERBOSE);
                 }
 
                 chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
@@ -1857,7 +1857,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Finished recreating Vulkan swapchain.",
                 "KG_CONTEXT",
-                LogType::VERBOSE);
+                LogType::LOG_VERBOSE);
         }
     }
 
@@ -1868,7 +1868,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to get instance because it was not assigned!", 
                 "KG_CONTEXT",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return {};
         }
@@ -1883,7 +1883,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to get physical device because Vulkan has not been initialized!",
                 "KG_CONTEXT",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -1897,7 +1897,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to get logical device because Vulkan has not been initialized!",
                 "KG_CONTEXT",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -1911,7 +1911,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to get vma allocator because Vulkan has not been initialized!",
                 "KG_CONTEXT",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -1925,7 +1925,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Failed to get descriptor pool because Vulkan has not been initialized!",
                 "KG_CONTEXT",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return nullptr;
         }
@@ -2118,7 +2118,7 @@ namespace KalaGraphics::Graphics
                     Log::Print(
                         "Tried to use FIFO_RELAXED but device does not support it, falling back to FIFO.",
                         "KG_CONTEXT",
-                        LogType::VERBOSE);
+                        LogType::LOG_VERBOSE);
                 }
 
                 chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
@@ -2135,7 +2135,7 @@ namespace KalaGraphics::Graphics
                     Log::Print(
                         "Tried to use MAILBOX but device does not support it, falling back to FIFO_RELAXED.",
                         "KG_CONTEXT",
-                        LogType::VERBOSE);
+                        LogType::LOG_VERBOSE);
                 }
 
                 chosenPresentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
@@ -2147,7 +2147,7 @@ namespace KalaGraphics::Graphics
                     Log::Print(
                         "Tried to use MAILBOX and FIFO_RELAXED but device does not support them, falling back to FIFO.",
                         "KG_CONTEXT",
-                        LogType::VERBOSE);
+                        LogType::LOG_VERBOSE);
                 }
 
                 chosenPresentMode = VK_PRESENT_MODE_FIFO_KHR;
@@ -2502,7 +2502,7 @@ namespace KalaGraphics::Graphics
                 "Failed to end single time commands "
                 "because the passed command buffer was invalid!",
                 "KG_CONTEXT",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 
             return;
         }
@@ -2582,7 +2582,7 @@ namespace KalaGraphics::Graphics
             Log::Print(
                 "Encountered a warning because of '" + reason + "'!\n" + GetVkResultMessage(result),
                 "KG_CONTEXT",
-                LogType::WARNING);
+                LogType::LOG_WARNING);
 #endif
         }
         else
@@ -2593,7 +2593,7 @@ namespace KalaGraphics::Graphics
                 Log::Print(
                     "Encountered a message because of '" + reason + "'.\n" + GetVkResultMessage(result),
                     "KG_CONTEXT",
-                    LogType::VERBOSE);
+                    LogType::LOG_VERBOSE);
             }
         }
     }
@@ -2657,7 +2657,7 @@ namespace KalaGraphics::Graphics
 		Log::Print(
 			"Destroying graphics context '" + to_string(ID) + "'.",
 			"KG_CONTEXT",
-			LogType::INFO);
+			LogType::LOG_INFO);
 
         if (logicalDevice == VK_NULL_HANDLE)
         {
@@ -2774,7 +2774,7 @@ namespace KalaGraphics::Graphics
 				"Destroying global Vulkan and all remaining resources "
                 "because all graphics contexts were destroyed.",
 				"KG_CONTEXT",
-				LogType::INFO);
+				LogType::LOG_INFO);
                
             string _{};
             _ = Shader::GetRegistry().DestroyAllContent();
