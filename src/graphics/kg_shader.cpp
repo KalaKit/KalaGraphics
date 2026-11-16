@@ -16,6 +16,7 @@
 #include "file_utils.hpp"
 
 #include "graphics/kg_shader.hpp"
+#include "graphics/kg_material.hpp"
 #include "graphics/kg_mesh.hpp"
 #include "graphics/kg_texture.hpp"
 #include "graphics/kg_camera.hpp"
@@ -1066,7 +1067,7 @@ namespace KalaGraphics::Graphics
     u32 Shader::GetViewportID() const { return viewportID; }
     const vector<u32>& Shader::GetCameraIDs() const { return cameraIDs; }
     const vector<u32>& Shader::GetTextureIDs() const { return textureIDs; }
-    const vector<u32>& Shader::GetMeshIDs() const { return meshIDs; }
+    const vector<u32>& Shader::GetMaterialIDs() const { return materialIDs; }
 
     const vector<u32>& Shader::GetTextWidgetIDs() const { return textWidgetIDs; }
 
@@ -1202,13 +1203,13 @@ namespace KalaGraphics::Graphics
         }
         textureIDs.clear();
 
-        for (u32 mID : meshIDs)
+        for (u32 mID : materialIDs)
         {
-            Mesh* m{};
-            string err = Mesh::GetRegistry().GetContent(mID, m);
+            Material* m{};
+            string err = Material::GetRegistry().GetContent(mID, m);
             if (err.empty()) m->shaderID = 0;
         }
-        meshIDs.clear();
+        materialIDs.clear();
 
         err = registry.DestroyContent(ID);
         if (!err.empty())

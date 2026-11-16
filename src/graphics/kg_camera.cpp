@@ -18,6 +18,7 @@ KG_VK_MEM_ALLOC_IGNORE_POP
 #include "graphics/kg_context.hpp"
 #include "graphics/kg_viewport.hpp"
 #include "graphics/kg_shader.hpp"
+#include "graphics/kg_material.hpp"
 #include "graphics/kg_mesh.hpp"
 
 using KalaHeaders::KalaLog::Log;
@@ -353,14 +354,24 @@ namespace KalaGraphics::Graphics
         if (oldMesh) oldMesh->cameraID = 0;
         mesh->cameraID = ID;
 
-        Shader* shader{};
-        err = Shader::GetRegistry().GetContent(mesh->shaderID, shader);
+        Material* mat{};
+        err = Material::GetRegistry().GetContent(mesh->materialID, mat);
         if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics camera error",
                 "Failed to set mesh ID for camera '" 
-                + to_string(ID) + "' because of invalid mesh shader! Reason: " + err);
+                + to_string(ID) + "' because its material was invalid! Reason: " + err);
+        }
+
+        Shader* shader{};
+        err = Shader::GetRegistry().GetContent(mat->GetShaderID(), shader);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics camera error",
+                "Failed to set mesh ID for camera '" 
+                + to_string(ID) + "' because its material '" + to_string(mesh->materialID) + "' shader was invalid! Reason: " + err);
         }
 
         //TODO: figure out what data needs to change/clear when modifying mesh ID

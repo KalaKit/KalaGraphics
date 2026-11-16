@@ -534,6 +534,29 @@ namespace KalaGraphics::Graphics
         return rs->shaderID;
     }
 
+    u32 Viewport::GetRootMaterialID(RootShaderTarget target)
+    {
+        auto rm = find_if(
+            rootMaterialTable.begin(),
+            rootMaterialTable.end(),
+            [target](const RootMaterial& entry)
+            { 
+                return entry.shaderTarget == target;
+            });
+
+        if (rm == rootMaterialTable.end())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics viewport error",
+                "Failed to get material ID for root shader target '" 
+                + to_string(scast<u8>(target)) + "'!");
+
+            return {};
+        }
+
+        return rm->materialID;
+    }
+
     bool Viewport::IsHovered() const { return hitTestID != 0; }
 
     bool Viewport::IsVisible() const { return isVisible; }
@@ -1123,28 +1146,41 @@ namespace KalaGraphics::Graphics
                     "because its shader was invalid! Reason: " + err);
             }
 
-            for (u32 mID : shader->meshIDs)
+            for (u32 matID : shader->materialIDs)
             {
-                Mesh* m{};
-                string err = Mesh::GetRegistry().GetContent(mID, m);
+                Material* mat{};
+                string err = Material::GetRegistry().GetContent(matID, mat);
                 if (!err.empty())
                 {
                     KalaGraphicsCore::ForceClose(
                         "KalaGraphics viewport error", 
-                        "Failed to sort mesh '" + to_string(mID) 
-                        + "' in shader '" + to_string(shader->ID) + "' because the mesh was invalid! Reason: " + err);
+                        "Failed to sort meshes for material in shader '" 
+                        + to_string(shader->ID) + "' because the material was invalid! Reason: " + err);
                 }
 
-                //ignore invisible meshes
-                if (!m->isVisible) continue;
+                for (const u32 meshID : mat->GetMeshIDs())
+                {
+                    Mesh* mesh{};
+                    string err = Mesh::GetRegistry().GetContent(meshID, mesh);
+                    if (!err.empty())
+                    {
+                        KalaGraphicsCore::ForceClose(
+                            "KalaGraphics viewport error", 
+                            "Failed to sort mesh in material '" 
+                            + to_string(mesh->ID) + "' because the mesh was invalid! Reason: " + err);
+                    }
 
-                meshes.push_back(m);
+                    //ignore invisible meshes
+                    if (!mesh->isVisible) continue;
+
+                    meshes.push_back(mesh);
+                }
             }
         }
 
         bool foundMovedMesh{};
         for (Mesh* m : meshes)
-        {
+        {   
             Material* mat{};
             string err = Material::GetRegistry().GetContent(m->materialID, mat);
             if (!err.empty())
@@ -1152,7 +1188,7 @@ namespace KalaGraphics::Graphics
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics viewport error", 
                     "Failed to sort mesh '" + to_string(m->ID) 
-                    + "' in shader '" + to_string(m->shaderID) + "' because its material was invalid! Reason: " + err);
+                    + "' because its material was invalid! Reason: " + err);
             }
 
             //skip opaque 3D meshes
@@ -1187,7 +1223,7 @@ namespace KalaGraphics::Graphics
                 KalaGraphicsCore::ForceClose(
                     "KalaGraphics viewport error", 
                     "Failed to sort mesh '" + to_string(m->ID) 
-                    + "' in shader '" + to_string(m->shaderID) + "' because its material was invalid! Reason: " + err);
+                    + "' because its material was invalid! Reason: " + err);
             }
 
             if (mat->GetAlphaMode() == AlphaMode::TYPE_OPAQUE) opaqueMeshes.push_back(m);
@@ -1254,22 +1290,35 @@ namespace KalaGraphics::Graphics
                     "because its shader was invalid! Reason: " + err);
             }
 
-            for (u32 mID : shader->meshIDs)
+            for (u32 matID : shader->materialIDs)
             {
-                Mesh* m{};
-                string err = Mesh::GetRegistry().GetContent(mID, m);
+                Material* mat{};
+                string err = Material::GetRegistry().GetContent(matID, mat);
                 if (!err.empty())
                 {
                     KalaGraphicsCore::ForceClose(
                         "KalaGraphics viewport error", 
-                        "Failed to sort mesh '" + to_string(mID) 
-                        + "' in shader '" + to_string(shader->ID) + "' because the mesh was invalid! Reason: " + err);
+                        "Failed to sort meshes in shader '" + to_string(shader->ID) 
+                        + "' because the material was invalid! Reason: " + err);
                 }
 
-                //ignore invisible meshes
-                if (!m->isVisible) continue;
+                for (const u32 meshID : mat->meshIDs)
+                {
+                    Mesh* mesh{};
+                    string err = Mesh::GetRegistry().GetContent(meshID, mesh);
+                    if (!err.empty())
+                    {
+                        KalaGraphicsCore::ForceClose(
+                            "KalaGraphics viewport error", 
+                            "Failed to sort mesh in material '" + to_string(mat->ID) 
+                            + "' because the mesh was invalid! Reason: " + err);
+                    }
 
-                meshes.push_back(m);
+                    //ignore invisible meshes
+                    if (!mesh->isVisible) continue;
+
+                    meshes.push_back(mesh);
+                }
             }
         }
 

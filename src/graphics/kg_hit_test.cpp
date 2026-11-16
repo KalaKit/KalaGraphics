@@ -11,6 +11,7 @@
 #include "graphics/kg_context.hpp"
 #include "graphics/kg_viewport.hpp"
 #include "graphics/kg_shader.hpp"
+#include "graphics/kg_material.hpp"
 #include "graphics/kg_mesh.hpp"
 
 using KalaHeaders::KalaLog::Log;
@@ -216,9 +217,23 @@ namespace KalaGraphics::Graphics
                             + "' 2D shader was invalid! Reason: " + err);
                     }
 
-                    for (u32 ID : s->meshIDs)
+                    for (u32 mID : s->GetMaterialIDs())
                     {
-                        existingMeshes.push_back(ID);
+                        Material* m{};
+                        string err = Material::GetRegistry().GetContent(mID, m);
+                        if (!err.empty())
+                        {
+                            KalaGraphicsCore::ForceClose(
+                                "KalaGraphics hit test error", 
+                                "Failed to update hit test '" + to_string(ID) 
+                                + "' because viewport '" + to_string(vp->ID) 
+                                + "' 2D shader '" + to_string(sID) + "' material was invalid! Reason: " + err);
+                        }
+
+                        for (u32 ID : m->GetMeshIDs())
+                        {
+                            existingMeshes.push_back(ID);
+                        }
                     }
                 }
 

@@ -886,7 +886,7 @@ namespace KalaGraphics::Graphics
         return data;
     }
 
-    Mesh* Mesh::Initialize(u32 shaderID)
+    Mesh* Mesh::Initialize(u32 materialID)
     {
         VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
         if (logicalDevice == VK_NULL_HANDLE)
@@ -896,28 +896,34 @@ namespace KalaGraphics::Graphics
                 "Failed to create mesh because the logical device was invalid!");
         }
 
-        Shader* shader{};
-        string err = Shader::GetRegistry().GetContent(shaderID, shader);
+        Material* mat{};
+        string err = Material::GetRegistry().GetContent(materialID, mat);
         if (!err.empty())
         {
             Log::Print(
-                "Failed to create mesh because the shader was invalid! Reason: " + err,
+                "Failed to create mesh because the material was invalid! Reason: " + err,
                 "KG_MESH",
                 LogType::LOG_WARNING);
 
             return nullptr;
         }
 
+        Shader* shader{};
+        err = Shader::GetRegistry().GetContent(mat->shaderID, shader);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to create mesh because the material '" + to_string(mat->ID) + "' shader was invalid! Reason: " + err);
+        }
+
         Viewport* vp{};
         err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
         if (!err.empty())
         {
-            Log::Print(
-                "Failed to create mesh because the shader '" + to_string(shader->ID) + "' viewport was invalid! Reason: " + err,
-                "KG_MESH",
-                LogType::LOG_WARNING);
-
-            return nullptr;
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to create mesh because the shader '" + to_string(shader->ID) + "' viewport was invalid! Reason: " + err);
         }
 
         //TODO: figure out a better solution
@@ -925,7 +931,7 @@ namespace KalaGraphics::Graphics
         {
             Log::Print(
                 "Failed to create mesh because the shader '" 
-                + to_string(shaderID) + "' had no shader data!",
+                + to_string(shader->ID) + "' had no shader data!",
                 "KG_MESH",
                 LogType::LOG_WARNING);
 
@@ -939,10 +945,10 @@ namespace KalaGraphics::Graphics
         KalaGraphicsCore::SetGlobalID(newID);
 
         meshPtr->ID = newID;
-        meshPtr->shaderID = shaderID;
+        meshPtr->materialID = materialID;
 
-        //shader references this mesh
-        shader->meshIDs.push_back(newID);
+        //material references this mesh
+        mat->meshIDs.push_back(newID);
 
         meshPtr->isBufferDataDirty = true;
         meshPtr->is2D = shader->is2D;
@@ -993,24 +999,6 @@ namespace KalaGraphics::Graphics
 				"Failed to initialize mesh! Reason: " + err);
         }
 
-        Material* mat = Material::Initialize(meshPtr->ID);
-        //rect
-        mat->rectData.baseColorTextureID = shader->rootTextureID;
-        //font
-        mat->fontData.baseColorTextureID = shader->rootTextureID;
-        //unlit
-        mat->unlitData.baseColorTextureID = shader->rootTextureID;
-        //blinn-phong
-        mat->blinnPhongData.baseColorTextureID = shader->rootTextureID;
-        mat->blinnPhongData.specularTextureID  = shader->rootTextureID;
-        mat->blinnPhongData.normalTextureID    = shader->rootTextureID;
-        //pbr
-        mat->pbrData.baseColorTextureID         = shader->rootTextureID;
-        mat->pbrData.metallicRoughnessTextureID = shader->rootTextureID;
-        mat->pbrData.normalTextureID            = shader->rootTextureID;
-        mat->pbrData.occlusionTextureID         = shader->rootTextureID;
-        mat->pbrData.emissiveTextureID          = shader->rootTextureID;
-
         Texture* rootTex{};
         err = Texture::GetRegistry().GetContent(shader->rootTextureID, rootTex);
         if (!err.empty())
@@ -1028,7 +1016,7 @@ namespace KalaGraphics::Graphics
 
         Log::Print(
 			"Created new mesh '" + to_string(newID) 
-            + "' for shader '" + to_string(shaderID) + "'!",
+            + "' with material '" + to_string(materialID) + "'!",
 			"KG_MESH",
 			LogType::LOG_SUCCESS);
 
@@ -1037,50 +1025,52 @@ namespace KalaGraphics::Graphics
 
     u32 Mesh::GetID() const { return ID; }
 
-    u32 Mesh::GetShaderID() const { return shaderID; }
-    void Mesh::SetShaderID(u32 newValue)
+    u32 Mesh::GetMaterialID() const { return materialID; }
+    void Mesh::SetMaterialID(u32 newValue)
     {
+        /*
+        //TODO: figure out if worth protecting or not
         if (textWidgetID != 0)
         {
             Log::Print(
                 "Failed to set mesh '" + to_string(ID) 
-                + "' shader ID because it is used in text widget '" + to_string(textWidgetID) + "'!",
+                + "' material ID because it is used in text widget '" + to_string(textWidgetID) + "'!",
                 "KG_MESH",
                 LogType::LOG_WARNING);
 
             return;
         }
+        */
 
         if (newValue == 0)
         {
             Log::Print(
                 "Failed to set mesh '" + to_string(ID) 
-                + "' shader ID because it was empty!",
+                + "' material ID because it was empty!",
                 "KG_MESH",
                 LogType::LOG_WARNING);
 
             return;
         }
 
-        if (shaderID == newValue)
+        if (materialID == newValue)
         {
             Log::Print(
-                "Failed to set mesh '" + to_string(ID) 
-                + "' shader ID to '" + to_string(newValue) 
-                + "' because it already is the same!",
+                "Failed to set mesh '" + to_string(ID) + "' material ID to '" 
+                + to_string(newValue) + "' because it already is the same!",
                 "KG_MESH",
                 LogType::LOG_WARNING);
 
             return;
         }
         
-        Material* mat{};
-        string err = Material::GetRegistry().GetContent(materialID, mat);
+        Material* oldMat{};
+        string err = Material::GetRegistry().GetContent(materialID, oldMat);
         if (!err.empty())
         {
             Log::Print(
-                "Failed to set mesh '" + to_string(ID) 
-                + "' shader ID because its material was invalid! Reason: " + err,
+                "Failed to set mesh '" + to_string(ID) + "' material ID "
+                "because its current material was invalid! Reason: " + err,
                 "KG_MESH",
                 LogType::LOG_WARNING);
 
@@ -1088,33 +1078,35 @@ namespace KalaGraphics::Graphics
         }
 
         Shader* oldShader{};
-        err = Shader::GetRegistry().GetContent(shaderID, oldShader);
+        err = Shader::GetRegistry().GetContent(oldMat->shaderID, oldShader);
         if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics mesh error",
-                "Failed to set shader ID for mesh '" 
-                + to_string(ID) + "' because of invalid old shader! Reason: " + err);
+                "Failed to set mesh '" + to_string(ID) + "' material ID "
+                "because its old shader was invalid! Reason: " + err);
         }
 
-        Shader* shader{};
-        err = Shader::GetRegistry().GetContent(newValue, shader);
+        Material* newMat{};
+
+        Shader* newShader{};
+        err = Shader::GetRegistry().GetContent(newValue, newShader);
         if (!err.empty())
         {
             Log::Print(
                 "Failed to set mesh '" + to_string(ID) 
-                + "' shader ID because it was invalid! Reason: " + err,
+                + "' material ID because it was invalid! Reason: " + err,
                 "KG_MESH",
                 LogType::LOG_WARNING);
 
             return;
         }
 
-        if (shader->is2D != is2D)
+        if (newShader->is2D != is2D)
         {
             Log::Print(
                 "Failed to update mesh '" + to_string(ID) 
-                + "' shader because new shader '" + to_string(shader->ID) 
+                + "' shader because new shader '" + to_string(newShader->ID) 
                 + "' 2D state does not match old shader '" + to_string(oldShader->ID) + "' 2D state!",
                 "KG_MESH",
                 LogType::LOG_WARNING);
@@ -1123,40 +1115,40 @@ namespace KalaGraphics::Graphics
         }
 
         Texture* rootTex{};
-        err = Texture::GetRegistry().GetContent(shader->rootTextureID, rootTex);
+        err = Texture::GetRegistry().GetContent(newShader->rootTextureID, rootTex);
         if (!err.empty())
         {
 			KalaGraphicsCore::ForceClose(
 				"KalaGraphics mesh error",
 				"Failed to update mesh '" + to_string(ID) + "' shader ID because new shader '" 
-                + to_string(shader->ID) + "' root texture was invalid! Reason: " + err);
+                + to_string(newShader->ID) + "' root texture was invalid! Reason: " + err);
         }
 
-        shaderID = newValue;
+        materialID = newValue;
 
         erase(
-            oldShader->meshIDs,
+            oldMat->meshIDs,
             ID);
-        shader->meshIDs.push_back(ID);
+        newMat->meshIDs.push_back(ID);
 
         vector<u32*> textureIDs
         {
             //rect
-            &mat->rectData.baseColorTextureID,
+            &newMat->rectData.baseColorTextureID,
             //font
-            &mat->fontData.baseColorTextureID,
+            &newMat->fontData.baseColorTextureID,
             //unlit
-            &mat->unlitData.baseColorTextureID,
+            &newMat->unlitData.baseColorTextureID,
             //blinn-phong
-            &mat->blinnPhongData.baseColorTextureID,
-            &mat->blinnPhongData.specularTextureID,
-            &mat->blinnPhongData.normalTextureID,
+            &newMat->blinnPhongData.baseColorTextureID,
+            &newMat->blinnPhongData.specularTextureID,
+            &newMat->blinnPhongData.normalTextureID,
             //pbr
-            &mat->pbrData.baseColorTextureID,
-            &mat->pbrData.metallicRoughnessTextureID,
-            &mat->pbrData.normalTextureID,
-            &mat->pbrData.occlusionTextureID,
-            &mat->pbrData.emissiveTextureID
+            &newMat->pbrData.baseColorTextureID,
+            &newMat->pbrData.metallicRoughnessTextureID,
+            &newMat->pbrData.normalTextureID,
+            &newMat->pbrData.occlusionTextureID,
+            &newMat->pbrData.emissiveTextureID
         };
 
         for (size_t i = 0; i < textureIDs.size(); i++)
@@ -1183,22 +1175,21 @@ namespace KalaGraphics::Graphics
             }
         }
 
-        for (u32* tex : textureIDs) *tex = shader->rootTextureID;
+        for (u32* tex : textureIDs) *tex = newShader->rootTextureID;
 
         pair<u32, array<bool, 11>> matPair{};
-        matPair.first = mat->ID;
+        matPair.first = newMat->ID;
         matPair.second.fill(true);
         rootTex->materialIDs.push_back(matPair);
 
         Log::Print(
             "Set mesh '" + to_string(ID) 
-            + "' shader ID to '" + to_string(shaderID) + "'!",
+            + "' material ID to '" + to_string(newValue) + "'!",
             "KG_MESH",
             LogType::LOG_SUCCESS);
     }
 
     u32 Mesh::GetCameraID() const { return cameraID; }
-    u32 Mesh::GetMaterialID() const { return materialID; }
 
     u32 Mesh::GetTextWidgetID() const { return textWidgetID; }
 
@@ -1218,31 +1209,37 @@ namespace KalaGraphics::Graphics
             return;
         }
 
-        if (shaderID != 0)
+        Material* mat{};
+        string err = Material::GetRegistry().GetContent(materialID, mat);
+        if (!err.empty())
         {
-            Shader* shader{};
-            string err = Shader::GetRegistry().GetContent(shaderID, shader);
-            if (!err.empty())
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics mesh error",
-                    "Failed to update mesh '" + to_string(ID) + "' visible state "
-                    "because its shader was invalid! Reason: " + err);
-            }
-
-            Viewport* vp{};
-            err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
-            if (!err.empty())
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics mesh error",
-                    "Failed to update mesh '" + to_string(ID) + "' visible state "
-                    "because its shader '" + to_string(shaderID) + "' viewport was invalid! Reason: " + err);
-            }
-
-            if (!is2D) vp->is3DMeshSortDirty = true;
-            else       vp->is2DMeshSortDirty = true;
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to set mesh '" + to_string(ID) + "' visible state because its material was invalid! Reason: " + err);
         }
+
+        Shader* shader{};
+        err = Shader::GetRegistry().GetContent(mat->shaderID, shader);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to set mesh '" + to_string(ID) + "' visible state because its material '" 
+                + to_string(mat->shaderID) + "' shader was invalid! Reason: " + err);
+        }
+
+        Viewport* vp{};
+        err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to update mesh '" + to_string(ID) + "' visible state "
+                "because its shader '" + to_string(mat->shaderID) + "' viewport was invalid! Reason: " + err);
+        }
+
+        if (!is2D) vp->is3DMeshSortDirty = true;
+        else       vp->is2DMeshSortDirty = true;
 
         isVisible = newValue;
         string val = isVisible ? "true" : "false";
@@ -1283,32 +1280,37 @@ namespace KalaGraphics::Graphics
             return;
         }
 
-        drawOrderIndex = newValue;
-
-        if (shaderID != 0)
+        Material* mat{};
+        string err = Material::GetRegistry().GetContent(materialID, mat);
+        if (!err.empty())
         {
-            Shader* shader{};
-            string err = Shader::GetRegistry().GetContent(shaderID, shader);
-            if (!err.empty())
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics mesh error",
-                    "Failed to update mesh '" + to_string(ID) + "' draw order "
-                    "because its shader was invalid! Reason: " + err);
-            }
-
-            Viewport* vp{};
-            err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
-            if (!err.empty())
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics mesh error",
-                    "Failed to update mesh '" + to_string(ID) + "' draw order "
-                    "because its shader '" + to_string(shaderID) + "' viewport was invalid! Reason: " + err);
-            }
-
-            vp->is2DMeshSortDirty = true;
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to set mesh '" + to_string(ID) + "' draw order because its material was invalid! Reason: " + err);
         }
+
+        Shader* shader{};
+        err = Shader::GetRegistry().GetContent(mat->shaderID, shader);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to set mesh '" + to_string(ID) + "' draw order because its material '" 
+                + to_string(mat->shaderID) + "' shader was invalid! Reason: " + err);
+        }
+
+        Viewport* vp{};
+        err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to set mesh '" + to_string(ID) + "' draw order "
+                "because its shader '" + to_string(mat->shaderID) + "' viewport was invalid! Reason: " + err);
+        }
+
+        drawOrderIndex = newValue;
+        vp->is2DMeshSortDirty = true;
 
         Log::Print(
             "Set mesh '" + to_string(ID) + "' draw order index to '" + to_string(drawOrderIndex) + "'.",
@@ -1642,33 +1644,39 @@ namespace KalaGraphics::Graphics
             return;
         }
 
+        Material* mat{};
+        string err = Material::GetRegistry().GetContent(materialID, mat);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to set mesh '" + to_string(ID) + "' data because its material was invalid! Reason: " + err);
+        }
+
+        Shader* shader{};
+        err = Shader::GetRegistry().GetContent(mat->shaderID, shader);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to set mesh '" + to_string(ID) + "' data because its material '" 
+                + to_string(mat->shaderID) + "' shader was invalid! Reason: " + err);
+        }
+
+        Viewport* vp{};
+        err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to set mesh '" + to_string(ID) + "' data "
+                "because its shader '" + to_string(mat->shaderID) + "' viewport was invalid! Reason: " + err);
+        }
+
         vertices = std::move(meshData.vertices);
         indices = std::move(meshData.indices);
 
-        if (shaderID != 0)
-        {
-            Shader* shader{};
-            string err = Shader::GetRegistry().GetContent(shaderID, shader);
-            if (!err.empty())
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics mesh error",
-                    "Failed to set mesh '" + to_string(ID) + "' data "
-                    "because its shader was invalid! Reason: " + err);
-            }
-
-            Viewport* vp{};
-            err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
-            if (!err.empty())
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics mesh error",
-                    "Failed to set mesh '" + to_string(ID) + "' data "
-                    "because its shader '" + to_string(shaderID) + "' viewport was invalid! Reason: " + err);
-            }
-
-            vp->is3DMeshSortDirty = true;
-        }
+        vp->is3DMeshSortDirty = true;
     
         isMeshDataDirty = true;
 
@@ -1692,6 +1700,37 @@ namespace KalaGraphics::Graphics
 
             return;
         }
+        
+        Material* mat{};
+        string err = Material::GetRegistry().GetContent(materialID, mat);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to flip mesh '" + to_string(ID) + "' face direction because its material was invalid! Reason: " + err);
+        }
+
+        Shader* shader{};
+        err = Shader::GetRegistry().GetContent(mat->shaderID, shader);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to flip mesh '" + to_string(ID) + "' face direction because its material '" 
+                + to_string(mat->shaderID) + "' shader was invalid! Reason: " + err);
+        }
+
+        Viewport* vp{};
+        err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to flip mesh '" + to_string(ID) + "' face direction "
+                "because its shader '" + to_string(mat->shaderID) + "' viewport was invalid! Reason: " + err);
+        }
+
+        vp->is3DMeshSortDirty = true;
 
         if (!indices.empty())
         {
@@ -1706,31 +1745,6 @@ namespace KalaGraphics::Graphics
             {
                 swap(vertices[i + 1], vertices[i + 2]);
             }
-        }
-
-        if (shaderID != 0)
-        {
-            Shader* shader{};
-            string err = Shader::GetRegistry().GetContent(shaderID, shader);
-            if (!err.empty())
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics mesh error",
-                    "Failed to flip mesh '" + to_string(ID) + "' face direction "
-                    "because its shader was invalid! Reason: " + err);
-            }
-
-            Viewport* vp{};
-            err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
-            if (!err.empty())
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics mesh error",
-                    "Failed to flip mesh '" + to_string(ID) + "' face direction "
-                    "because its shader '" + to_string(shaderID) + "' viewport was invalid! Reason: " + err);
-            }
-
-            vp->is3DMeshSortDirty = true;
         }
     
         isMeshDataDirty = true;
@@ -1845,14 +1859,24 @@ namespace KalaGraphics::Graphics
                 "because the vma allocator was invalid!");
         }
 
-        Shader* shader{};
-        string err = Shader::GetRegistry().GetContent(shaderID, shader);
+        Material* mat{};
+        string err = Material::GetRegistry().GetContent(materialID, mat);
         if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics mesh error",
-                "Failed to update mesh '" + to_string(ID) 
-                + "' data because its shader was invalid! Reason: " + err);
+                "Failed to update mesh '" + to_string(ID) + "' data "
+                "because its material was invalid! Reason: " + err);
+        }
+
+        Shader* shader{};
+        err = Shader::GetRegistry().GetContent(mat->shaderID, shader);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to update mesh '" + to_string(ID) + "' data "
+                "because its material '" + to_string(mat->shaderID) + "' shader was invalid! Reason: " + err);
         }
 
         Viewport* vp{};
@@ -1861,8 +1885,8 @@ namespace KalaGraphics::Graphics
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics mesh error",
-                "Failed to update mesh '" + to_string(ID) 
-                + "' data because its shader '" + to_string(shaderID) + "' viewport was invalid! Reason: " + err);
+                "Failed to update mesh '" + to_string(ID) + "' data "
+                "because its shader '" + to_string(mat->shaderID) + "' viewport was invalid! Reason: " + err);
         }
 
         GraphicsContext* gctx{};
@@ -2488,18 +2512,8 @@ namespace KalaGraphics::Graphics
 
     void Mesh::Update(VkCommandBuffer buffer)
     {
-        Shader* shader{};
-        string err = Shader::GetRegistry().GetContent(shaderID, shader);
-        if (!err.empty())
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics mesh error",
-                "Failed to update mesh '" + to_string(ID) 
-                + "' data because its shader was invalid! Reason: " + err);
-        }
-        
-        Material* m{};
-        err = Material::GetRegistry().GetContent(materialID, m);
+        Material* mat{};
+        string err = Material::GetRegistry().GetContent(materialID, mat);
         if (!err.empty())
         {
             KalaGraphicsCore::ForceClose(
@@ -2508,12 +2522,22 @@ namespace KalaGraphics::Graphics
                 + "' data because its material was invalid! Reason: " + err);
         }
 
+        Shader* shader{};
+        err = Shader::GetRegistry().GetContent(mat->shaderID, shader);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to update mesh '" + to_string(ID) + "' data because "
+                "its material '" + to_string(mat->shaderID) + "' shader was invalid! Reason: " + err);
+        }
+
         if (shader->is2D != is2D)
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics mesh error",
                 "Failed to update mesh '" + to_string(ID) + "' "
-                "because its 2D state doesn't match its shader '" + to_string(shaderID) + "' 2D state!");
+                "because its 2D state doesn't match its shader '" + to_string(mat->shaderID) + "' 2D state!");
         }
 
         Viewport* vp{};
@@ -2523,7 +2547,7 @@ namespace KalaGraphics::Graphics
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics mesh error",
                 "Failed to update mesh '" + to_string(ID) 
-                + "' data because its shader '" + to_string(shaderID) + "' viewport was invalid! Reason: " + err);
+                + "' data because its shader '" + to_string(mat->shaderID) + "' viewport was invalid! Reason: " + err);
         }
 
         UpdateMeshData();
@@ -2540,9 +2564,9 @@ namespace KalaGraphics::Graphics
 
         //only bind pipeline if last bound shader is not the same as this mesh shader
         if ((!shader->is2D 
-            && vp->lastBoundShader3DID != shaderID)
+            && vp->lastBoundShader3DID != mat->shaderID)
             || (shader->is2D 
-            && vp->lastBoundShader2DID != shaderID))
+            && vp->lastBoundShader2DID != mat->shaderID))
         {
             vkCmdBindPipeline(
                 buffer,
@@ -2576,8 +2600,8 @@ namespace KalaGraphics::Graphics
                 0,
                 nullptr);
 
-            if (!shader->is2D) vp->lastBoundShader3DID = shaderID;
-            else               vp->lastBoundShader2DID = shaderID;
+            if (!shader->is2D) vp->lastBoundShader3DID = mat->shaderID;
+            else               vp->lastBoundShader2DID = mat->shaderID;
         }
 
         if (vkVertexBuffer == VK_NULL_HANDLE)
@@ -2614,7 +2638,7 @@ namespace KalaGraphics::Graphics
             0,
             nullptr);
 
-        m->Update(buffer);
+        mat->Update(buffer);
 
         /*
         Log::Print(
@@ -2691,31 +2715,40 @@ namespace KalaGraphics::Graphics
 
         Material* mat{};
         err = Material::GetRegistry().GetContent(materialID, mat);
-        mat->Destroy();
-
-        //only remove this mesh from shader meshes list if the shader is still valid
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to destroy mesh '" + to_string(ID) + "' "
+                "because its material was invalid! Reason: " + err);
+        }
 
         Shader* shader{};
-        err = Shader::GetRegistry().GetContent(shaderID, shader);
-        if (err.empty())
+        err = Shader::GetRegistry().GetContent(mat->shaderID, shader);
+        if (!err.empty())
         {
-            erase(
-                shader->meshIDs,
-                ID);
-
-            Viewport* vp{};
-            err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
-            if (!err.empty())
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics mesh error",
-                    "Failed to destroy mesh '" + to_string(ID) + "' "
-                    "because its shader '" + to_string(shaderID) + "' viewport was invalid! Reason: " + err);
-            }
-
-            if (!is2D) vp->is3DMeshSortDirty = true;
-            else       vp->is2DMeshSortDirty = true;
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to destroy mesh '" + to_string(ID) + "' because "
+                "its material '" + to_string(mat->shaderID) + "' shader was invalid! Reason: " + err);
         }
+
+        Viewport* vp{};
+        err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to destroy mesh '" + to_string(ID) + "' "
+                "because its shader '" + to_string(mat->shaderID) + "' viewport was invalid! Reason: " + err);
+        }
+
+        if (!is2D) vp->is3DMeshSortDirty = true;
+        else       vp->is2DMeshSortDirty = true;
+
+        erase(
+            mat->meshIDs,
+            ID);
 
         HitTest* hitTest{};
         err = HitTest::GetRegistry().GetContent(hitTestID, hitTest);
