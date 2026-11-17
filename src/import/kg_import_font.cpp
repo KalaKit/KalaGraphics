@@ -3,20 +3,15 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#include <memory>
-
 #include "hb.h"
 #include "hb-ot.h"
 #include "hb-raster.h"
 
-#include "core_utils.hpp"
 #include "log_utils.hpp"
 #include "file_utils.hpp"
 
 #include "import/kg_import_font.hpp"
 #include "core/kg_core.hpp"
-
-using KalaHeaders::KalaCore::ContainsValue;
 
 using KalaHeaders::KalaLog::Log;
 using KalaHeaders::KalaLog::LogType;
@@ -33,8 +28,6 @@ using std::array;
 using std::string;
 using std::string_view;
 using std::to_string;
-using std::unique_ptr;
-using std::make_unique;
 using std::filesystem::is_regular_file;
 using std::ranges::find_if;
 
@@ -165,8 +158,17 @@ namespace KalaGraphics::Import
             return nullptr;
         }
 
-        unique_ptr<ImportFont> newFont = make_unique<ImportFont>();
-        ImportFont* fontPtr = newFont.get();
+        u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
+        KalaGraphicsCore::SetGlobalID(newID);
+
+        ImportFont* fontPtr{};
+        string err = registry.AddContent(newID, fontPtr);
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics import font error",
+				"Failed to initialize import font! Reason: " + err);
+        }
 
         FontData fontData{ .fontScale = fontScale };
         errMsg = fontPtr->Initialize_HarfBuzz(
@@ -184,20 +186,9 @@ namespace KalaGraphics::Import
             return nullptr;
         }
 
-        u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
-        KalaGraphicsCore::SetGlobalID(newID);
-
         fontPtr->ID = newID;
         fontPtr->fontPath = std::move(fontPath);
         fontPtr->fontData = std::move(fontData);
-
-        string err = registry.AddContent(newID, std::move(newFont));
-        if (!err.empty())
-        {
-			KalaGraphicsCore::ForceClose(
-				"KalaGraphics import font error",
-				"Failed to initialize import font! Reason: " + err);
-        }
 
         Log::Print(
 			"Created new import font '" + to_string(newID) + "'!",
@@ -231,8 +222,17 @@ namespace KalaGraphics::Import
             return nullptr;
         }
 
-        unique_ptr<ImportFont> newFont = make_unique<ImportFont>();
-        ImportFont* fontPtr = newFont.get();
+        u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
+        KalaGraphicsCore::SetGlobalID(newID);
+
+        ImportFont* fontPtr{};
+        string err = registry.AddContent(newID, fontPtr);
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics import font error",
+				"Failed to initialize import font! Reason: " + err);
+        }
 
         FontData fontData{ .fontScale = fontScale };
         string errMsg = fontPtr->Initialize_HarfBuzz(
@@ -250,19 +250,8 @@ namespace KalaGraphics::Import
             return nullptr;
         }
 
-        u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
-        KalaGraphicsCore::SetGlobalID(newID);
-
         fontPtr->ID = newID;
         fontPtr->fontData = std::move(fontData);
-
-        string err = registry.AddContent(newID, std::move(newFont));
-        if (!err.empty())
-        {
-			KalaGraphicsCore::ForceClose(
-				"KalaGraphics import font error",
-				"Failed to initialize import font! Reason: " + err);
-        }
 
         Log::Print(
 			"Created new import font '" + to_string(newID) + "' from binary data!",

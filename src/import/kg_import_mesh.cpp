@@ -3,8 +3,6 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#include <memory>
-
 #include "cgltf.h"
 
 #include "log_utils.hpp"
@@ -51,12 +49,9 @@ using std::string;
 using std::string_view;
 using std::to_string;
 using std::vector;
-using std::unique_ptr;
 using std::pair;
-using std::make_unique;
 using std::filesystem::path;
 using std::filesystem::is_regular_file;
-using std::filesystem::absolute;
 
 static constexpr string_view EXT_GLTF = ".gltf";
 static constexpr string_view EXT_GLB = ".glb";
@@ -167,11 +162,17 @@ namespace KalaGraphics::Import
             return nullptr;
         }
 
-        unique_ptr<ImportMesh> newMesh = make_unique<ImportMesh>();
-        ImportMesh* meshPtr = newMesh.get();
-
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
+
+        ImportMesh* meshPtr{};
+        string err = registry.AddContent(newID, meshPtr);
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics import mesh error",
+				"Failed to initialize import mesh! Reason: " + err);
+        }
 
         meshPtr->ID = newID;
         meshPtr->meshPath = std::move(meshPath);
@@ -200,14 +201,6 @@ namespace KalaGraphics::Import
                 + to_string(mt.getsize(SizeTarget::SIZE_LOCAL).z));
         }
         */
-
-        string err = registry.AddContent(newID, std::move(newMesh));
-        if (!err.empty())
-        {
-			KalaGraphicsCore::ForceClose(
-				"KalaGraphics import mesh error",
-				"Failed to initialize import mesh! Reason: " + err);
-        }
 
         Log::Print(
 			"Created new import mesh '" + to_string(newID) 
@@ -248,11 +241,17 @@ namespace KalaGraphics::Import
             return nullptr;
         }
 
-        unique_ptr<ImportMesh> newMesh = make_unique<ImportMesh>();
-        ImportMesh* meshPtr = newMesh.get();
-
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
+
+        ImportMesh* meshPtr{};
+        string err = registry.AddContent(newID, meshPtr);
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics import mesh error",
+				"Failed to initialize import mesh! Reason: " + err);
+        }
 
         meshPtr->ID = newID;
         meshPtr->nodeData = std::move(nodeData);
@@ -280,14 +279,6 @@ namespace KalaGraphics::Import
                 + to_string(mt.getsize(SizeTarget::SIZE_LOCAL).z));
         }
         */
-
-        string err = registry.AddContent(newID, std::move(newMesh));
-        if (!err.empty())
-        {
-			KalaGraphicsCore::ForceClose(
-				"KalaGraphics import mesh error",
-				"Failed to initialize import mesh! Reason: " + err);
-        }
 
         Log::Print(
 			"Created new import mesh '" + to_string(newID) + "' from binary data!",

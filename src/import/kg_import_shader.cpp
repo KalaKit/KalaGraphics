@@ -3,8 +3,6 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#include <memory>
-
 #include "log_utils.hpp"
 #include "file_utils.hpp"
 
@@ -23,8 +21,6 @@ using std::string;
 using std::string_view;
 using std::to_string;
 using std::vector;
-using std::unique_ptr;
-using std::make_unique;
 using std::filesystem::exists;
 using std::filesystem::is_regular_file;
 
@@ -251,23 +247,21 @@ namespace KalaGraphics::Import
             return nullptr;
         }
 
-        unique_ptr<ImportShader> newShader = make_unique<ImportShader>();
-        ImportShader* shaderPtr = newShader.get();
-
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
 
-        shaderPtr->ID = newID;
-        shaderPtr->shaderPath = std::move(shaderPath);
-        shaderPtr->shaderData = std::move(shaderData);
-
-        string err = registry.AddContent(newID, std::move(newShader));
+        ImportShader* shaderPtr{};
+        string err = registry.AddContent(newID, shaderPtr);
         if (!err.empty())
         {
 			KalaGraphicsCore::ForceClose(
 				"KalaGraphics import shader error",
 				"Failed to initialize import shader! Reason: " + err);
         }
+
+        shaderPtr->ID = newID;
+        shaderPtr->shaderPath = std::move(shaderPath);
+        shaderPtr->shaderData = std::move(shaderData);
 
         Log::Print(
 			"Created new import shader '" + to_string(newID) + "'!",
@@ -305,22 +299,20 @@ namespace KalaGraphics::Import
             return nullptr;
         }
 
-        unique_ptr<ImportShader> newShader = make_unique<ImportShader>();
-        ImportShader* shaderPtr = newShader.get();
-
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
 
-        shaderPtr->ID = newID;
-        shaderPtr->shaderData = std::move(shaderData);
-
-        string err = registry.AddContent(newID, std::move(newShader));
+        ImportShader* shaderPtr{};
+        string err = registry.AddContent(newID, shaderPtr);
         if (!err.empty())
         {
 			KalaGraphicsCore::ForceClose(
 				"KalaGraphics import shader error",
 				"Failed to initialize import shader! Reason: " + err);
         }
+
+        shaderPtr->ID = newID;
+        shaderPtr->shaderData = std::move(shaderData);
 
         Log::Print(
 			"Created new import shader '" + to_string(newID) + "' from binary data!",

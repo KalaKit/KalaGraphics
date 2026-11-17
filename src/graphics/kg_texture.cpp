@@ -3,8 +3,6 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#include <memory>
-
 #include "core/kg_core.hpp"
 
 #include "vulkan/vulkan_core.h"
@@ -32,8 +30,6 @@ using KalaGraphics::Graphics::TextureWrapMode;
 using KalaGraphics::Graphics::TextureBorderColor;
 
 using std::to_string;
-using std::unique_ptr;
-using std::make_unique;
 
 static bool isVerboseLoggingEnabled{};
 
@@ -195,11 +191,17 @@ namespace KalaGraphics::Graphics
             return nullptr;
         }
 
-        unique_ptr<Texture> newTexture = make_unique<Texture>();
-        Texture* texPtr = newTexture.get();
-
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
+
+        Texture* texPtr{};
+        err = registry.AddContent(newID, texPtr);
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics texture error",
+				"Failed to initialize texture! Reason: " + err);
+        }
 
         texPtr->ID = newID;
         texPtr->shaderID = shaderID;
@@ -222,14 +224,6 @@ namespace KalaGraphics::Graphics
         texPtr->SetDepth(textureData.depth);
         texPtr->SetLayerCount(textureData.layerCount);
         texPtr->SetMipMapCount(textureData.mipMapCount);
-
-        err = registry.AddContent(newID, std::move(newTexture));
-        if (!err.empty())
-        {
-			KalaGraphicsCore::ForceClose(
-				"KalaGraphics texture error",
-				"Failed to initialize texture! Reason: " + err);
-        }
 
         Log::Print(
 			"Created new texture '" + to_string(newID) 

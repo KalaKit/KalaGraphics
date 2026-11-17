@@ -3,8 +3,6 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#include <memory>
-
 #include "vulkan/vulkan_core.h"
 
 #include "log_utils.hpp"
@@ -14,6 +12,7 @@
 #include "graphics/kg_shader.hpp"
 #include "graphics/kg_viewport.hpp"
 #include "graphics/kg_texture.hpp"
+#include "widgets/kg_text.hpp"
 #include "core/kg_core.hpp"
 
 using KalaHeaders::KalaLog::Log;
@@ -26,9 +25,8 @@ using KalaGraphics::Graphics::Mesh;
 using KalaGraphics::Graphics::Shader;
 using KalaGraphics::Graphics::Viewport;
 using KalaGraphics::Graphics::Texture;
+using KalaGraphics::Widgets::Text;
 
-using std::unique_ptr;
-using std::make_unique;
 using std::string;
 using std::to_string;
 using std::clamp;
@@ -68,11 +66,17 @@ namespace KalaGraphics::Graphics
                 + "' root texture '" + to_string(shader->rootTextureID) + "' was invalid!");
         }
 
-        unique_ptr<Material> newMat = make_unique<Material>();
-        Material* matPtr = newMat.get();
-
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
+
+        Material* matPtr{};
+        err = registry.AddContent(newID, matPtr);
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics material error",
+				"Failed to initialize material! Reason: " + err);
+        }
 
         matPtr->ID = newID;
 
@@ -95,14 +99,6 @@ namespace KalaGraphics::Graphics
         matPtr->pbrData.normalTextureID            = shader->rootTextureID;
         matPtr->pbrData.occlusionTextureID         = shader->rootTextureID;
         matPtr->pbrData.emissiveTextureID          = shader->rootTextureID;
-
-        err = registry.AddContent(newID, std::move(newMat));
-        if (!err.empty())
-        {
-			KalaGraphicsCore::ForceClose(
-				"KalaGraphics material error",
-				"Failed to initialize material! Reason: " + err);
-        }
 
         Log::Print(
             "Created new material '" + to_string(newID) + "' for shader '" + to_string(shaderID) + "'!",
@@ -861,7 +857,20 @@ namespace KalaGraphics::Graphics
             if (!rootMat
                 || rootMatID == 0)
             {
-                mesh->Destroy();
+                if (mesh->textWidgetID != 0)
+                {
+                    Text* t{};
+                    string err = Text::GetRegistry().GetContent(mesh->textWidgetID, t);
+                    if (!err.empty())
+                    {
+                        KalaGraphicsCore::ForceClose(
+                            "KalaGraphics material error",
+                            "Failed to destroy material '" + to_string(ID) 
+                            + "' because its mesh '" + to_string(mesh->ID) + "' text widget was invalid! Reason: " + err);
+                    }
+                    t->Destroy();
+                }
+                else mesh->Destroy();
             }
             //update mesh material to root material because it still exists
             else

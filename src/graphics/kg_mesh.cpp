@@ -3,8 +3,6 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#include <memory>
-
 #include "core/kg_core.hpp"
 
 #include "vulkan/vulkan_core.h"
@@ -36,8 +34,6 @@ using KalaHeaders::KalaMath::SizeTarget;
 using KalaGraphics::Core::KalaGraphicsCore;
 
 using std::to_string;
-using std::unique_ptr;
-using std::make_unique;
 using std::swap;
 
 static bool isVerboseLoggingEnabled{};
@@ -938,11 +934,17 @@ namespace KalaGraphics::Graphics
             return nullptr;
         }
 
-        unique_ptr<Mesh> newMesh = make_unique<Mesh>();
-        Mesh* meshPtr = newMesh.get();
-
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
+
+        Mesh* meshPtr{};
+        err = registry.AddContent(newID, meshPtr);
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics mesh error",
+				"Failed to initialize mesh! Reason: " + err);
+        }
 
         meshPtr->ID = newID;
         meshPtr->materialID = materialID;
@@ -989,14 +991,6 @@ namespace KalaGraphics::Graphics
 
             meshPtr->isMeshDataDirty = true;
             vp->is2DMeshSortDirty = true;
-        }
-
-        err = registry.AddContent(newID, std::move(newMesh));
-        if (!err.empty())
-        {
-			KalaGraphicsCore::ForceClose(
-				"KalaGraphics mesh error",
-				"Failed to initialize mesh! Reason: " + err);
         }
 
         Texture* rootTex{};

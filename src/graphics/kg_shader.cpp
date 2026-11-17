@@ -3,10 +3,10 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#include <memory>
 #include <vector>
 #include <unordered_map>
 #include <array>
+#include <memory>
 
 #include "vulkan/vulkan_core.h"
 #include "spirv_reflect.h"
@@ -42,8 +42,6 @@ using KalaGraphics::Graphics::Vertex2D;
 using KalaGraphics::Graphics::TextureFilterMode;
 using KalaGraphics::Widgets::Text;
 
-using std::unique_ptr;
-using std::make_unique;
 using std::to_string;
 using std::vector;
 using std::unordered_map;
@@ -53,34 +51,35 @@ using std::string_view;
 using std::map;
 using std::pair;
 using std::make_pair;
-using std::filesystem::absolute;
+using std::unique_ptr;
+using std::make_unique;
 
-    //Pixel data for a fallback 16x16 sized checkerboard texture with pink and black tiles
-    static constexpr array<u8, 16 * 16 * 4> FALLBACK_TEXTURE = []
+//Pixel data for a fallback 16x16 sized checkerboard texture with pink and black tiles
+static constexpr array<u8, 16 * 16 * 4> FALLBACK_TEXTURE = []
+{
+    array<u8, 16 * 16 * 4> data{};
+
+    constexpr u8 pink[4] = { 255, 0, 255, 255 };
+    constexpr u8 black[4] = { 0, 0, 0, 255 };
+
+    for (int y = 0; y < 16; ++y)
     {
-        array<u8, 16 * 16 * 4> data{};
-    
-        constexpr u8 pink[4] = { 255, 0, 255, 255 };
-        constexpr u8 black[4] = { 0, 0, 0, 255 };
-
-        for (int y = 0; y < 16; ++y)
+        for (int x = 0; x < 16; ++x)
         {
-            for (int x = 0; x < 16; ++x)
-            {
-                //2x2 tile index: flips every 2 pixels in each axis
-                bool tileParity = ((x / 2) + (y / 2)) % 2 == 0;
-                const u8* color = tileParity ? pink : black;
+            //2x2 tile index: flips every 2 pixels in each axis
+            bool tileParity = ((x / 2) + (y / 2)) % 2 == 0;
+            const u8* color = tileParity ? pink : black;
 
-                int pixelIndex = (y * 16 + x) * 4;
-                data[pixelIndex + 0] = color[0];
-                data[pixelIndex + 1] = color[1];
-                data[pixelIndex + 2] = color[2];
-                data[pixelIndex + 3] = color[3];
-            }
+            int pixelIndex = (y * 16 + x) * 4;
+            data[pixelIndex + 0] = color[0];
+            data[pixelIndex + 1] = color[1];
+            data[pixelIndex + 2] = color[2];
+            data[pixelIndex + 3] = color[3];
         }
+    }
 
-        return data;
-    }();
+    return data;
+}();
 
 struct ShaderModule
 {
@@ -994,11 +993,17 @@ namespace KalaGraphics::Graphics
         // FINISH
         //
 
-        unique_ptr<Shader> newShader = make_unique<Shader>();
-        Shader* shaderPtr = newShader.get();
-
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
+
+        Shader* shaderPtr{};
+        err = registry.AddContent(newID, shaderPtr);
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics shader error",
+				"Failed to initialize shader! Reason: " + err);
+        }
 
         shaderPtr->ID = newID;
         shaderPtr->is2D = is2D;
@@ -1012,14 +1017,6 @@ namespace KalaGraphics::Graphics
 
         shaderPtr->is2D = is2D;
         shaderPtr->viewportID = viewportID;
-
-        err = registry.AddContent(newID, std::move(newShader));
-        if (!err.empty())
-        {
-			KalaGraphicsCore::ForceClose(
-				"KalaGraphics shader error",
-				"Failed to initialize shader! Reason: " + err);
-        }
 
         Texture* fallbackTexture = Texture::Initialize(
             shaderPtr->ID,
@@ -1203,11 +1200,19 @@ namespace KalaGraphics::Graphics
         }
         textureIDs.clear();
 
-        for (u32 mID : materialIDs)
+        vector<u32> materialIDsCopy = materialIDs;
+        for (u32 mID : materialIDsCopy)
         {
             Material* m{};
             string err = Material::GetRegistry().GetContent(mID, m);
-            if (err.empty()) m->shaderID = 0;
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics shader error",
+                    "Failed to destroy shader '" + to_string(ID) 
+                    + "' because its material was invalid! Reason: " + err);
+            }
+            m->Destroy();
         }
         materialIDs.clear();
 

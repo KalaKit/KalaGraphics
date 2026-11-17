@@ -7,7 +7,6 @@
 #include <unordered_map>
 #include <vector>
 #include <array>
-#include <memory>
 #include <mutex>
 #include <shared_mutex>
 
@@ -89,8 +88,6 @@ using std::unordered_map;
 using std::vector;
 using std::array;
 using std::clamp;
-using std::unique_ptr;
-using std::make_unique;
 
 static constexpr array<const char*, 2> DEVICE_EXTENSIONS =
 {
@@ -954,11 +951,17 @@ namespace KalaGraphics::Graphics
         }
 #endif
 
-        unique_ptr<GraphicsContext> newContext = make_unique<GraphicsContext>();
-        GraphicsContext* contextPtr = newContext.get();
-
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
+
+        GraphicsContext* contextPtr{};
+        string err = registry.AddContent(newID, contextPtr);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics context error",
+                "Failed to initialize graphics context! Reason: " + err);
+        }
 
         contextPtr->ID = newID;
         contextPtr->contextData = std::move(in_context);
@@ -967,14 +970,6 @@ namespace KalaGraphics::Graphics
 
         contextPtr->InitializeVulkanContext();
         contextPtr->oldRenderSize = contextPtr->renderSize; //ensure old render size is same as new render size during initial init
-
-        string err = registry.AddContent(newID, std::move(newContext));
-        if (!err.empty())
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics context error",
-                "Failed to initialize graphics context! Reason: " + err);
-        }
 
         Viewport* vp = Viewport::Initialize(newID);
         vp->viewportDynamicSize = contextPtr->renderSize;

@@ -3,8 +3,6 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#include <memory>
-
 #include "lodepng.h"
 
 #include "log_utils.hpp"
@@ -28,8 +26,6 @@ using std::string;
 using std::string_view;
 using std::to_string;
 using std::vector;
-using std::unique_ptr;
-using std::make_unique;
 using std::filesystem::path;
     
 static constexpr string_view EXT_PNG = ".png";
@@ -112,23 +108,21 @@ namespace KalaGraphics::Import
             return nullptr;
         }
 
-        unique_ptr<ImportTexture> newTex = make_unique<ImportTexture>();
-        ImportTexture* texPtr = newTex.get();
-
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
 
-        texPtr->ID = newID;
-        texPtr->texturePath = std::move(texturePath);
-        texPtr->textureData = std::move(textureData);
-
-        string err = registry.AddContent(newID, std::move(newTex));
+        ImportTexture* texPtr{};
+        string err = registry.AddContent(newID, texPtr);
         if (!err.empty())
         {
 			KalaGraphicsCore::ForceClose(
 				"KalaGraphics import texture error",
 				"Failed to initialize import texture! Reason: " + err);
         }
+
+        texPtr->ID = newID;
+        texPtr->texturePath = std::move(texturePath);
+        texPtr->textureData = std::move(textureData);
 
         Log::Print(
 			"Created new import texture '" + to_string(newID) 
@@ -167,22 +161,20 @@ namespace KalaGraphics::Import
             return nullptr;
         }
 
-        unique_ptr<ImportTexture> newTex = make_unique<ImportTexture>();
-        ImportTexture* texPtr = newTex.get();
-
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
 
-        texPtr->ID = newID;
-        texPtr->textureData = std::move(textureData);
-
-        string err = registry.AddContent(newID, std::move(newTex));
+        ImportTexture* texPtr{};
+        string err = registry.AddContent(newID, texPtr);
         if (!err.empty())
         {
 			KalaGraphicsCore::ForceClose(
 				"KalaGraphics import texture error",
 				"Failed to initialize import texture! Reason: " + err);
         }
+
+        texPtr->ID = newID;
+        texPtr->textureData = std::move(textureData);
 
         Log::Print(
 			"Created new import texture '" + to_string(newID) + "' from binary data!",

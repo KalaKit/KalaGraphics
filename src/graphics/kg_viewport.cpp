@@ -4,7 +4,6 @@
 //Read LICENSE.md for more information.
 
 #include <unordered_map>
-#include <memory>
 
 #include "vulkan/vulkan_core.h"
 
@@ -35,11 +34,6 @@ using KalaHeaders::KalaMath::isnear;
 using KalaHeaders::KalaMath::PosTarget;
 
 using KalaGraphics::Graphics::ViewportStaticSize;
-using KalaGraphics::Graphics::RootShader;
-using KalaGraphics::Graphics::RootShaderType;
-using KalaGraphics::Graphics::RootShaderTarget;
-using KalaGraphics::Graphics::AlphaMode;
-using KalaGraphics::Graphics::CameraType;
 using KalaGraphics::Widgets::Text;
 
 using std::string_view;
@@ -50,8 +44,6 @@ using std::min;
 using std::find_if;
 using std::filesystem::path;
 using std::filesystem::recursive_directory_iterator;
-using std::unique_ptr;
-using std::make_unique;
 
 static constexpr string_view ROOT_SHADER_VERT_UNLIT = "unlit_vert.spv";
 static constexpr string_view ROOT_SHADER_VERT_RECT = "ui_rect_vert.spv";
@@ -204,11 +196,17 @@ namespace KalaGraphics::Graphics
             return nullptr;
         }
 
-        unique_ptr<Viewport> newVP = make_unique<Viewport>();
-        Viewport* vpPtr = newVP.get();
-
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
+
+        Viewport* vpPtr{};
+        err = registry.AddContent(newID, vpPtr);
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics viewport error",
+				"Failed to initialize viewport! Reason: " + err);
+        }
 
         vpPtr->ID = newID;
 
@@ -222,14 +220,6 @@ namespace KalaGraphics::Graphics
             vpPtr->isRootViewport = true;
         }
         else gctx->extraViewportIDs.push_back(newID);
-
-        err = registry.AddContent(newID, std::move(newVP));
-        if (!err.empty())
-        {
-			KalaGraphicsCore::ForceClose(
-				"KalaGraphics viewport error",
-				"Failed to initialize viewport! Reason: " + err);
-        }
 
         //
         // CREATE ROOT SHADERS
@@ -463,6 +453,42 @@ namespace KalaGraphics::Graphics
                     true);
             }
         }
+
+        //
+        // CREATE ROOT MATERIALS
+        //
+
+        auto init_material = [
+            &vpPtr,
+            contextID](RootShaderTarget target) -> u32
+            {
+                Material* mat = Material::Initialize(vpPtr->GetRootShaderID(target));
+                if (!mat)
+                {
+                    KalaGraphicsCore::ForceClose(
+                        "KalaGraphics viewport error",
+                        "Failed to initialize viewport for graphics context '" + to_string(contextID) 
+                        + "' because material for root shader target '" + to_string(scast<u8>(target)) + "' couldn't be initialized!");
+                }
+
+                return mat->GetID();
+            };
+
+        vpPtr->rootMaterialTable = 
+        {{
+            {
+                    .shaderTarget = RootShaderTarget::UNLIT,
+                    .materialID = init_material(RootShaderTarget::UNLIT)
+                },
+            {
+                    .shaderTarget = RootShaderTarget::RECT,
+                    .materialID = init_material(RootShaderTarget::RECT)
+                },
+            {
+                    .shaderTarget = RootShaderTarget::FONT,
+                    .materialID = init_material(RootShaderTarget::FONT)
+                }
+        }};
 
         //
         // CREATE PRIMARY CAMERAS

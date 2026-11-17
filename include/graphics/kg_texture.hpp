@@ -48,7 +48,6 @@ namespace KalaGraphics::Graphics
     using std::vector;
     using std::array;
     using std::pair;
-    using std::default_delete;
 
     enum class TexturePixelFormat
     {
@@ -155,7 +154,7 @@ namespace KalaGraphics::Graphics
     friend class Mesh;
     friend class Material;
     friend class KalaGraphics::Widgets::Text;
-    friend struct default_delete<Texture>;
+    friend struct KalaGraphicsRegistry<Texture>;
     public:
         KNODISCARD
 		static KalaGraphicsRegistry<Texture>& GetRegistry();

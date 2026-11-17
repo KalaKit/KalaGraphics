@@ -3,8 +3,6 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#include <memory>
-
 #include "core_utils.hpp"
 #include "log_utils.hpp"
 #include "key_standards.hpp"
@@ -52,8 +50,6 @@ using KalaGraphics::Graphics::Mesh;
 using std::string;
 using std::string_view;
 using std::to_string;
-using std::unique_ptr;
-using std::make_unique;
 using std::min;
 using std::max;
 using std::clamp;
@@ -188,7 +184,15 @@ namespace KalaGraphics::Widgets
             return {};
         }
 
-        Mesh* mesh = Mesh::Initialize(shader->GetID());
+        Material* mat = Material::Initialize(shader->ID);
+        if (!mat)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics text widget error",
+                "Failed to initialize text widget because its material couldn't be initialized!");
+        }
+
+        Mesh* mesh = Mesh::Initialize(mat->GetID());
         if (!mesh)
         {
             Log::Print(
@@ -200,24 +204,21 @@ namespace KalaGraphics::Widgets
             return {};
         }
 
-        Material* mat{};
-        err = Material::GetRegistry().GetContent(mesh->GetMaterialID(), mat);
-        if (!err.empty())
-        {
-            KalaGraphicsCore::ForceClose(
-                "KalaGraphics text widget error",
-                "Failed to initialize text widget because its mesh material was invalid! Reason: " + err);
-        }
-
         mat->SetMaterial2DType(MaterialType2D::FONT);
         mat->SetBaseColorTextureID(tex->GetID());
         mat->SetBaseColor({ vec3{ 0.0f }, 1.0f });
 
-        unique_ptr<Text> newText = make_unique<Text>();
-        Text* textPtr = newText.get();
-
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
+
+        Text* textPtr{};
+        err = registry.AddContent(newID, textPtr);
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics text widget error",
+				"Failed to initialize text widget! Reason: " + err);
+        }
 
         textPtr->ID = newID;
         textPtr->fontID = fontID;
@@ -228,14 +229,6 @@ namespace KalaGraphics::Widgets
         tex->textWidgetID = newID;
         mesh->textWidgetID = newID;
         shader->textWidgetIDs.push_back(newID);
-
-        err = registry.AddContent(newID, std::move(newText));
-        if (!err.empty())
-        {
-			KalaGraphicsCore::ForceClose(
-				"KalaGraphics text widget error",
-				"Failed to initialize text widget! Reason: " + err);
-        }
 
         Log::Print(
 			"Created new text widget '" + to_string(newID) + "'!",

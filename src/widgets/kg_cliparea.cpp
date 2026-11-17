@@ -3,8 +3,6 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#include <memory>
-
 #include "log_utils.hpp"
 
 #include "widgets/kg_cliparea.hpp"
@@ -17,8 +15,6 @@ using KalaGraphics::Core::KalaGraphicsCore;
 
 using std::string;
 using std::to_string;
-using std::unique_ptr;
-using std::make_unique;
 
 namespace KalaGraphics::Widgets
 {
@@ -28,21 +24,20 @@ namespace KalaGraphics::Widgets
 
     ClipArea* ClipArea::Initialize()
     {
-        unique_ptr<ClipArea> newText = make_unique<ClipArea>();
-        ClipArea* textPtr = newText.get();
 
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
 
-        textPtr->ID = newID;
-
-        string err = registry.AddContent(newID, std::move(newText));
+        ClipArea* textPtr{};
+        string err = registry.AddContent(newID, textPtr);
         if (!err.empty())
         {
 			KalaGraphicsCore::ForceClose(
 				"KalaGraphics clip area error",
 				"Failed to initialize clip area! Reason: " + err);
         }
+
+        textPtr->ID = newID;
 
         Log::Print(
 			"Created new clip area '" + to_string(newID) + "'!",

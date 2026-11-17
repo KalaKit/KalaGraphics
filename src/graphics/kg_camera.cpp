@@ -3,8 +3,6 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#include <memory>
-
 #include "core/kg_core.hpp"
 
 #include "vulkan/vulkan_core.h"
@@ -31,8 +29,6 @@ using KalaHeaders::KalaMath::ortho;
 using KalaHeaders::KalaMath::perspective;
 using KalaHeaders::KalaMath::isnear;
 
-using std::unique_ptr;
-using std::make_unique;
 using std::to_string;
 using std::clamp;
 
@@ -99,11 +95,17 @@ namespace KalaGraphics::Graphics
             return nullptr;
         }
 
-        unique_ptr<Camera> newCamera = make_unique<Camera>();
-        Camera* cameraPtr = newCamera.get();
-
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
+
+        Camera* cameraPtr{};
+        err = registry.AddContent(newID, cameraPtr);
+        if (!err.empty())
+        {
+			KalaGraphicsCore::ForceClose(
+				"KalaGraphics camera error",
+				"Failed to initialize camera! Reason: " + err);
+        }
 
         cameraPtr->ID = newID;
         cameraPtr->shaderID = shaderID;
@@ -138,14 +140,6 @@ namespace KalaGraphics::Graphics
         //blank data for empty camera,
         //move also calls UpdateCameraData
         cameraPtr->Move({}, {});
-
-        err = registry.AddContent(newID, std::move(newCamera));
-        if (!err.empty())
-        {
-			KalaGraphicsCore::ForceClose(
-				"KalaGraphics camera error",
-				"Failed to initialize camera! Reason: " + err);
-        }
 
         Log::Print(
 			"Created new camera '" + to_string(newID) 

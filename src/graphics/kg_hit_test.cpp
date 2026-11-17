@@ -3,8 +3,6 @@
 //This is free software, and you are welcome to redistribute it under certain conditions.
 //Read LICENSE.md for more information.
 
-#include <memory>
-
 #include "log_utils.hpp"
 
 #include "graphics/kg_hit_test.hpp"
@@ -23,9 +21,6 @@ using KalaHeaders::KalaMath::RotTarget;
 using KalaHeaders::KalaMath::SizeTarget;
 using KalaHeaders::KalaMath::Transform2D;
 
-using std::unique_ptr;
-using std::make_unique;
-
 namespace KalaGraphics::Graphics
 {
     static KalaGraphicsRegistry<HitTest> registry{};
@@ -37,24 +32,22 @@ namespace KalaGraphics::Graphics
         GraphicsContext* gctx{};
         string err = GraphicsContext::GetRegistry().GetContent(contextID, gctx);
 
-        unique_ptr<HitTest> newHT = make_unique<HitTest>();
-        HitTest* htPtr = newHT.get();
-
         u32 newID = KalaGraphicsCore::GetGlobalID() + 1;
         KalaGraphicsCore::SetGlobalID(newID);
 
-        htPtr->ID = newID;
-
-        htPtr->contextID = contextID;
-        gctx->hitTestID = newID;
-
-        err = registry.AddContent(newID, std::move(newHT));
+        HitTest* htPtr{};
+        err = registry.AddContent(newID, htPtr);
         if (!err.empty())
         {
 			KalaGraphicsCore::ForceClose(
 				"KalaGraphics hit test error",
 				"Failed to initialize hit test! Reason: " + err);
         }
+
+        htPtr->ID = newID;
+
+        htPtr->contextID = contextID;
+        gctx->hitTestID = newID;
 
         Log::Print(
             "Created new hit test '" + to_string(newID) + "'!",
