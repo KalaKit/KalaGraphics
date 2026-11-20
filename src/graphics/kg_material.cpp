@@ -533,7 +533,7 @@ namespace KalaGraphics::Graphics
             LogType::LOG_SUCCESS);
     }
 
-    u32 Material::GetBaseColorTextureID() const
+    u32 Material::GetBaseColorTextureID()
     {
         Shader* s{};
         string err = Shader::GetRegistry().GetContent(shaderID, s);
@@ -545,30 +545,68 @@ namespace KalaGraphics::Graphics
                 + "' base color texture ID because its shader was invalid! Reason: " + err);
         }
 
-        if (!s->is2D)
-        {
-            switch (material3DType)
+        auto get_target_texture_id = [&](u32*& outOrigin) -> u32
             {
-            default:
-            case MaterialType3D::UNLIT:
-                return unlitData.baseColorTextureID;
-            case MaterialType3D::BLINN_PHONG:
-                return blinnPhongData.baseColorTextureID;
-            case MaterialType3D::PBR:
-                return pbrData.baseColorTextureID;
-            }
-        }
-        else
+                if (!s->is2D)
+                {
+                    switch (material3DType)
+                    {
+                    default:
+                    case MaterialType3D::UNLIT:
+                        outOrigin = &unlitData.baseColorTextureID;
+                        return unlitData.baseColorTextureID;
+                    case MaterialType3D::BLINN_PHONG:
+                        outOrigin = &blinnPhongData.baseColorTextureID;
+                        return blinnPhongData.baseColorTextureID;
+                    case MaterialType3D::PBR:
+                        outOrigin = &pbrData.baseColorTextureID;
+                        return pbrData.baseColorTextureID;
+                    }
+                }
+                else
+                {
+                    switch (material2DType)
+                    {
+                    default:
+                    case MaterialType2D::RECT:
+                        outOrigin = &rectData.baseColorTextureID;
+                        return rectData.baseColorTextureID;
+                    case MaterialType2D::FONT:
+                        outOrigin = &fontData.baseColorTextureID;
+                        return fontData.baseColorTextureID;
+                    }
+                }
+            };
+
+        u32* originID{};
+        u32 targetTextureID = get_target_texture_id(originID);
+
+        Texture* tex{};
+        err = Texture::GetRegistry().GetContent(targetTextureID, tex);
+        if (!err.empty())
         {
-            switch (material2DType)
+            Log::Print(
+                "Failed to get material '" + to_string(ID) + "' base color texture ID "
+                "because the texture ID was invalid! Using fallback texture. Reason: " + err,
+                "KG_MATERIAL",
+                LogType::LOG_WARNING);
+
+            
+
+            err = Texture::GetRegistry().GetContent(s->GetFallbackTextureID(), tex);
+            if (!err.empty())
             {
-            default:
-            case MaterialType2D::RECT:
-                return rectData.baseColorTextureID;
-            case MaterialType2D::FONT:
-                return fontData.baseColorTextureID;
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics material error",
+                    "Failed to get material '" + to_string(ID) + "' base color texture ID "
+                    "because fallback for invalid stored texture was invalid! Reason: " + err);
             }
+
+            *originID = tex->ID;
+            targetTextureID = tex->ID;
         }
+        
+        return targetTextureID;
     }
     void Material::SetBaseColorTextureID(u32 newValue)
     {

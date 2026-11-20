@@ -1252,8 +1252,11 @@ namespace KalaGraphics::Graphics
                     + "' because its material was invalid! Reason: " + err);
             }
 
-            if (mat->GetAlphaMode() == AlphaMode::TYPE_OPAQUE) opaqueMeshes.push_back(m);
-            else                                          transparentMeshes.push_back(m);
+            if (mat->GetAlphaMode() == AlphaMode::TYPE_OPAQUE)
+            {
+                opaqueMeshes.push_back(m);
+            }
+            else transparentMeshes.push_back(m);
         }
 
         if (transparentMeshes.size() > 1)

@@ -175,7 +175,7 @@ namespace KalaGraphics::Graphics
         void SetAlphaCutoff(f32 newValue);
 
         KNODISCARD
-        u32 GetBaseColorTextureID() const;
+        u32 GetBaseColorTextureID();
         void SetBaseColorTextureID(u32 newValue);
 
         void Destroy();

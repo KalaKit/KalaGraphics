@@ -254,7 +254,9 @@ namespace KalaGraphics::Graphics
         u32 ID{};
         u32 shaderID{};
 
-        //materials that contain this texture
+        //materials that contain this texture.
+        //the vector contains pairs where each pair first is the material ID
+        //and the second is an array of used state and each texture type
         vector<pair<u32, array<bool, 11>>> materialIDs{};
 
         u32 textWidgetID{};

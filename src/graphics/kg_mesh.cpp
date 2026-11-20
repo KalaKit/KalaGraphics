@@ -1077,14 +1077,12 @@ namespace KalaGraphics::Graphics
         {
             KalaGraphicsCore::ForceClose(
                 "KalaGraphics mesh error",
-                "Failed to set mesh '" + to_string(ID) + "' material ID "
-                "because its old shader was invalid! Reason: " + err);
+                "Failed to set mesh '" + to_string(ID) 
+                + "' material ID because old material shader was invalid! Reason: " + err);
         }
 
         Material* newMat{};
-
-        Shader* newShader{};
-        err = Shader::GetRegistry().GetContent(newValue, newShader);
+        err = Material::GetRegistry().GetContent(newValue, newMat);
         if (!err.empty())
         {
             Log::Print(
@@ -1094,6 +1092,16 @@ namespace KalaGraphics::Graphics
                 LogType::LOG_WARNING);
 
             return;
+        }
+
+        Shader* newShader{};
+        err = Shader::GetRegistry().GetContent(newMat->shaderID, newShader);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to set mesh '" + to_string(ID) 
+                + "' material ID because its shader was invalid! Reason: " + err);
         }
 
         if (newShader->is2D != is2D)
@@ -1108,73 +1116,12 @@ namespace KalaGraphics::Graphics
             return;
         }
 
-        Texture* rootTex{};
-        err = Texture::GetRegistry().GetContent(newShader->rootTextureID, rootTex);
-        if (!err.empty())
-        {
-			KalaGraphicsCore::ForceClose(
-				"KalaGraphics mesh error",
-				"Failed to update mesh '" + to_string(ID) + "' shader ID because new shader '" 
-                + to_string(newShader->ID) + "' root texture was invalid! Reason: " + err);
-        }
-
         materialID = newValue;
 
         erase(
             oldMat->meshIDs,
             ID);
         newMat->meshIDs.push_back(ID);
-
-        vector<u32*> textureIDs
-        {
-            //rect
-            &newMat->rectData.baseColorTextureID,
-            //font
-            &newMat->fontData.baseColorTextureID,
-            //unlit
-            &newMat->unlitData.baseColorTextureID,
-            //blinn-phong
-            &newMat->blinnPhongData.baseColorTextureID,
-            &newMat->blinnPhongData.specularTextureID,
-            &newMat->blinnPhongData.normalTextureID,
-            //pbr
-            &newMat->pbrData.baseColorTextureID,
-            &newMat->pbrData.metallicRoughnessTextureID,
-            &newMat->pbrData.normalTextureID,
-            &newMat->pbrData.occlusionTextureID,
-            &newMat->pbrData.emissiveTextureID
-        };
-
-        for (size_t i = 0; i < textureIDs.size(); i++)
-        {
-            u32* tex = textureIDs[i];
-
-            Texture* oldTex{};
-            string err = Texture::GetRegistry().GetContent(*tex, oldTex);
-            if (!err.empty())
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics mesh error",
-                    "Failed to set shader ID for mesh '" 
-                    + to_string(ID) + "' because its material old texture was invalid! Reason: " + err);
-            }
-
-            for (auto it = oldTex->materialIDs.begin(); it != oldTex->materialIDs.end(); ++it)
-            {
-                if (it->first == ID)
-                {
-                    oldTex->materialIDs.erase(it);
-                    break;
-                }
-            }
-        }
-
-        for (u32* tex : textureIDs) *tex = newShader->rootTextureID;
-
-        pair<u32, array<bool, 11>> matPair{};
-        matPair.first = newMat->ID;
-        matPair.second.fill(true);
-        rootTex->materialIDs.push_back(matPair);
 
         Log::Print(
             "Set mesh '" + to_string(ID) 
