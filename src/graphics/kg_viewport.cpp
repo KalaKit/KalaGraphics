@@ -1757,6 +1757,77 @@ namespace KalaGraphics::Graphics
                 }
                 else
                 {
+                    vector<Mesh*> anchorOrder{};
+
+                    //TODO: figure out if guarding with dirty flag is necessary for performance
+                    auto resolve_anchor_order = [&](
+                        auto&& self, 
+                        Mesh* mesh, 
+                        vector<Mesh*>& chain) -> void
+                        {
+                            if (find(
+                                chain.begin(), 
+                                chain.end(), 
+                                mesh) 
+                                != chain.end())
+                            {
+                                KalaGraphicsCore::ForceClose(
+                                    "KalaGraphics Viewport error",
+                                    "Failed to resolve anchor order because mesh '" 
+                                    + to_string(mesh->ID) + "' was found more than once!");
+                            }
+
+                            if (find(
+                                anchorOrder.begin(), 
+                                anchorOrder.end(), 
+                                mesh) 
+                                != anchorOrder.end())
+                            {
+                                return;
+                            }
+
+                            chain.push_back(mesh);
+
+                            if (mesh->targetAnchorID != 0)
+                            {
+                                Mesh* target{};
+                                string err = Mesh::GetRegistry().GetContent(mesh->targetAnchorID, target);
+                                if (!err.empty())
+                                {
+                                    KalaGraphicsCore::ForceClose(
+                                        "KalaGraphics Viewport error",
+                                        "Failed to get target anchor for mesh '" 
+                                        + to_string(mesh->ID) + "'! Reason: " + err);
+                                }
+
+                                self(self, target, chain);
+                            }
+
+                            chain.pop_back();
+                            anchorOrder.push_back(mesh);
+                        };
+
+                    for (u32 meshID : sorted2DMeshes)
+                    {
+                        Mesh* mesh{};
+                        string err = Mesh::GetRegistry().GetContent(meshID, mesh);
+                        if (!err.empty())
+                        {
+                            KalaGraphicsCore::ForceClose(
+                                "KalaGraphics Viewport error",
+                                "Failed to get mesh to check its target anchor "
+                                "because it was invalid! Reason: " + err);
+                        }
+
+                        vector<Mesh*> chain{};
+                        resolve_anchor_order(
+                            resolve_anchor_order,
+                            mesh,
+                            chain);
+                    }
+
+                    for (Mesh* mesh : anchorOrder) mesh->ResolveAnchors();
+
                     for (u32 meshID : sorted2DMeshes) render_mesh(meshID);
                 }
             };

@@ -1780,6 +1780,242 @@ namespace KalaGraphics::Graphics
         scrollDownCallback = { requireHover, std::move(newValue) };
     }
 
+    void Mesh::ResolveAnchors()
+    {
+        if (!is2D) return;
+
+        Material* mat{};
+        string err = Material::GetRegistry().GetContent(materialID, mat);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to resolve mesh '" + to_string(ID) + "' anchors "
+                "because its material was invalid! Reason: " + err);
+        }
+
+        Shader* shader{};
+        err = Shader::GetRegistry().GetContent(mat->shaderID, shader);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to resolve mesh '" + to_string(ID) + "' anchors "
+                "because its material '" + to_string(mat->shaderID) + "' shader was invalid! Reason: " + err);
+        }
+
+        Viewport* vp{};
+        err = Viewport::GetRegistry().GetContent(shader->viewportID, vp);
+        if (!err.empty())
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to resolve mesh '" + to_string(ID) + "' anchors "
+                "because its shader '" + to_string(mat->shaderID) + "' viewport was invalid! Reason: " + err);
+        }
+
+        vec2 pos_world = transform2D.getpos(PosTarget::WORLD);
+        vec2 size_world = transform2D.getsize(SizeTarget::WORLD);
+
+        f32 fullWidth = isnear(size_world.x) ? 0 : size_world.x;
+        f32 fullHeight = isnear(size_world.y) ? 0 : size_world.y;
+
+        f32 halfWidth = fullWidth * 0.5f;
+        f32 halfHeight = fullHeight * 0.5f;
+
+        vec2 selfAnchorPos{};
+        switch (selfAnchor)
+        {
+        default:
+        case AnchorPosition::CENTER:
+            break;
+
+        case AnchorPosition::LEFT_CENTER:
+            selfAnchorPos = { -halfWidth, 0.0f };
+            break;
+        case AnchorPosition::RIGHT_CENTER:
+            selfAnchorPos = { halfWidth, 0.0f };
+            break;
+        case AnchorPosition::TOP_CENTER:
+            selfAnchorPos = { 0.0f, halfHeight };
+            break;
+        case AnchorPosition::BOTTOM_CENTER:
+            selfAnchorPos = { 0.0f, -halfHeight };
+            break;
+
+        case AnchorPosition::BOTTOM_LEFT:
+            selfAnchorPos = { -halfWidth, -halfHeight };
+            break;
+        case AnchorPosition::BOTTOM_RIGHT:
+            selfAnchorPos = { halfWidth, -halfHeight };
+            break;
+
+        case AnchorPosition::TOP_LEFT:
+            selfAnchorPos = { -halfWidth, halfHeight };
+            break;
+        case AnchorPosition::TOP_RIGHT:
+            selfAnchorPos = { halfWidth, halfHeight };
+            break;
+        }
+
+        if (targetAnchorID != 0
+            && targetAnchorID != UINT32_MAX
+            && targetAnchor != AnchorPosition::NONE
+            && viewportAnchor != AnchorPosition::NONE)
+        {
+            KalaGraphicsCore::ForceClose(
+                "KalaGraphics mesh error",
+                "Failed to update mesh '" + to_string(ID) + "' data because "
+                "both viewport and target anchor cannot be used at the same time!");
+        }
+
+        vec2 targetAnchorPos{};
+
+        if (targetAnchorID != 0
+            && targetAnchorID != UINT32_MAX)
+        {
+            Mesh* targetMesh{};
+            string err = registry.GetContent(targetAnchorID, targetMesh);
+            if (!err.empty())
+            {
+                KalaGraphicsCore::ForceClose(
+                    "KalaGraphics mesh error",
+                    "Failed to update mesh '" + to_string(ID) + "' data because "
+                    "its target mesh was invalid! Reason: " + err);
+            }
+
+            const vec2 targetPos = targetMesh->finalAnchorPos;
+            const vec2 targetSize = targetMesh->transform2D.getsize(SizeTarget::WORLD);
+
+            f32 targetHalfWidth = targetSize.x * 0.5f;
+            f32 targetHalfHeight = targetSize.y * 0.5f;
+
+            switch (targetAnchor)
+            {
+            default:
+            case AnchorPosition::NONE:
+            case AnchorPosition::CENTER:
+                targetAnchorPos = targetPos;
+                break;
+
+            case AnchorPosition::LEFT_CENTER:
+                targetAnchorPos = targetPos + vec2
+                {
+                    -targetHalfWidth,
+                    0.0f
+                };
+                break;
+            case AnchorPosition::RIGHT_CENTER:
+                targetAnchorPos = targetPos + vec2
+                {
+                    targetHalfWidth,
+                    0.0f
+                };
+                break;
+            case AnchorPosition::TOP_CENTER:
+                targetAnchorPos = targetPos + vec2
+                {
+                    0.0f,
+                    targetHalfHeight
+                };
+                break;
+            case AnchorPosition::BOTTOM_CENTER:
+                targetAnchorPos = targetPos + vec2
+                {
+                    0.0f,
+                    -targetHalfHeight
+                };
+                break;
+
+            case AnchorPosition::BOTTOM_LEFT:
+                targetAnchorPos = targetPos + vec2
+                {
+                    -targetHalfWidth,
+                    -targetHalfHeight
+                };
+                break;
+            case AnchorPosition::BOTTOM_RIGHT:
+                targetAnchorPos = targetPos + vec2
+                {
+                    targetHalfWidth,
+                    -targetHalfHeight
+                };
+                break;
+                
+            case AnchorPosition::TOP_LEFT:
+                targetAnchorPos = targetPos + vec2
+                {
+                    -targetHalfWidth,
+                    targetHalfHeight
+                };
+                break;
+            case AnchorPosition::TOP_RIGHT:
+                targetAnchorPos = targetPos + vec2
+                {
+                    targetHalfWidth,
+                    targetHalfHeight
+                };
+                break;
+            }
+        }
+        else
+        {
+            switch (viewportAnchor)
+            {
+            default:
+            case AnchorPosition::NONE:
+                targetAnchorPos = 0;
+                break;
+
+            case AnchorPosition::LEFT_CENTER:
+                targetAnchorPos = vp->posLeftCenter;
+                break;
+            case AnchorPosition::RIGHT_CENTER:
+                targetAnchorPos = vp->posRightCenter;
+                break;
+            case AnchorPosition::TOP_CENTER:
+                targetAnchorPos = vp->posTopCenter;
+                break;
+            case AnchorPosition::BOTTOM_CENTER:
+                targetAnchorPos = vp->posBottomCenter;
+                break;
+
+            case AnchorPosition::BOTTOM_LEFT:
+                targetAnchorPos = vp->posBottomLeft;
+                break;
+            case AnchorPosition::BOTTOM_RIGHT:
+                targetAnchorPos = vp->posBottomRight;
+                break;
+
+            case AnchorPosition::TOP_LEFT:
+                targetAnchorPos = vp->posTopLeft;
+                break;
+            case AnchorPosition::TOP_RIGHT:
+                targetAnchorPos = vp->posTopRight;
+                break;
+
+            case AnchorPosition::CENTER:
+                targetAnchorPos = vp->posCenter;
+                break;
+            }
+        }
+
+        //stored for hit test
+        finalAnchorPos = pos_world - selfAnchorPos + targetAnchorPos;
+
+        string finalAnchorPosStr = 
+            to_string(finalAnchorPos.x) + ", " +
+            to_string(finalAnchorPos.y);
+
+        /*
+        Log::Print(
+            "@@@@@ resolveanchors final anchor pos (self: " + to_string(ID) 
+            + ", parent: " + to_string(targetAnchorID) + "): " + finalAnchorPosStr,
+            "KG_MESH",
+            LogType::LOG_INFO);
+        */
+    }
+
     void Mesh::UpdateMeshData()
     {
         VkDevice logicalDevice = GraphicsContext::GetLogicalDevice();
@@ -2029,195 +2265,20 @@ namespace KalaGraphics::Graphics
     
         if (is2D)
         {
-            vec2 pos_world = transform2D.getpos(PosTarget::WORLD);
             f32 rot_world = transform2D.getrot(RotTarget::WORLD);
             vec2 size_world = transform2D.getsize(SizeTarget::WORLD);
 
-            f32 fullWidth = isnear(size_world.x) ? 0 : size_world.x;
-            f32 fullHeight = isnear(size_world.y) ? 0 : size_world.y;
+            string finalAnchorPosStr = 
+            to_string(finalAnchorPos.x) + ", " +
+            to_string(finalAnchorPos.y);
 
-            f32 halfWidth = fullWidth * 0.5f;
-            f32 halfHeight = fullHeight * 0.5f;
-
-            vec2 selfAnchorPos{};
-            switch (selfAnchor)
-            {
-            default:
-            case AnchorPosition::CENTER:
-                break;
-
-            case AnchorPosition::LEFT_CENTER:
-                selfAnchorPos = { -halfWidth, 0.0f };
-                break;
-            case AnchorPosition::RIGHT_CENTER:
-                selfAnchorPos = { halfWidth, 0.0f };
-                break;
-            case AnchorPosition::TOP_CENTER:
-                selfAnchorPos = { 0.0f, halfHeight };
-                break;
-            case AnchorPosition::BOTTOM_CENTER:
-                selfAnchorPos = { 0.0f, -halfHeight };
-                break;
-
-            case AnchorPosition::BOTTOM_LEFT:
-                selfAnchorPos = { -halfWidth, -halfHeight };
-                break;
-            case AnchorPosition::BOTTOM_RIGHT:
-                selfAnchorPos = { halfWidth, -halfHeight };
-                break;
-
-            case AnchorPosition::TOP_LEFT:
-                selfAnchorPos = { -halfWidth, halfHeight };
-                break;
-            case AnchorPosition::TOP_RIGHT:
-                selfAnchorPos = { halfWidth, halfHeight };
-                break;
-            }
-
-            if (targetAnchorID != 0
-                && targetAnchorID != UINT32_MAX
-                && targetAnchor != AnchorPosition::NONE
-                && viewportAnchor != AnchorPosition::NONE)
-            {
-                KalaGraphicsCore::ForceClose(
-                    "KalaGraphics mesh error",
-                    "Failed to update mesh '" + to_string(ID) + "' data because "
-                    "both viewport and target anchor cannot be used at the same time!");
-            }
-
-            vec2 targetAnchorPos{};
-
-            if (targetAnchorID != 0
-                && targetAnchorID != UINT32_MAX)
-            {
-                Mesh* targetMesh{};
-                string err = registry.GetContent(targetAnchorID, targetMesh);
-                if (!err.empty())
-                {
-                    KalaGraphicsCore::ForceClose(
-                        "KalaGraphics mesh error",
-                        "Failed to update mesh '" + to_string(ID) + "' data because "
-                        "its target mesh was invalid! Reason: " + err);
-                }
-
-                const vec2 targetPos = targetMesh->finalAnchorPos;
-                const vec2 targetSize = targetMesh->transform2D.getsize(SizeTarget::WORLD);
-
-                f32 targetHalfWidth = targetSize.x * 0.5f;
-                f32 targetHalfHeight = targetSize.y * 0.5f;
-
-                switch (targetAnchor)
-                {
-                default:
-                case AnchorPosition::NONE:
-                case AnchorPosition::CENTER:
-                    targetAnchorPos = targetPos;
-                    break;
-
-                case AnchorPosition::LEFT_CENTER:
-                    targetAnchorPos = targetPos + vec2
-                    {
-                        targetHalfWidth,
-                        0.0f
-                    };
-                    break;
-                case AnchorPosition::RIGHT_CENTER:
-                    targetAnchorPos = targetPos + vec2
-                    {
-                        -targetHalfWidth,
-                        0.0f
-                    };
-                    break;
-                case AnchorPosition::TOP_CENTER:
-                    targetAnchorPos = targetPos + vec2
-                    {
-                        0.0f,
-                        -targetHalfHeight
-                    };
-                    break;
-                case AnchorPosition::BOTTOM_CENTER:
-                    targetAnchorPos = targetPos + vec2
-                    {
-                        0.0f,
-                        targetHalfHeight
-                    };
-                    break;
-
-                case AnchorPosition::BOTTOM_LEFT:
-                    targetAnchorPos = targetPos + vec2
-                    {
-                        targetHalfWidth,
-                        targetHalfHeight
-                    };
-                    break;
-                case AnchorPosition::BOTTOM_RIGHT:
-                    targetAnchorPos = targetPos + vec2
-                    {
-                        -targetHalfWidth,
-                        targetHalfHeight
-                    };
-                    break;
-                    
-                case AnchorPosition::TOP_LEFT:
-                    targetAnchorPos = targetPos + vec2
-                    {
-                        targetHalfWidth,
-                        -targetHalfHeight
-                    };
-                    break;
-                case AnchorPosition::TOP_RIGHT:
-                    targetAnchorPos = targetPos + vec2
-                    {
-                        -targetHalfWidth,
-                        -targetHalfHeight
-                    };
-                    break;
-                }
-            }
-            else
-            {
-                switch (viewportAnchor)
-                {
-                default:
-                case AnchorPosition::NONE:
-                    targetAnchorPos = 0;
-                    break;
-
-                case AnchorPosition::LEFT_CENTER:
-                    targetAnchorPos = vp->posLeftCenter;
-                    break;
-                case AnchorPosition::RIGHT_CENTER:
-                    targetAnchorPos = vp->posRightCenter;
-                    break;
-                case AnchorPosition::TOP_CENTER:
-                    targetAnchorPos = vp->posTopCenter;
-                    break;
-                case AnchorPosition::BOTTOM_CENTER:
-                    targetAnchorPos = vp->posBottomCenter;
-                    break;
-
-                case AnchorPosition::BOTTOM_LEFT:
-                    targetAnchorPos = vp->posBottomLeft;
-                    break;
-                case AnchorPosition::BOTTOM_RIGHT:
-                    targetAnchorPos = vp->posBottomRight;
-                    break;
-
-                case AnchorPosition::TOP_LEFT:
-                    targetAnchorPos = vp->posTopLeft;
-                    break;
-                case AnchorPosition::TOP_RIGHT:
-                    targetAnchorPos = vp->posTopRight;
-                    break;
-
-                case AnchorPosition::CENTER:
-                    targetAnchorPos = vp->posCenter;
-                    break;
-                }
-            }
-
-            //stored for hit test
-            finalAnchorPos = pos_world - selfAnchorPos + targetAnchorPos;
+            /*
+            Log::Print(
+                "@@@@@ updatemeshdata final anchor pos (self: " + to_string(ID) 
+                + ", parent: " + to_string(targetAnchorID) + "): " + finalAnchorPosStr,
+                "KG_MESH",
+                LogType::LOG_INFO);
+            */
 
             meshMatrix = createmodelmatrix(
                 finalAnchorPos, 
